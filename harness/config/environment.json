@@ -27,7 +27,9 @@
     "required": [
       "MYSQL_PASSWORD=root"
     ],
-    "optional": []
+    "optional": [
+      "AIHUB_FILE_BASE_DIR=/Users/kirito/aifiles  # 文件存储根目录，默认 ~/.aifiles"
+    ]
   },
 
   "startup": {

@@ -27,7 +27,8 @@ app:
     access-token-expiration: 900000    # 15 min in ms
     refresh-token-expiration: 604800000 # 7 days in ms
   upload:
-    base-dir: uploads/tools
+    # 文件存储根目录，可通过环境变量 AIHUB_FILE_BASE_DIR 覆盖，默认 ~/.aifiles
+    base-dir: ${AIHUB_FILE_BASE_DIR:}
     max-file-size: 50MB
     max-request-size: 200MB
     allowed-extensions:
