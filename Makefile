@@ -1,4 +1,4 @@
-.PHONY: help backend frontend db init install run stop
+.PHONY: help backend frontend db init install run stop lint lint-arch lint-quality lint-deps
 
 help:
 	@echo "AI 工具广场 - Makefile"
@@ -10,6 +10,12 @@ help:
 	@echo "  make frontend - 启动前端服务 (5173端口)"
 	@echo "  make run      - 同时启动后端和前端"
 	@echo "  make stop     - 停止所有服务"
+	@echo ""
+	@echo "Lint 命令 (Agent 基础设施):"
+	@echo "  make lint         - 运行所有 lint 检查"
+	@echo "  make lint-arch    - 检查架构层级依赖"
+	@echo "  make lint-quality - 检查代码质量"
+	@echo "  make lint-deps    - 检查循环依赖"
 
 db:
 	mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS ai_tool_square CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -74,3 +80,19 @@ stop:
 	@pkill -f "gradlew bootRun" 2>/dev/null || true
 	@pkill -f "vite" 2>/dev/null || true
 	@echo "所有服务已停止"
+
+# Lint 命令 (Agent 基础设施)
+lint: lint-arch lint-quality lint-deps
+	@echo "✓ 所有 lint 检查通过"
+
+lint-arch:
+	@echo "检查架构层级依赖..."
+	@bash scripts/lint-arch.sh
+
+lint-quality:
+	@echo "检查代码质量..."
+	@bash scripts/lint-quality.sh
+
+lint-deps:
+	@echo "检查循环依赖..."
+	@bash scripts/lint-deps.sh
