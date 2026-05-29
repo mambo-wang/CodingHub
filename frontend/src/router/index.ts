@@ -1,0 +1,67 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/pages/HomePage.vue')
+  },
+  {
+    path: '/tools/:id',
+    name: 'ToolDetail',
+    component: () => import('@/pages/DetailPage.vue')
+  },
+  {
+    path: '/tools/upload',
+    name: 'UploadTool',
+    component: () => import('@/pages/UploadPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/me/tools',
+    name: 'MyTools',
+    component: () => import('@/pages/MyToolsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/me/tools/:id/edit',
+    name: 'EditTool',
+    component: () => import('@/pages/EditToolPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/pages/LoginPage.vue')
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/pages/RegisterPage.vue')
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/pages/NotFoundPage.vue')
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+// Navigation guard for protected routes
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
+})
+
+export default router

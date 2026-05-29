@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Build output
+build/
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.js
+*.spec.js
+*.spec.ts
+__tests__/
+tests/
