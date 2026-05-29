@@ -96,10 +96,10 @@ onMounted(() => {
         <div class="hero-orb hero-orb-3"></div>
       </div>
       <div class="hero-content">
-        <h1 class="hero-title">
-          <span class="title-line">发现</span>
-          <span class="title-line gradient-text">AI 工具</span>
-          <span class="title-line">的无限可能</span>
+        <h1 class="hero-title inline-title">
+          <span>发现</span>
+          <span class="gradient-text">AI 工具</span>
+          <span>的无限可能</span>
         </h1>
         <p class="hero-subtitle">探索、分享、协作 — 找到最适合你的 AI 助手</p>
       </div>
@@ -262,7 +262,7 @@ onMounted(() => {
 /* Hero */
 .hero {
   position: relative;
-  padding: 80px 24px 60px;
+  padding: 40px 24px 32px;
   text-align: center;
   overflow: hidden;
 }
@@ -281,28 +281,28 @@ onMounted(() => {
 }
 
 .hero-orb-1 {
-  width: 400px;
-  height: 400px;
+  width: 300px;
+  height: 300px;
   background: rgba(139, 92, 246, 0.3);
-  top: -100px;
+  top: -80px;
   left: 10%;
   animation: float 8s ease-in-out infinite;
 }
 
 .hero-orb-2 {
-  width: 300px;
-  height: 300px;
+  width: 200px;
+  height: 200px;
   background: rgba(6, 182, 212, 0.25);
-  top: 50px;
+  top: 20px;
   right: 15%;
   animation: float 10s ease-in-out infinite reverse;
 }
 
 .hero-orb-3 {
-  width: 250px;
-  height: 250px;
+  width: 180px;
+  height: 180px;
   background: rgba(236, 72, 153, 0.2);
-  bottom: -50px;
+  bottom: -40px;
   left: 50%;
   transform: translateX(-50%);
   animation: float 12s ease-in-out infinite;
@@ -316,15 +316,20 @@ onMounted(() => {
 }
 
 .hero-title {
-  font-size: 56px;
+  font-size: 48px;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -2px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.title-line {
-  display: block;
+.inline-title span {
+  display: inline-block;
 }
 
 .gradient-text {
@@ -685,7 +690,8 @@ onMounted(() => {
 /* Responsive */
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 36px;
+    font-size: 32px;
+    gap: 8px;
   }
 
   .filter-bar {
