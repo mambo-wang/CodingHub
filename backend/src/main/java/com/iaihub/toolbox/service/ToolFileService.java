@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -140,6 +141,33 @@ public class ToolFileService {
                 .files(fileDtos)
                 .readmeExists(readmeExists)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ToolFile downloadFile(Long toolId, Long fileId) {
+        ToolFile toolFile = toolFileRepository.findByIdAndToolId(fileId, toolId)
+                .orElseThrow(() -> new ResourceNotFoundException("文件不存在"));
+
+        // Verify file exists physically
+        Path filePath = Paths.get(uploadConfig.getBaseDir(), toolFile.getStoredPath());
+        if (!Files.exists(filePath)) {
+            throw new ResourceNotFoundException("文件不存在或已被删除");
+        }
+
+        return toolFile;
+    }
+
+    @Transactional(readOnly = true)
+    public InputStream getFileInputStream(Long toolId, Long fileId) {
+        ToolFile toolFile = downloadFile(toolId, fileId);
+        Path filePath = Paths.get(uploadConfig.getBaseDir(), toolFile.getStoredPath());
+
+        try {
+            return Files.newInputStream(filePath);
+        } catch (IOException e) {
+            log.error("Failed to read file: {}", filePath, e);
+            throw new ResourceNotFoundException("文件读取失败");
+        }
     }
 
     @Transactional

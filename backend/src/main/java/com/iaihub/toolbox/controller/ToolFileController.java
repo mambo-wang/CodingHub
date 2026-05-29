@@ -3,13 +3,18 @@ package com.iaihub.toolbox.controller;
 import com.iaihub.toolbox.dto.ApiResponse;
 import com.iaihub.toolbox.dto.FileListResponse;
 import com.iaihub.toolbox.dto.FileUploadResponse;
+import com.iaihub.toolbox.model.ToolFile;
 import com.iaihub.toolbox.service.ToolFileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.util.List;
 
 @RestController
@@ -52,5 +57,24 @@ public class ToolFileController {
         toolFileService.deleteToolFile(toolId, fileId);
 
         return ApiResponse.success("文件删除成功", null);
+    }
+
+    @GetMapping("/{fileId}/download")
+    public ResponseEntity<InputStreamResource> downloadFile(
+            @PathVariable Long toolId,
+            @PathVariable Long fileId) {
+
+        log.info("Downloading file {} for tool {}", fileId, toolId);
+
+        ToolFile toolFile = toolFileService.downloadFile(toolId, fileId);
+        InputStream inputStream = toolFileService.getFileInputStream(toolId, fileId);
+
+        String contentType = toolFile.getContentType() != null ? toolFile.getContentType() : "application/octet-stream";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + toolFile.getOriginalName() + "\"")
+                .contentType(MediaType.parseMediaType(contentType))
+                .contentLength(toolFile.getFileSize())
+                .body(new InputStreamResource(inputStream));
     }
 }

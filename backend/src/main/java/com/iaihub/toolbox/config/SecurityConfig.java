@@ -38,6 +38,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
+                // File endpoints (must be before /api/v1/tools/**)
+                .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files/{fileId}/download").permitAll()
                 // Protected endpoints
                 .requestMatchers("/api/v1/tools/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()

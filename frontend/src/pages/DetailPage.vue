@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import api from '@/services/api'
-import type { ToolDetail } from '@/types'
+import { fileUploadApi } from '@/services/api'
+import type { ToolDetail, ToolFile } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +13,8 @@ const router = useRouter()
 const tool = ref<ToolDetail | null>(null)
 const loading = ref(false)
 const error = ref(false)
+const files = ref<ToolFile[]>([])
+const filesLoading = ref(false)
 
 const md = new MarkdownIt({
   html: false,
@@ -39,6 +42,13 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
+}
+
 const fetchTool = async () => {
   loading.value = true
   error.value = false
@@ -52,10 +62,30 @@ const fetchTool = async () => {
   }
 }
 
+const fetchFiles = async () => {
+  if (!route.params.id) return
+  filesLoading.value = true
+  try {
+    const response = await fileUploadApi.getToolFiles(Number(route.params.id))
+    files.value = response.files || []
+  } catch {
+    files.value = []
+  } finally {
+    filesLoading.value = false
+  }
+}
+
+const handleDownload = (file: ToolFile) => {
+  if (tool.value) {
+    fileUploadApi.downloadFile(tool.value.id, file.id, file.originalName)
+  }
+}
+
 const goBack = () => router.push('/')
 
 onMounted(() => {
   fetchTool()
+  fetchFiles()
 })
 </script>
 
@@ -101,46 +131,95 @@ onMounted(() => {
       </div>
 
       <!-- Tool Detail -->
-      <div v-else-if="tool" class="tool-detail glass-card animate-fade-in-up">
-        <!-- Header -->
-        <div class="tool-header">
-          <div class="header-top">
-            <button class="back-btn" @click="goBack">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              返回
-            </button>
+      <div v-else-if="tool" class="tool-detail-wrapper">
+        <!-- Main Content -->
+        <div class="tool-detail glass-card animate-fade-in-up">
+          <!-- Header -->
+          <div class="tool-header">
+            <div class="header-top">
+              <button class="back-btn" @click="goBack">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                返回
+              </button>
+            </div>
+
+            <div class="tool-meta-header">
+              <div class="category-tag">
+                <span class="cat-icon">{{ tool.categoryIcon }}</span>
+                <span>{{ tool.categoryName }}</span>
+              </div>
+
+              <h1 class="tool-title">{{ tool.name }}</h1>
+
+              <div class="tool-meta">
+                <div class="uploader-info">
+                  <div class="uploader-avatar">
+                    {{ tool.uploaderUsername?.charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="uploader-name">{{ tool.uploaderUsername }}</span>
+                </div>
+                <span class="meta-separator">•</span>
+                <span class="meta-date">{{ formatDate(tool.createdAt) }}</span>
+                <template v-if="tool.updatedAt !== tool.createdAt">
+                  <span class="meta-separator">•</span>
+                  <span class="meta-date">更新于 {{ formatDate(tool.updatedAt) }}</span>
+                </template>
+              </div>
+            </div>
           </div>
 
-          <div class="tool-meta-header">
-            <div class="category-tag">
-              <span class="cat-icon">{{ tool.categoryIcon }}</span>
-              <span>{{ tool.categoryName }}</span>
-            </div>
-
-            <h1 class="tool-title">{{ tool.name }}</h1>
-
-            <div class="tool-meta">
-              <div class="uploader-info">
-                <div class="uploader-avatar">
-                  {{ tool.uploaderUsername?.charAt(0).toUpperCase() }}
-                </div>
-                <span class="uploader-name">{{ tool.uploaderUsername }}</span>
-              </div>
-              <span class="meta-separator">•</span>
-              <span class="meta-date">{{ formatDate(tool.createdAt) }}</span>
-              <template v-if="tool.updatedAt !== tool.createdAt">
-                <span class="meta-separator">•</span>
-                <span class="meta-date">更新于 {{ formatDate(tool.updatedAt) }}</span>
-              </template>
-            </div>
+          <!-- Content -->
+          <div class="tool-content">
+            <div class="markdown-body" v-html="renderedContent"></div>
           </div>
         </div>
 
-        <!-- Content -->
-        <div class="tool-content">
-          <div class="markdown-body" v-html="renderedContent"></div>
+        <!-- File Sidebar -->
+        <div class="file-sidebar glass-card animate-fade-in-up" style="animation-delay: 100ms;">
+          <div class="sidebar-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <h3>相关文件</h3>
+          </div>
+
+          <div v-if="filesLoading" class="files-loading">
+            <div class="file-skeleton" v-for="i in 3" :key="i"></div>
+          </div>
+
+          <div v-else-if="files.length === 0" class="files-empty">
+            <p>暂无文件</p>
+          </div>
+
+          <div v-else class="files-list">
+            <div
+              v-for="file in files"
+              :key="file.id"
+              class="file-item"
+              @click="handleDownload(file)"
+            >
+              <div class="file-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <div class="file-info">
+                <span class="file-name">{{ file.originalName }}</span>
+                <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
+              </div>
+              <div class="file-download">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -290,6 +369,139 @@ onMounted(() => {
 /* Tool Detail */
 .tool-detail {
   overflow: hidden;
+}
+
+.tool-detail-wrapper {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.tool-detail-wrapper .tool-detail {
+  flex: 1;
+  min-width: 0;
+}
+
+/* File Sidebar */
+.file-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  padding: 20px;
+  position: sticky;
+  top: 80px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.sidebar-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.files-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-skeleton {
+  height: 48px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.files-empty {
+  text-align: center;
+  padding: 24px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.file-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-1);
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.file-download {
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.file-item:hover .file-download {
+  color: var(--accent-2);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .tool-detail-wrapper {
+    flex-direction: column;
+  }
+
+  .file-sidebar {
+    width: 100%;
+    position: static;
+  }
 }
 
 .tool-header {

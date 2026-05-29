@@ -96,12 +96,31 @@ export const fileUploadApi = {
 
   getToolFiles: (toolId: number): Promise<FileListResponse> => {
     return api.get(`/tools/${toolId}/files`)
-      .then(res => res.data as FileListResponse)
+      .then(res => res.data.data as FileListResponse)
   },
 
   deleteFile: (toolId: number, fileId: number): Promise<void> => {
     return api.delete(`/tools/${toolId}/files/${fileId}`)
       .then(res => res.data as void)
+  },
+
+  downloadFile: (toolId: number, fileId: number, fileName: string): void => {
+    api.get(`/tools/${toolId}/files/${fileId}/download`, {
+      responseType: 'blob'
+    }).then(response => {
+      const blob = new Blob([response.data], { type: response.headers['content-type'] as string })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    }).catch(error => {
+      ElMessage.error('文件下载失败')
+      console.error('Download error:', error)
+    })
   }
 }
 
