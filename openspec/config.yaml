@@ -1,18 +1,9 @@
 schema: tdd-with-execute-plan
 
 context: |
-  Project: ShowTime — 全方位监控系统/知识库（新华三云基产品线）
-  Tech Stack: Java 17, Spring Boot 2.5.12, Maven multi-module
-  Modules:
-    - watcher-agent      # 采集程序主入口（Spring Boot），端口 8888
-    - watcher-sdk        # 公共模块（所有模块依赖）
-    - watcher-cas        # CAS 虚拟化平台插件
-    - watcher-uis        # UIS 超融合平台插件
-    - watcher-workspace  # Workspace 云桌面插件
-    - watcher-builder    # 打包模块（部署脚本）
-    - watcher-web        # 前端（Vue 3 + TypeScript + Vite），端口 9090
-    - watcher-ai         # AI 知识库服务（Python FastAPI + ChromaDB），端口 8000
-  Middleware: MySQL 8.0+
-  Database: MySQL（配置存储）, ChromaDB（向量存储）
+  Project: AI工具广场 (AI Tool Square)
+  Tech Stack: Java 17, Spring Boot 3.2.5, Gradle, Vue 3.4.21, TypeScript, Vite
+  Middleware: MySQL 8.x (用户: root, 密码: root, 数据库: watcher_db)
+  Ports: Backend 8080, Frontend 5173
   Schema expands artifacts: proposal.md, design.md, specs/, tasks.md
   Superpowers plans are written to: docs/superpowers/plans/

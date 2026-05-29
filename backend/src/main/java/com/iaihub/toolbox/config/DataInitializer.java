@@ -24,9 +24,8 @@ public class DataInitializer implements CommandLineRunner {
             List<Category> categories = List.of(
                 Category.builder().name("Skill").icon("🛠️").sortOrder(1).build(),
                 Category.builder().name("MCP").icon("🔌").sortOrder(2).build(),
-                Category.builder().name("API").icon("🌐").sortOrder(3).build(),
-                Category.builder().name("Prompt").icon("💬").sortOrder(4).build(),
-                Category.builder().name("其他").icon("📦").sortOrder(5).build()
+                Category.builder().name("Prompt").icon("💬").sortOrder(3).build(),
+                Category.builder().name("其他").icon("📦").sortOrder(4).build()
             );
 
             categoryRepository.saveAll(categories);

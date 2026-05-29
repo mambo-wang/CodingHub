@@ -12,21 +12,20 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 const form = ref<RegisterRequest>({
-  email: '',
-  password: '',
-  username: ''
+  username: '',
+  password: ''
 })
 
 const handleSubmit = async () => {
   errorMessage.value = ''
 
-  if (!form.value.email || !form.value.password || !form.value.username) {
+  if (!form.value.username || !form.value.password) {
     errorMessage.value = '请填写所有字段'
     return
   }
 
-  if (form.value.password.length < 8) {
-    errorMessage.value = '密码至少8个字符'
+  if (form.value.password.length < 6) {
+    errorMessage.value = '密码至少6个字符'
     return
   }
 
@@ -85,23 +84,6 @@ const goToLogin = () => router.push('/login')
         <!-- Form -->
         <form class="auth-form" @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label class="form-label">邮箱</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
-              </svg>
-              <input
-                v-model="form.email"
-                type="email"
-                class="form-input"
-                placeholder="your@email.com"
-                autocomplete="email"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
             <label class="form-label">用户名</label>
             <div class="input-wrapper">
               <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -130,7 +112,7 @@ const goToLogin = () => router.push('/login')
                 v-model="form.password"
                 type="password"
                 class="form-input"
-                placeholder="至少8个字符，含大小写和数字"
+                placeholder="至少6个字符"
                 autocomplete="new-password"
               />
             </div>

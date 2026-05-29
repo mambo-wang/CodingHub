@@ -1,6 +1,5 @@
 export interface User {
   id: number
-  email: string
   username: string
   createdAt?: string
   lastLoginAt?: string
@@ -49,14 +48,13 @@ export interface ApiResponse<T> {
 }
 
 export interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 
 export interface RegisterRequest {
-  email: string
-  password: string
   username: string
+  password: string
 }
 
 export interface CreateToolRequest {

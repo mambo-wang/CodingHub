@@ -13,14 +13,14 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 const form = ref<LoginRequest>({
-  email: '',
+  username: '',
   password: ''
 })
 
 const handleSubmit = async () => {
   errorMessage.value = ''
 
-  if (!form.value.email || !form.value.password) {
+  if (!form.value.username || !form.value.password) {
     errorMessage.value = '请填写所有字段'
     return
   }
@@ -36,7 +36,7 @@ const handleSubmit = async () => {
     const redirect = route.query.redirect as string
     router.push(redirect || '/')
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || '登录失败，请检查邮箱和密码'
+    errorMessage.value = error.response?.data?.message || '登录失败，请检查用户名和密码'
   } finally {
     loading.value = false
   }
@@ -78,18 +78,18 @@ const goToRegister = () => router.push('/register')
         <!-- Form -->
         <form class="auth-form" @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label class="form-label">邮箱</label>
+            <label class="form-label">用户名</label>
             <div class="input-wrapper">
               <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                <polyline points="22,6 12,13 2,6"/>
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
               </svg>
               <input
-                v-model="form.email"
-                type="email"
+                v-model="form.username"
+                type="text"
                 class="form-input"
-                placeholder="your@email.com"
-                autocomplete="email"
+                placeholder="输入用户名"
+                autocomplete="username"
               />
             </div>
           </div>

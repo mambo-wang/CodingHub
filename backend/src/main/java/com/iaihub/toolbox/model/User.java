@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user", indexes = {
-    @Index(name = "idx_user_email", columnList = "email")
+    @Index(name = "idx_user_username", columnList = "username", unique = true)
 })
 @Data
 @NoArgsConstructor
@@ -22,13 +22,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String email;
-
     @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, unique = true, length = 100)
     private String username;
 
     @Column(name = "created_at", nullable = false, updatable = false)
