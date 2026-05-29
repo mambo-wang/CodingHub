@@ -32,6 +32,9 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
     @Query("SELECT t FROM Tool t WHERE t.id = :id AND t.status = 'NORMAL'")
     Optional<Tool> findByIdAndStatusNormal(@Param("id") Long id);
 
+    @Query("SELECT t FROM Tool t JOIN FETCH t.category JOIN FETCH t.uploader WHERE t.id = :id AND t.status = 'NORMAL'")
+    Optional<Tool> findByIdAndStatusNormalWithRelations(@Param("id") Long id);
+
     @Query("SELECT t FROM Tool t WHERE t.uploader.id = :uploaderId AND t.status = 'NORMAL' " +
            "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
            "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +

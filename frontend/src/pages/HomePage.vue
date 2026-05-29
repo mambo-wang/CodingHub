@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import api from '@/services/api'
 import type { ToolSummary, Category, PageResponse } from '@/types'
 
@@ -50,7 +49,7 @@ const fetchTools = async () => {
       totalPages: data.totalPages
     }
   } catch (error) {
-    ElMessage.error('加载工具列表失败')
+    console.error('Failed to fetch tools:', error)
   } finally {
     loading.value = false
   }
@@ -89,179 +88,623 @@ onMounted(() => {
 
 <template>
   <div class="home-page">
-    <div class="app-container">
-      <!-- Search and Filter Bar -->
-      <div class="filter-bar">
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索工具名称..."
-          class="search-input"
-          @keyup.enter="handleSearch"
-          clearable
-        >
-          <template #prefix>
-            <el-icon><search /></el-icon>
-          </template>
-        </el-input>
-
-        <el-select
-          v-model="selectedCategory"
-          placeholder="全部分类"
-          class="category-select"
-          clearable
-          @change="handleCategoryChange"
-        >
-          <el-option
-            v-for="cat in categories"
-            :key="cat.id"
-            :label="cat.name"
-            :value="cat.id"
-          >
-            <span>{{ cat.icon }} {{ cat.name }}</span>
-          </el-option>
-        </el-select>
-
-        <el-select
-          v-model="sortBy"
-          class="sort-select"
-          @change="handleSortChange"
-        >
-          <el-option label="最新上传" value="latest" />
-          <el-option label="按名称" value="name" />
-        </el-select>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+        <div class="hero-orb hero-orb-3"></div>
       </div>
-
-      <!-- Loading State -->
-      <div v-if="loading" class="loading-container">
-        <el-skeleton :rows="6" animated />
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="title-line">发现</span>
+          <span class="title-line gradient-text">AI 工具</span>
+          <span class="title-line">的无限可能</span>
+        </h1>
+        <p class="hero-subtitle">探索、分享、协作 — 找到最适合你的 AI 助手</p>
       </div>
+    </section>
 
-      <!-- Tools Grid -->
-      <div v-else-if="tools.length > 0" class="tools-grid">
-        <div
-          v-for="tool in tools"
-          :key="tool.id"
-          class="tool-card"
-          @click="goToDetail(tool.id)"
-        >
-          <div class="tool-card-header">
-            <span class="category-badge">
-              {{ tool.categoryIcon }} {{ tool.categoryName }}
-            </span>
+    <!-- Filter Section -->
+    <section class="filter-section">
+      <div class="app-container">
+        <div class="filter-bar glass-card">
+          <!-- Search -->
+          <div class="search-wrapper">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="search-input"
+              placeholder="搜索工具名称..."
+              @keyup.enter="handleSearch"
+            />
           </div>
-          <h3 class="tool-name">{{ tool.name }}</h3>
-          <div class="tool-meta">
-            <span class="uploader">👤 {{ tool.uploaderUsername }}</span>
-            <span class="date">{{ new Date(tool.createdAt).toLocaleDateString() }}</span>
+
+          <!-- Category Pills -->
+          <div class="category-pills">
+            <button
+              class="category-pill"
+              :class="{ active: selectedCategory === null }"
+              @click="handleCategoryChange(null)"
+            >
+              全部
+            </button>
+            <button
+              v-for="cat in categories"
+              :key="cat.id"
+              class="category-pill"
+              :class="{ active: selectedCategory === cat.id }"
+              @click="handleCategoryChange(cat.id)"
+            >
+              <span class="cat-icon">{{ cat.icon }}</span>
+              {{ cat.name }}
+            </button>
+          </div>
+
+          <!-- Sort -->
+          <div class="sort-wrapper">
+            <select v-model="sortBy" class="sort-select" @change="handleSortChange(sortBy)">
+              <option value="latest">最新上传</option>
+              <option value="name">按名称</option>
+            </select>
+            <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Empty State -->
-      <el-empty v-else description="暂无工具" />
+    <!-- Tools Grid -->
+    <section class="tools-section">
+      <div class="app-container">
+        <!-- Loading State -->
+        <div v-if="loading" class="tools-grid">
+          <div v-for="i in 8" :key="i" class="tool-card-skeleton glass-card">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-title"></div>
+            <div class="skeleton-meta"></div>
+          </div>
+        </div>
 
-      <!-- Pagination -->
-      <div v-if="pagination.totalPages > 1" class="pagination-container">
-        <el-pagination
-          :current-page="pagination.page + 1"
-          :page-size="pagination.size"
-          :total="pagination.totalElements"
-          layout="prev, pager, next"
-          @current-change="handlePageChange"
-        />
+        <!-- Tools Grid -->
+        <div v-else-if="tools.length > 0" class="tools-grid stagger-children">
+          <div
+            v-for="tool in tools"
+            :key="tool.id"
+            class="tool-card glass-card"
+            @click="goToDetail(tool.id)"
+          >
+            <div class="tool-card-inner">
+              <div class="tool-category-tag">
+                <span class="cat-icon">{{ tool.categoryIcon }}</span>
+                <span>{{ tool.categoryName }}</span>
+              </div>
+              <h3 class="tool-name">{{ tool.name }}</h3>
+              <div class="tool-footer">
+                <div class="tool-uploader">
+                  <div class="uploader-avatar">
+                    {{ tool.uploaderUsername?.charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="uploader-name">{{ tool.uploaderUsername }}</span>
+                </div>
+                <span class="tool-date">{{ new Date(tool.createdAt).toLocaleDateString('zh-CN') }}</span>
+              </div>
+            </div>
+            <div class="tool-card-glow"></div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else class="empty-state glass-card">
+          <svg class="empty-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 15s1.5-2 4-2 4 2 4 2M9 9h.01M15 9h.01"/>
+          </svg>
+          <h3 class="empty-title">暂无工具</h3>
+          <p class="empty-desc">还没有任何工具，快来成为第一个上传者吧</p>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="pagination.totalPages > 1" class="pagination-wrapper">
+          <div class="pagination glass-card">
+            <button
+              class="page-btn"
+              :disabled="pagination.page === 0"
+              @click="handlePageChange(pagination.page)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+            <div class="page-numbers">
+              <button
+                v-for="p in pagination.totalPages"
+                :key="p"
+                class="page-number"
+                :class="{ active: pagination.page === p - 1 }"
+                @click="handlePageChange(p)"
+              >
+                {{ p }}
+              </button>
+            </div>
+            <button
+              class="page-btn"
+              :disabled="pagination.page >= pagination.totalPages - 1"
+              @click="handlePageChange(pagination.page + 2)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- Deerflow Branding -->
+    <a href="https://deerflow.tech" target="_blank" class="deerflow-brand">
+      ✦ Created By Deerflow
+    </a>
   </div>
 </template>
 
 <style scoped>
 .home-page {
-  background-color: #f5f7fa;
   min-height: calc(100vh - 60px);
-  padding: 20px 0;
+  padding-bottom: 80px;
 }
 
-.app-container {
-  max-width: 1200px;
+/* Hero */
+.hero {
+  position: relative;
+  padding: 80px 24px 60px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+
+.hero-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: rgba(139, 92, 246, 0.3);
+  top: -100px;
+  left: 10%;
+  animation: float 8s ease-in-out infinite;
+}
+
+.hero-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(6, 182, 212, 0.25);
+  top: 50px;
+  right: 15%;
+  animation: float 10s ease-in-out infinite reverse;
+}
+
+.hero-orb-3 {
+  width: 250px;
+  height: 250px;
+  background: rgba(236, 72, 153, 0.2);
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: float 12s ease-in-out infinite;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 0 20px;
+}
+
+.hero-title {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+}
+
+.title-line {
+  display: block;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-subtitle {
+  font-size: 18px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Filter Section */
+.filter-section {
+  padding: 0 0 40px;
 }
 
 .filter-bar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 0 0 280px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
 }
 
 .search-input {
+  width: 100%;
+  padding: 12px 12px 12px 44px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.search-input:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.category-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   flex: 1;
-  max-width: 300px;
 }
 
-.category-select,
+.category-pill {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-pill:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--text-primary);
+}
+
+.category-pill.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text-primary);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+}
+
+.cat-icon {
+  font-size: 14px;
+}
+
+.sort-wrapper {
+  position: relative;
+  flex: 0 0 140px;
+}
+
 .sort-select {
-  width: 150px;
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  transition: all 0.25s ease;
 }
 
+.sort-select:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Tools Grid */
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
 }
 
 .tool-card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
 }
 
-.tool-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+.tool-card-inner {
+  padding: 24px;
+  position: relative;
+  z-index: 1;
 }
 
-.tool-card-header {
-  margin-bottom: 12px;
+.tool-card-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.category-badge {
+.tool-card:hover .tool-card-glow {
+  opacity: 1;
+}
+
+.tool-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
   font-size: 12px;
-  color: #606266;
+  color: var(--accent-1);
+  margin-bottom: 16px;
 }
 
 .tool-name {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  color: #303133;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  line-height: 1.3;
 }
 
-.tool-meta {
+.tool-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.tool-uploader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uploader-avatar {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  color: #909399;
+  font-weight: 600;
+  color: white;
 }
 
-.loading-container {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
+.uploader-name {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.pagination-container {
+.tool-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Loading Skeleton */
+.tool-card-skeleton {
+  padding: 24px;
+}
+
+.skeleton-header {
+  width: 100px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 70%;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-meta {
+  width: 50%;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 80px 40px;
+}
+
+.empty-icon {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.empty-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Pagination */
+.pagination-wrapper {
   display: flex;
   justify-content: center;
-  padding: 20px 0;
+  margin-top: 48px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.page-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--text-primary);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 4px;
+}
+
+.page-number {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-number:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.page-number.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text-primary);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-wrapper {
+    flex: none;
+    width: 100%;
+  }
+
+  .sort-wrapper {
+    flex: none;
+    width: 100%;
+  }
+
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -25,7 +26,9 @@ public class ToolService {
     private final ToolRepository toolRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ToolFileService toolFileService;
 
+    @Transactional(readOnly = true)
     public PageResponse<ToolSummaryDTO> getTools(Long categoryId, String keyword, String sortBy, int page, int size) {
         Pageable pageable = PageRequest.of(page, Math.min(size, 100));
 
@@ -45,6 +48,7 @@ public class ToolService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ToolDetailDTO getToolById(Long id) {
         Tool tool = toolRepository.findByIdAndStatusNormal(id)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
@@ -77,6 +81,10 @@ public class ToolService {
                 .build();
 
         tool = toolRepository.save(tool);
+
+        // Re-fetch with relations to avoid lazy init issues
+        tool = toolRepository.findByIdAndStatusNormalWithRelations(tool.getId())
+                .orElse(tool);
 
         return toSummaryDTO(tool);
     }
@@ -120,10 +128,14 @@ public class ToolService {
             throw new ForbiddenException("您只能删除自己的工具");
         }
 
+        // Cleanup tool files before marking tool as deleted
+        toolFileService.cleanupToolFiles(id);
+
         tool.setStatus(Tool.Status.DELETED);
         toolRepository.save(tool);
     }
 
+    @Transactional(readOnly = true)
     public PageResponse<ToolSummaryDTO> getMyTools(Long uploaderId, Long categoryId, String keyword, String sortBy, int page, int size) {
         Pageable pageable = PageRequest.of(page, Math.min(size, 100));
 
@@ -140,6 +152,8 @@ public class ToolService {
     }
 
     private ToolSummaryDTO toSummaryDTO(Tool tool) {
+        Hibernate.initialize(tool.getCategory());
+        Hibernate.initialize(tool.getUploader());
         return ToolSummaryDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
@@ -151,6 +165,8 @@ public class ToolService {
     }
 
     private ToolDetailDTO toDetailDTO(Tool tool) {
+        Hibernate.initialize(tool.getCategory());
+        Hibernate.initialize(tool.getUploader());
         return ToolDetailDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())

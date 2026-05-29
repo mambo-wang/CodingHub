@@ -26,6 +26,26 @@ app:
     secret: ai-tool-square-2026-iaihub-secret-key-min-256-bits-for-security
     access-token-expiration: 900000    # 15 min in ms
     refresh-token-expiration: 604800000 # 7 days in ms
+  upload:
+    base-dir: uploads/tools
+    max-file-size: 50MB
+    max-request-size: 200MB
+    allowed-extensions:
+      - zip
+      - tar
+      - gz
+      - py
+      - js
+      - ts
+      - md
+      - txt
+      - json
+      - yaml
+      - yml
+      - toml
+      - xml
+      - html
+      - css
 
 logging:
   level:

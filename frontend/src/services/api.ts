@@ -1,12 +1,13 @@
-import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig, type AxiosProgressEvent } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
+import type { FileUploadResponse, FileListResponse } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -63,5 +64,45 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// File upload API
+export const fileUploadApi = {
+  uploadFiles: (
+    toolId: number,
+    files: File[],
+    readme: string | null,
+    onProgress?: (percent: number) => void
+  ): Promise<FileUploadResponse> => {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    if (readme) {
+      formData.append('readme', readme)
+    }
+
+    return api.post(`/tools/${toolId}/files`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(percent)
+        }
+      }
+    }).then(res => res.data as FileUploadResponse)
+  },
+
+  getToolFiles: (toolId: number): Promise<FileListResponse> => {
+    return api.get(`/tools/${toolId}/files`)
+      .then(res => res.data as FileListResponse)
+  },
+
+  deleteFile: (toolId: number, fileId: number): Promise<void> => {
+    return api.delete(`/tools/${toolId}/files/${fileId}`)
+      .then(res => res.data as void)
+  }
+}
 
 export default api

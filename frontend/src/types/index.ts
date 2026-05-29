@@ -70,3 +70,26 @@ export interface UpdateToolRequest {
   categoryId: number
   content: string
 }
+
+export interface ToolFile {
+  id: number
+  toolId: number
+  originalName: string
+  storedPath: string
+  fileSize: number
+  contentType: string
+  createdAt: string
+}
+
+export interface FileUploadResponse {
+  toolId: number
+  files: ToolFile[]
+  readmeSaved: boolean
+}
+
+export interface FileListResponse {
+  toolId: number
+  folderPath: string
+  files: ToolFile[]
+  readmeExists: boolean
+}
