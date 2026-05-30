@@ -18,6 +18,7 @@ const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 const goToUpload = () => router.push('/tools/upload')
 const goToMyTools = () => router.push('/me/tools')
+const goToForum = () => router.push('/forum')
 const goHome = () => router.push('/')
 </script>
 
@@ -50,8 +51,9 @@ const goHome = () => router.push('/')
             </svg>
             上传工具
           </button>
-          <button class="nav-btn" @click="goToMyTools">我的工具</button>
-          <div class="user-menu">
+<button class="nav-btn" @click="goToForum">论坛</button>
+        <button class="nav-btn" @click="goToMyTools">我的工具</button>
+        <div class="user-menu">
             <div class="user-avatar">
               <span>{{ username?.charAt(0).toUpperCase() }}</span>
             </div>

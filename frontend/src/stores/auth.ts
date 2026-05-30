@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const setUser = (userData: User) => {
     user.value = userData
+    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const logout = () => {
@@ -26,13 +27,22 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
   }
 
   const initFromStorage = () => {
     const storedToken = localStorage.getItem('accessToken')
     const storedRefresh = localStorage.getItem('refreshToken')
+    const storedUser = localStorage.getItem('user')
     if (storedToken) accessToken.value = storedToken
     if (storedRefresh) refreshToken.value = storedRefresh
+    if (storedUser) {
+      try {
+        user.value = JSON.parse(storedUser)
+      } catch {
+        localStorage.removeItem('user')
+      }
+    }
   }
 
   return {

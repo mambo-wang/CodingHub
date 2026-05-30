@@ -10,12 +10,17 @@ import '@/assets/main.css'
 
 const app = createApp(App)
 
+// Initialize Pinia store with localStorage token
+const pinia = createPinia()
+app.use(pinia)
+import { useAuthStore } from '@/stores/auth'
+useAuthStore().initFromStorage()
+
 // Register all Element Plus icons
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
 

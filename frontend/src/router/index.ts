@@ -42,6 +42,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/RegisterPage.vue')
   },
   {
+    path: '/forum',
+    name: 'ForumList',
+    component: () => import('@/pages/forum/PostListPage.vue')
+  },
+  {
+    path: '/forum/posts/:id',
+    name: 'ForumPostDetail',
+    component: () => import('@/pages/forum/PostDetailPage.vue')
+  },
+  {
+    path: '/forum/editor',
+    name: 'ForumEditor',
+    component: () => import('@/pages/forum/PostEditorPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')
