@@ -1,6 +1,8 @@
 package com.iaihub.toolbox.controller;
 
 import com.iaihub.toolbox.dto.StatsDto;
+import com.iaihub.toolbox.dto.ToolRankDto;
+import com.iaihub.toolbox.dto.PostRankDto;
 import com.iaihub.toolbox.service.OverviewService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,9 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,10 +33,36 @@ class OverviewControllerTest {
     @Test
     @WithMockUser
     void getStats_returnsUserCountPostCountToolCount() throws Exception {
+        when(overviewService.getStats()).thenReturn(new StatsDto(100L, 200L, 50L));
+
         mockMvc.perform(get("/api/overview/stats"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.userCount").exists())
-            .andExpect(jsonPath("$.postCount").exists())
-            .andExpect(jsonPath("$.toolCount").exists());
+            .andExpect(jsonPath("$.userCount").value(100))
+            .andExpect(jsonPath("$.postCount").value(200))
+            .andExpect(jsonPath("$.toolCount").value(50));
+    }
+
+    @Test
+    @WithMockUser
+    void getToolRanks_returnsGroupedToolList() throws Exception {
+        when(overviewService.getToolRanks()).thenReturn(List.of(
+            new ToolRankDto("AI对话", "ChatGPT", 999L)
+        ));
+
+        mockMvc.perform(get("/api/overview/tool-ranks"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @WithMockUser
+    void getPostRanks_returnsGroupedPostList() throws Exception {
+        when(overviewService.getPostRanks()).thenReturn(List.of(
+            new PostRankDto("交流讨论", "AI时代产品经理该何去何从", 50L)
+        ));
+
+        mockMvc.perform(get("/api/overview/post-ranks"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray());
     }
 }
