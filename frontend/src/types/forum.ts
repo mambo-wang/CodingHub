@@ -11,6 +11,8 @@ export interface ForumPost {
   commentCount: number;
   createdAt: string;
   updatedAt: string;
+  isFavorited?: boolean;
+  favoriteCount?: number;
 }
 
 export interface ForumPostCreateRequest {
