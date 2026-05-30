@@ -1,48 +1,71 @@
 <template>
   <div class="post-list-page">
-    <div class="page-header">
-      <h1>论坛</h1>
-      <button v-if="isLoggedIn" @click="goToEditor" class="create-btn">
-        发布帖子
-      </button>
-    </div>
+    <aside class="sidebar-nav">
+      <router-link to="/forum" class="nav-item" :class="{ active: $route.path === '/forum' }">
+        <LayoutGrid :size="18" />
+        帖子列表
+      </router-link>
+      <a v-if="isLoggedIn" @click="goToMyPosts" class="nav-item">
+        <FileText :size="18" />
+        我的帖子
+      </a>
+      <a v-if="isLoggedIn" @click="goToMyFavorites" class="nav-item">
+        <Bookmark :size="18" />
+        我的收藏
+      </a>
+    </aside>
 
-    <CategoryFilter
-      :categories="categories"
-      :selectedCategory="selectedCategory"
-      @select="handleCategorySelect"
-    />
-
-    <div class="search-bar">
-      <input
-        v-model="keyword"
-        @keydown.enter="handleSearch"
-        placeholder="搜索帖子标题..."
-      />
-      <button @click="handleSearch">搜索</button>
-    </div>
-
-    <div v-if="loading" class="loading">加载中...</div>
-    <div v-else class="post-list">
-      <PostCard
-        v-for="post in posts"
-        :key="post.id"
-        :post="post"
-        @click="goToDetail(post.id)"
-      />
-      <div v-if="posts.length === 0" class="empty">
-        暂无帖子
+    <div class="main-content">
+      <div class="page-header">
+        <h1>论坛</h1>
+        <button v-if="isLoggedIn" @click="goToEditor" class="create-btn">
+          <Plus :size="16" />
+          发布帖子
+        </button>
       </div>
-    </div>
 
-    <div class="pagination" v-if="totalPages > 1">
-      <button @click="changePage(page - 1)" :disabled="page === 0">
-        上一页
-      </button>
-      <span>{{ page + 1 }} / {{ totalPages }}</span>
-      <button @click="changePage(page + 1)" :disabled="page >= totalPages - 1">
-        下一页
-      </button>
+      <CategoryFilter
+        :categories="categories"
+        :selectedCategory="selectedCategory"
+        @select="handleCategorySelect"
+      />
+
+      <div class="search-bar">
+        <input
+          v-model="keyword"
+          @keydown.enter="handleSearch"
+          placeholder="搜索帖子标题..."
+        />
+        <button @click="handleSearch">
+          <Search :size="16" />
+          搜索
+        </button>
+      </div>
+
+      <div v-if="loading" class="loading">加载中...</div>
+      <div v-else class="post-list">
+        <PostCard
+          v-for="post in posts"
+          :key="post.id"
+          :post="post"
+          @click="goToDetail(post.id)"
+        />
+        <div v-if="posts.length === 0" class="empty">
+          暂无帖子
+        </div>
+      </div>
+
+      <div class="pagination" v-if="totalPages > 1">
+        <button @click="changePage(page - 1)" :disabled="page === 0">
+          <ChevronLeft :size="16" />
+          上一页
+        </button>
+        <span>{{ page + 1 }} / {{ totalPages }}</span>
+        <button @click="changePage(page + 1)" :disabled="page >= totalPages - 1">
+          下一页
+          <ChevronRight :size="16" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -51,6 +74,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { Plus, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText, Bookmark } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
 import PostCard from '@/components/forum/PostCard.vue';
@@ -106,68 +130,195 @@ const goToDetail = (postId: number) => {
 const goToEditor = () => {
   router.push('/forum/editor');
 };
+
+const goToMyPosts = () => {
+  if (!isLoggedIn.value) {
+    router.push('/login');
+    return;
+  }
+  router.push('/forum/my-posts');
+};
+
+const goToMyFavorites = () => {
+  if (!isLoggedIn.value) {
+    router.push('/login');
+    return;
+  }
+  router.push('/forum/my-favorites');
+};
 </script>
 
 <style scoped>
 .post-list-page {
-  max-width: 800px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 40px 24px 80px;
+  position: relative;
+  display: flex;
+  gap: 32px;
+}
+
+.sidebar-nav {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent-1);
+}
+
+.nav-item.active {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-1);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .page-header h1 {
   margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-header h1::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 32px;
+  background: linear-gradient(180deg, var(--accent-1), var(--accent-2));
+  border-radius: 2px;
 }
 
 .create-btn {
-  padding: 8px 16px;
-  background: #007bff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
 }
 
 .search-bar {
   display: flex;
-  gap: 8px;
-  margin: 16px 0;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding: 16px 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
 }
 
 .search-bar input {
   flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.search-bar input::placeholder {
+  color: var(--text-muted);
 }
 
 .search-bar button {
-  padding: 8px 16px;
-  background: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: var(--accent-1);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-bar button:hover {
+  background: #7c3aed;
 }
 
 .post-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 16px 0;
 }
 
 .empty {
   text-align: center;
-  color: #999;
-  padding: 32px;
+  padding: 48px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 15px;
 }
 
 .pagination {
@@ -175,25 +326,47 @@ const goToEditor = () => {
   justify-content: center;
   align-items: center;
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 32px;
 }
 
 .pagination button {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: var(--accent-1);
+  color: var(--text-primary);
 }
 
 .pagination button:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
+}
+
+.pagination span {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 .loading {
   text-align: center;
-  padding: 32px;
-  color: #666;
+  padding: 48px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-muted);
 }
 </style>
