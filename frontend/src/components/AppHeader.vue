@@ -48,8 +48,9 @@ const toggleTheme = () => themeStore.toggleTheme()
 
       <!-- Nav Links -->
       <nav class="nav-links">
+        <button class="nav-btn" @click="goHome">工具广场</button>
+        <button class="nav-btn" @click="goToForum">论坛</button>
         <template v-if="isLoggedIn">
-          <button class="nav-btn" @click="goToForum">论坛</button>
           <button class="nav-btn" @click="goToMyTools">我的工具</button>
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
             <Moon v-if="isDark" :size="18" />

@@ -133,7 +133,7 @@ export const postFavoriteApi = {
     return api.delete(`/post-favorites/${postId}`).then(res => res.data);
   },
   getMyFavorites: () => {
-    return api.get('/post-favorites').then(res => res.data);
+    return api.get('/post-favorites/posts').then(res => res.data);
   },
   checkFavorite: (postId: number) => {
     return api.get(`/post-favorites/check/${postId}`).then(res => res.data);

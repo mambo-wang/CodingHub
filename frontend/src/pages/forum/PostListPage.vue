@@ -1,19 +1,6 @@
 <template>
   <div class="post-list-page">
-    <aside class="sidebar-nav">
-      <router-link to="/forum" class="nav-item" :class="{ active: $route.path === '/forum' }">
-        <LayoutGrid :size="18" />
-        帖子列表
-      </router-link>
-      <a v-if="isLoggedIn" @click="goToMyPosts" class="nav-item">
-        <FileText :size="18" />
-        我的帖子
-      </a>
-      <a v-if="isLoggedIn" @click="goToMyFavorites" class="nav-item">
-        <Bookmark :size="18" />
-        我的收藏
-      </a>
-    </aside>
+    <SidebarNav />
 
     <div class="main-content">
       <div class="page-header">
@@ -74,11 +61,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { Plus, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText, Bookmark } from '@lucide/vue';
+import { Plus, Search, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
 import PostCard from '@/components/forum/PostCard.vue';
 import CategoryFilter from '@/components/forum/CategoryFilter.vue';
+import SidebarNav from '@/components/forum/SidebarNav.vue';
 
 const router = useRouter();
 const forumStore = useForumStore();
@@ -130,22 +118,6 @@ const goToDetail = (postId: number) => {
 const goToEditor = () => {
   router.push('/forum/editor');
 };
-
-const goToMyPosts = () => {
-  if (!isLoggedIn.value) {
-    router.push('/login');
-    return;
-  }
-  router.push('/forum/my-posts');
-};
-
-const goToMyFavorites = () => {
-  if (!isLoggedIn.value) {
-    router.push('/login');
-    return;
-  }
-  router.push('/forum/my-favorites');
-};
 </script>
 
 <style scoped>
@@ -156,47 +128,6 @@ const goToMyFavorites = () => {
   position: relative;
   display: flex;
   gap: 32px;
-}
-
-.sidebar-nav {
-  width: 200px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 20px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  height: fit-content;
-  position: sticky;
-  top: 100px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(139, 92, 246, 0.1);
-  color: var(--accent-1);
-}
-
-.nav-item.active {
-  background: rgba(139, 92, 246, 0.15);
-  color: var(--accent-1);
 }
 
 .main-content {

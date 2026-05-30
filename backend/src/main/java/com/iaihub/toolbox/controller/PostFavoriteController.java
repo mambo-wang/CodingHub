@@ -44,6 +44,13 @@ public class PostFavoriteController {
         return ResponseEntity.ok(ApiResponse.success(favorites));
     }
 
+    @GetMapping("/posts")
+    public ResponseEntity<ApiResponse<List<?>>> getUserFavoritePosts(HttpServletRequest request) {
+        Long userId = getUserId(request);
+        List<?> posts = service.getUserFavoritePosts(userId);
+        return ResponseEntity.ok(ApiResponse.success(posts));
+    }
+
     @GetMapping("/check/{postId}")
     public ResponseEntity<ApiResponse<Boolean>> checkFavorite(
             @PathVariable Long postId,
