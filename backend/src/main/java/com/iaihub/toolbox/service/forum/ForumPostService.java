@@ -35,6 +35,11 @@ public class ForumPostService {
         return posts.map(this::toDTO);
     }
 
+    public Page<ForumPostDTO> getMyPosts(Long userId, Pageable pageable) {
+        Page<ForumPost> posts = postRepository.findByAuthorIdAndStatus(userId, ForumPostStatus.NORMAL, pageable);
+        return posts.map(this::toDTO);
+    }
+
     public ForumPostDTO getPostById(Long id) {
         ForumPost post = postRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));

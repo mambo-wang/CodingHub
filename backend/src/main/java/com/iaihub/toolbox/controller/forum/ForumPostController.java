@@ -35,6 +35,22 @@ public class ForumPostController {
         return ResponseEntity.ok(posts);
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<Page<ForumPostDTO>> getMyPosts(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ForumPostDTO> posts = postService.getMyPosts(user.getId(), pageable);
+
+        return ResponseEntity.ok(posts);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ForumPostDTO> getPostById(@PathVariable Long id) {
         ForumPostDTO post = postService.getPostById(id);

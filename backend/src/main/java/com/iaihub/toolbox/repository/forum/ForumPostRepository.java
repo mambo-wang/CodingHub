@@ -16,6 +16,8 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Long> {
 
     Page<ForumPost> findByCategoryIdAndStatus(Long categoryId, ForumPostStatus status, Pageable pageable);
 
+    Page<ForumPost> findByAuthorIdAndStatus(Long authorId, ForumPostStatus status, Pageable pageable);
+
     @Query("SELECT p FROM ForumPost p WHERE p.status = :status AND p.title LIKE %:keyword%")
     Page<ForumPost> searchByTitle(@Param("keyword") String keyword,
                                    @Param("status") ForumPostStatus status,
