@@ -2,12 +2,16 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+import { Sun, Moon } from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const username = computed(() => authStore.user?.username)
+const isDark = computed(() => themeStore.theme === 'dark')
 
 const handleLogout = () => {
   authStore.logout()
@@ -16,10 +20,10 @@ const handleLogout = () => {
 
 const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
-const goToUpload = () => router.push('/tools/upload')
 const goToMyTools = () => router.push('/me/tools')
 const goToForum = () => router.push('/forum')
 const goHome = () => router.push('/')
+const toggleTheme = () => themeStore.toggleTheme()
 </script>
 
 <template>
@@ -45,15 +49,13 @@ const goHome = () => router.push('/')
       <!-- Nav Links -->
       <nav class="nav-links">
         <template v-if="isLoggedIn">
-          <button class="nav-btn nav-btn-primary" @click="goToUpload">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            上传工具
+          <button class="nav-btn" @click="goToForum">论坛</button>
+          <button class="nav-btn" @click="goToMyTools">我的工具</button>
+          <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+            <Moon v-if="isDark" :size="18" />
+            <Sun v-else :size="18" />
           </button>
-<button class="nav-btn" @click="goToForum">论坛</button>
-        <button class="nav-btn" @click="goToMyTools">我的工具</button>
-        <div class="user-menu">
+          <div class="user-menu">
             <div class="user-avatar">
               <span>{{ username?.charAt(0).toUpperCase() }}</span>
             </div>
@@ -66,6 +68,10 @@ const goHome = () => router.push('/')
           </div>
         </template>
         <template v-else>
+          <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+            <Moon v-if="isDark" :size="18" />
+            <Sun v-else :size="18" />
+          </button>
           <button class="nav-btn" @click="goToLogin">登录</button>
           <button class="nav-btn nav-btn-primary" @click="goToRegister">注册</button>
         </template>
@@ -221,6 +227,28 @@ const goHome = () => router.push('/')
   transform: scale(1.05);
 }
 
+/* Theme toggle button */
+.theme-toggle-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.1);
+  border-color: var(--accent-1);
+  transform: translateY(-1px);
+}
+
 /* Header decorative line */
 .header-line {
   height: 1px;
@@ -230,5 +258,30 @@ const goHome = () => router.push('/')
     rgba(6, 182, 212, 0.3) 50%,
     rgba(236, 72, 153, 0.3) 80%,
     transparent 100%);
+}
+
+/* Light theme header */
+[data-theme="light"] .app-header {
+  background: rgba(248, 250, 252, 0.9);
+}
+
+[data-theme="light"] .nav-btn:hover {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.2);
+  color: var(--accent-1);
+}
+
+[data-theme="light"] .user-menu {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .logout-btn {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="light"] .logout-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 </style>

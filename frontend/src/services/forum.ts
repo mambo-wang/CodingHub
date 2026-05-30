@@ -44,6 +44,11 @@ const forumService = {
     return response.data;
   },
 
+  async getMyPosts(): Promise<PageResponse<ForumPost>> {
+    const response = await forumApi.get('/posts/my');
+    return response.data;
+  },
+
   async getPostById(id: number): Promise<ForumPost> {
     const response = await forumApi.get(`/posts/${id}`);
     return response.data;

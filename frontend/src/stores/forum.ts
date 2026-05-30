@@ -55,6 +55,22 @@ export const useForumStore = defineStore('forum', {
 
     async fetchTags() {
       this.tags = await forumService.getTags();
+    },
+
+    async fetchMyPosts() {
+      this.loading = true;
+      try {
+        const response = await forumService.getMyPosts();
+        this.posts = response.content || [];
+        this.pagination = {
+          page: 0,
+          size: this.pagination.size,
+          totalElements: this.posts.length,
+          totalPages: 1
+        };
+      } finally {
+        this.loading = false;
+      }
     }
   }
 });

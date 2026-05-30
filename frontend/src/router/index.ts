@@ -58,6 +58,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/forum/my-posts',
+    name: 'MyPosts',
+    component: () => import('@/pages/forum/MyPostsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/forum/my-favorites',
+    name: 'MyFavorites',
+    component: () => import('@/pages/forum/MyFavoritesPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')
