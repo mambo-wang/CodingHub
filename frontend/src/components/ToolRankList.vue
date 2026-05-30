@@ -9,9 +9,9 @@
       <div v-if="loading" class="loading-state">
         <div v-for="i in 5" :key="i" class="skeleton h-10 w-full mb-2"></div>
       </div>
-      <div v-else-if="items.length === 0" class="empty-state"><p>暂无数据</p></div>
+      <div v-else-if="displayItems.length === 0" class="empty-state"><p>暂无数据</p></div>
       <div v-else class="rank-items">
-        <RankItem v-for="(item, index) in items" :key="item.toolName" :rank="index + 1"
+        <RankItem v-for="(item, index) in displayItems" :key="item.toolName" :rank="index + 1"
           :title="item.toolName" :count="item.hotScore" @click="handleClick(item)" />
       </div>
     </div>
@@ -19,11 +19,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import RankItem from './RankItem.vue';
 import type { ToolRankDto } from '@/types/overview';
 
 const props = defineProps<{ categories: string[]; selectedCategory: string | null; items: ToolRankDto[]; loading?: boolean; }>();
 const emit = defineEmits<{ (e: 'select', category: string | null): void; }>();
+
+const displayItems = computed(() => {
+  if (!props.selectedCategory) {
+    return props.items;
+  }
+  return props.items.filter(item => item.category === props.selectedCategory);
+});
+
 const handleClick = (item: ToolRankDto) => { console.log('tool clicked', item); };
 </script>
 

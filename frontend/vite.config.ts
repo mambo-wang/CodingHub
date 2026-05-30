@@ -19,6 +19,10 @@ export default defineConfig({
       '/api/forum': {
         target: 'http://localhost:8080',
         changeOrigin: true
+      },
+      '/api/overview': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
       }
     }
   }
