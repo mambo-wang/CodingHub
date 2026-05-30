@@ -70,6 +70,11 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/overview',
+    name: 'Overview',
+    component: () => import('@/pages/OverviewPage.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')
