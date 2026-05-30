@@ -22,9 +22,14 @@ public class CategoryService {
     }
 
     private CategoryDTO toDTO(Category category) {
+        String name = category.getName();
+        // 将 "API" 统一改为 "插件"
+        if ("API".equals(name)) {
+            name = "插件";
+        }
         return CategoryDTO.builder()
                 .id(category.getId())
-                .name(category.getName())
+                .name(name)
                 .icon(category.getIcon())
                 .sortOrder(category.getSortOrder())
                 .build();
