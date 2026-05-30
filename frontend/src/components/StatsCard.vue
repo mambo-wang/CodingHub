@@ -5,8 +5,8 @@
         <component :is="iconComponent" :size="20" />
       </div>
       <div>
-        <p class="text-xs" style="color: var(--color-muted);">{{ label }}</p>
-        <p class="font-code text-2xl font-bold">{{ formattedValue }}</p>
+        <p class="text-xs text-muted">{{ label }}</p>
+        <p class="font-code text-2xl font-bold text-main">{{ formattedValue }}</p>
       </div>
     </div>
   </div>
@@ -29,9 +29,9 @@ const iconComponent = computed(() => {
 
 const iconStyle = computed(() => {
   const styles = {
-    users: { background: 'rgba(0,255,255,0.1)', border: '1px solid rgba(0,255,255,0.2)', color: '#00FFFF' },
-    'message-square': { background: 'rgba(255,0,255,0.1)', border: '1px solid rgba(255,0,255,0.2)', color: '#FF00FF' },
-    wrench: { background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22C55E' }
+    users: { background: 'rgba(0,255,255,0.1)', border: '1px solid rgba(0,255,255,0.2)', color: 'var(--color-accent-cyan)' },
+    'message-square': { background: 'rgba(255,0,255,0.1)', border: '1px solid rgba(255,0,255,0.2)', color: 'var(--color-accent-magenta)' },
+    wrench: { background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--color-accent-green)' }
   };
   return styles[props.icon];
 });
@@ -42,7 +42,7 @@ const formattedValue = computed(() => props.value.toLocaleString('zh-CN'));
 <style scoped>
 .stats-card {
   position: relative;
-  padding: 16px;
+  padding: var(--space-lg, 16px);
   overflow: hidden;
 }
 .stats-card::before {
@@ -58,18 +58,24 @@ const formattedValue = computed(() => props.value.toLocaleString('zh-CN'));
   opacity: 1;
 }
 .glass-card {
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--color-surface, rgba(15, 23, 42, 0.9));
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-lg, 12px);
   transition: all 200ms ease;
 }
 .glass-card:hover {
-  border-color: rgba(0, 255, 255, 0.3);
+  border-color: var(--color-accent-cyan, #00FFFF);
   box-shadow: 0 0 30px rgba(0, 255, 255, 0.15);
 }
 .icon-wrapper {
-  padding: 8px;
-  border-radius: 8px;
+  padding: var(--space-sm, 8px);
+  border-radius: var(--radius-md, 8px);
+}
+.text-muted {
+  color: var(--color-text-muted, #94A3B8);
+}
+.text-main {
+  color: var(--color-text, #F8FAFC);
 }
 </style>

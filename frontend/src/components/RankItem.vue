@@ -1,8 +1,8 @@
 <template>
   <div class="rank-item" @click="$emit('click')">
     <span class="rank-badge" :class="{ 'top-3': rank <= 3 }">{{ rank }}</span>
-    <span class="flex-1 text-sm truncate">{{ title }}</span>
-    <span class="text-xs font-code" style="color: var(--color-muted);">{{ count }}</span>
+    <span class="flex-1 text-sm truncate title">{{ title }}</span>
+    <span class="text-xs font-code count">{{ count }}</span>
   </div>
 </template>
 
@@ -15,14 +15,14 @@ defineEmits<{ (e: 'click'): void; }>();
 .rank-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  gap: var(--space-sm, 8px);
+  padding: var(--space-sm, 8px) var(--space-md, 12px);
+  border-radius: var(--radius-sm, 4px);
   transition: all 150ms ease;
   cursor: pointer;
 }
 .rank-item:hover {
-  background: #1E293B;
+  background: var(--color-secondary, #1E293B);
 }
 .rank-badge {
   min-width: 24px;
@@ -30,14 +30,20 @@ defineEmits<{ (e: 'click'): void; }>();
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #00FFFF, #FF00FF);
-  color: #0F172A;
+  background: linear-gradient(135deg, var(--color-accent-cyan, #00FFFF), var(--color-accent-magenta, #FF00FF));
+  color: var(--color-primary, #0F172A);
   font-family: 'Fira Code', monospace;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 4px);
 }
 .rank-badge.top-3 {
   background: linear-gradient(135deg, #FBBF24, #22C55E);
+}
+.title {
+  color: var(--color-text, #F8FAFC);
+}
+.count {
+  color: var(--color-text-muted, #94A3B8);
 }
 </style>
