@@ -1,5 +1,4 @@
-schema: tdd-with-execute-plan
-
+schema: ui-design-to-browser-test
 context: |
   Project: AI工具广场 (AI Tool Square)
   Tech Stack: Java 17, Spring Boot 3.2.5, Gradle, Vue 3.4.21, TypeScript, Vite

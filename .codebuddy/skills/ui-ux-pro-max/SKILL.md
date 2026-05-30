@@ -89,6 +89,24 @@ This also creates:
 2. If the page file exists, its rules **override** the Master file
 3. If not, use `design-system/MASTER.md` exclusively
 
+### Step 2c: OpenSpec Integration (NEW)
+
+When used within OpenSpec workflow, add `--output` to save design-system directly to the change directory:
+
+```bash
+python3 skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --output ./design-system.md -f markdown
+```
+
+This outputs the design system directly to `design-system.md` in the current directory (the OpenSpec change directory), which can be committed as an artifact.
+
+**OpenSpec + ui-ux-pro-max workflow:**
+```
+1. Create/Open a change: openspec-new-change
+2. Generate design system: python3 ... --design-system --output ./design-system.md -f markdown
+3. The design-system.md artifact is ready for the change
+4. Use frontend-design skill to implement the UI based on design-system.md
+```
+
 ### Step 3: Supplement with Detailed Searches (as needed)
 
 After getting the design system, use domain searches to get additional details:
