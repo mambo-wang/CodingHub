@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -45,4 +46,9 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
                                            Pageable pageable);
 
     boolean existsByNameAndUploaderIdAndStatus(String name, Long uploaderId, Tool.Status status);
+
+    @Query("SELECT t FROM Tool t JOIN FETCH t.category WHERE t.status = 'NORMAL' " +
+           "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
+           "ORDER BY t.createdAt DESC")
+    List<Tool> findApprovedToolsWithCategory(@Param("keyword") String keyword, Pageable pageable);
 }
