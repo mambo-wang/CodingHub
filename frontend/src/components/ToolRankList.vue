@@ -397,4 +397,109 @@ const handleClick = (item: ToolRankDto) => {
   font-weight: 600;
   font-family: 'Fira Code', monospace;
 }
+
+/* Light theme */
+[data-theme="light"] .tool-rank-list {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="light"] .panel-header {
+  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05), transparent);
+}
+
+[data-theme="light"] .pulse-indicator {
+  background: #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
+[data-theme="light"] .panel-title {
+  color: #1E293B;
+}
+
+[data-theme="light"] .panel-subtitle {
+  color: rgba(139, 92, 246, 0.6);
+}
+
+[data-theme="light"] .live-badge {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="light"] .live-dot {
+  background: #8b5cf6;
+}
+
+[data-theme="light"] .live-text {
+  color: #8b5cf6;
+}
+
+[data-theme="light"] .category-tabs {
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+}
+
+[data-theme="light"] .tab-chip {
+  color: #64748B;
+  border-color: rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .tab-chip:hover {
+  color: #8b5cf6;
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+[data-theme="light"] .tab-chip.active {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+[data-theme="light"] .rank-scroll::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+}
+
+[data-theme="light"] .empty-state {
+  color: #94A3B8;
+}
+
+[data-theme="light"] .rank-row {
+  background: rgba(139, 92, 246, 0.02);
+}
+
+[data-theme="light"] .rank-row:hover {
+  background: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .rank-row.top-tier {
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.02));
+}
+
+[data-theme="light"] .rank-indicator {
+  background: rgba(139, 92, 246, 0.1);
+  color: #64748B;
+}
+
+[data-theme="light"] .item-name {
+  color: #1E293B;
+}
+
+[data-theme="light"] .item-tag {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="light"] .score-badge {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #8b5cf6;
+}
 </style>

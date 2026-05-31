@@ -44,7 +44,7 @@ const toggleTheme = () => themeStore.toggleTheme()
             </defs>
           </svg>
         </div>
-        <span class="logo-text">AI <span class="logo-accent">工具广场</span></span>
+        <span class="logo-text">Coding<span class="logo-accent">Hub</span></span>
       </div>
 
       <!-- Nav Links -->

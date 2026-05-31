@@ -166,4 +166,57 @@ watch(() => props.value, (newVal) => {
 .stats-card:hover .icon-ring {
   box-shadow: 0 0 30px var(--accent-color), 0 0 60px var(--accent-color), inset 0 0 20px rgba(0, 255, 255, 0.2);
 }
+
+/* Light theme */
+[data-theme="light"] .stats-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="light"] .stats-card:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .scan-line {
+  opacity: 0.4;
+}
+
+[data-theme="light"] .icon-ring {
+  background: rgba(139, 92, 246, 0.08);
+  box-shadow: 0 0 20px var(--accent-color), inset 0 0 15px rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="light"] .ring-glow {
+  background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
+  opacity: 0.2;
+}
+
+[data-theme="light"] .data-label {
+  color: rgba(100, 116, 139, 0.8);
+}
+
+[data-theme="light"] .data-value {
+  color: #1E293B;
+  text-shadow: 0 0 15px var(--accent-color);
+}
+
+[data-theme="light"] .corner-accent {
+  opacity: 0.15;
+}
+
+[data-theme="light"] .grid-overlay {
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+}
+
+[data-theme="light"] .stats-card:hover .icon-ring {
+  box-shadow: 0 0 30px var(--accent-color), 0 0 50px var(--accent-color), inset 0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+/* Light theme accent colors */
+[data-theme="light"] .accent-users { --accent-color: #8b5cf6; }
+[data-theme="light"] .accent-message-square { --accent-color: #ec4899; }
+[data-theme="light"] .accent-wrench { --accent-color: #10b981; }
 </style>

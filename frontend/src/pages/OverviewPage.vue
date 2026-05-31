@@ -291,4 +291,51 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 }
+
+/* Light theme */
+[data-theme="light"] .page-header {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .logo-icon {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #8b5cf6;
+}
+
+[data-theme="light"] .title {
+  color: #1E293B;
+}
+
+[data-theme="light"] .subtitle {
+  color: #64748B;
+}
+
+[data-theme="light"] .update-time {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  color: #64748B;
+}
+
+[data-theme="light"] .label-line {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), transparent);
+}
+
+[data-theme="light"] .label-text {
+  color: #64748B;
+}
+
+[data-theme="light"] .footer-line {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.08), transparent);
+}
+
+[data-theme="light"] .footer-text,
+[data-theme="light"] .footer-version {
+  color: #94A3B8;
+}
+
+[data-theme="light"] .footer-divider {
+  color: #CBD5E1;
+}
 </style>

@@ -397,4 +397,109 @@ const handleClick = (item: PostRankDto) => {
   font-weight: 600;
   font-family: 'Fira Code', monospace;
 }
+
+/* Light theme */
+[data-theme="light"] .post-rank-list {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+[data-theme="light"] .panel-header {
+  border-bottom: 1px solid rgba(236, 72, 153, 0.1);
+  background: linear-gradient(90deg, rgba(236, 72, 153, 0.05), transparent);
+}
+
+[data-theme="light"] .pulse-indicator {
+  background: #ec4899;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+}
+
+[data-theme="light"] .panel-title {
+  color: #1E293B;
+}
+
+[data-theme="light"] .panel-subtitle {
+  color: rgba(236, 72, 153, 0.6);
+}
+
+[data-theme="light"] .live-badge {
+  background: rgba(236, 72, 153, 0.08);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+[data-theme="light"] .live-dot {
+  background: #ec4899;
+}
+
+[data-theme="light"] .live-text {
+  color: #ec4899;
+}
+
+[data-theme="light"] .category-tabs {
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(236, 72, 153, 0.08);
+}
+
+[data-theme="light"] .tab-chip {
+  color: #64748B;
+  border-color: rgba(236, 72, 153, 0.15);
+}
+
+[data-theme="light"] .tab-chip:hover {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.4);
+  background: rgba(236, 72, 153, 0.05);
+}
+
+[data-theme="light"] .tab-chip.active {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+[data-theme="light"] .rank-scroll::-webkit-scrollbar-thumb {
+  background: rgba(236, 72, 153, 0.2);
+}
+
+[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, rgba(236, 72, 153, 0.05) 25%, rgba(236, 72, 153, 0.1) 50%, rgba(236, 72, 153, 0.05) 75%);
+}
+
+[data-theme="light"] .empty-state {
+  color: #94A3B8;
+}
+
+[data-theme="light"] .rank-row {
+  background: rgba(236, 72, 153, 0.02);
+}
+
+[data-theme="light"] .rank-row:hover {
+  background: rgba(236, 72, 153, 0.06);
+  border-color: rgba(236, 72, 153, 0.15);
+}
+
+[data-theme="light"] .rank-row.top-tier {
+  background: linear-gradient(90deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.02));
+}
+
+[data-theme="light"] .rank-indicator {
+  background: rgba(236, 72, 153, 0.1);
+  color: #64748B;
+}
+
+[data-theme="light"] .item-name {
+  color: #1E293B;
+}
+
+[data-theme="light"] .item-tag {
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+}
+
+[data-theme="light"] .score-badge {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #8b5cf6;
+}
 </style>

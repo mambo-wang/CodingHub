@@ -98,7 +98,7 @@ onMounted(() => {
       <div class="hero-content">
         <h1 class="hero-title inline-title">
           <span>发现</span>
-          <span class="gradient-text">AI 工具</span>
+          <span class="gradient-text">AI</span>
           <span>的无限可能</span>
         </h1>
         <p class="hero-subtitle">探索、分享、协作 — 找到最适合你的 AI 助手</p>
