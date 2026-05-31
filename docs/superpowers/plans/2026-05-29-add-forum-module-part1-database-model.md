@@ -40,7 +40,7 @@ backend/src/main/resources/db/migration/
 -- 测试验证表结构
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_schema = 'watcher_db' AND table_name = 'forum_post';
+WHERE table_schema = 'ai_tool_square' AND table_name = 'forum_post';
 ```
 
 - [ ] **步骤 2：运行迁移**
@@ -51,7 +51,7 @@ WHERE table_schema = 'watcher_db' AND table_name = 'forum_post';
 - [ ] **步骤 3：验证表存在**
 
 ```bash
-mysql -uroot -proot watcher_db -e "SHOW TABLES LIKE 'forum_%'"
+mysql -uroot -proot ai_tool_square -e "SHOW TABLES LIKE 'forum_%'"
 ```
 预期：6 张表全部存在
 

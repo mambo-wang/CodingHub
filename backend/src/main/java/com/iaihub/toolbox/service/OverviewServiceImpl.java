@@ -3,12 +3,14 @@ package com.iaihub.toolbox.service;
 import com.iaihub.toolbox.dto.StatsDto;
 import com.iaihub.toolbox.dto.ToolRankDto;
 import com.iaihub.toolbox.dto.PostRankDto;
-import com.iaihub.toolbox.model.forum.ForumCategory;
+import com.iaihub.toolbox.model.Category;
 import com.iaihub.toolbox.model.Tool;
+import com.iaihub.toolbox.model.forum.ForumCategory;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.forum.ForumCategoryRepository;
+import com.iaihub.toolbox.repository.CategoryRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +26,18 @@ public class OverviewServiceImpl implements OverviewService {
     private final UserRepository userRepository;
     private final ForumPostRepository forumPostRepository;
     private final ForumCategoryRepository forumCategoryRepository;
+    private final CategoryRepository categoryRepository;
     private final ToolRepository toolRepository;
 
     public OverviewServiceImpl(UserRepository userRepository,
                                ForumPostRepository forumPostRepository,
                                ForumCategoryRepository forumCategoryRepository,
+                               CategoryRepository categoryRepository,
                                ToolRepository toolRepository) {
         this.userRepository = userRepository;
         this.forumPostRepository = forumPostRepository;
         this.forumCategoryRepository = forumCategoryRepository;
+        this.categoryRepository = categoryRepository;
         this.toolRepository = toolRepository;
     }
 
@@ -47,7 +52,8 @@ public class OverviewServiceImpl implements OverviewService {
     @Override
     public List<ToolRankDto> getToolRanks() {
         List<ToolRankDto> result = new ArrayList<>();
-        List<ForumCategory> categories = forumCategoryRepository.findAll();
+        // 使用工具分类 CategoryRepository
+        List<Category> categories = categoryRepository.findAll();
         if (categories.isEmpty()) {
             return result;
         }
@@ -55,17 +61,21 @@ public class OverviewServiceImpl implements OverviewService {
         Map<Long, List<Tool>> toolsByCategory = toolRepository.findAll().stream()
                 .collect(Collectors.groupingBy(t -> t.getCategory() != null ? t.getCategory().getId() : 0L));
 
-        for (ForumCategory category : categories) {
+        for (Category category : categories) {
             List<Tool> tools = toolsByCategory.getOrDefault(category.getId(), Collections.emptyList());
             tools.stream()
-                    .sorted((a, b) -> Long.compare(
-                            b.getCreatedAt() != null ? b.getCreatedAt().toEpochSecond(java.time.ZoneOffset.UTC) : 0,
-                            a.getCreatedAt() != null ? a.getCreatedAt().toEpochSecond(java.time.ZoneOffset.UTC) : 0))
+                    // 按 score 降序排列
+                    .sorted((a, b) -> {
+                        java.math.BigDecimal scoreA = a.getScore() != null ? a.getScore() : java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal scoreB = b.getScore() != null ? b.getScore() : java.math.BigDecimal.ZERO;
+                        return scoreB.compareTo(scoreA);
+                    })
                     .limit(5)
                     .forEach(t -> result.add(new ToolRankDto(
+                            t.getId(),
                             category.getName(),
                             t.getName(),
-                            1L)));
+                            t.getScore() != null ? t.getScore() : java.math.BigDecimal.ZERO)));
         }
         return result;
     }
@@ -85,14 +95,18 @@ public class OverviewServiceImpl implements OverviewService {
         for (ForumCategory category : categories) {
             List<ForumPost> posts = postsByCategory.getOrDefault(category.getId(), Collections.emptyList());
             posts.stream()
-                    .sorted((a, b) -> Integer.compare(
-                            b.getCommentCount() != null ? b.getCommentCount() : 0,
-                            a.getCommentCount() != null ? a.getCommentCount() : 0))
+                    // 按 score 降序排列
+                    .sorted((a, b) -> {
+                        java.math.BigDecimal scoreA = a.getScore() != null ? a.getScore() : java.math.BigDecimal.ZERO;
+                        java.math.BigDecimal scoreB = b.getScore() != null ? b.getScore() : java.math.BigDecimal.ZERO;
+                        return scoreB.compareTo(scoreA);
+                    })
                     .limit(5)
                     .forEach(p -> result.add(new PostRankDto(
+                            p.getId(),
                             category.getName(),
                             p.getTitle(),
-                            (long) (p.getCommentCount() != null ? p.getCommentCount() : 0))));
+                            p.getScore() != null ? p.getScore() : java.math.BigDecimal.ZERO)));
         }
         return result;
     }

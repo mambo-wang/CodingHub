@@ -3,18 +3,27 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
+import { Eye, ThumbsUp, MessageCircle } from '@lucide/vue'
 import api from '@/services/api'
 import { fileUploadApi } from '@/services/api'
+import { getToolDetail, getComments, type Comment } from '@/services/tool'
 import type { ToolDetail, ToolFile } from '@/types'
+import ToolLikeButton from '@/components/ToolLikeButton.vue'
+import ToolCommentList from '@/components/ToolCommentList.vue'
+import ToolCommentEditor from '@/components/ToolCommentEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const tool = ref<ToolDetail | null>(null)
+const toolStats = ref({ viewCount: 0, likeCount: 0, commentCount: 0, score: 0, isLiked: false })
 const loading = ref(false)
 const error = ref(false)
 const files = ref<ToolFile[]>([])
 const filesLoading = ref(false)
+const comments = ref<Comment[]>([])
+const commentsLoading = ref(false)
+const showLoginTip = ref(false)
 
 const md = new MarkdownIt({
   html: false,
@@ -53,12 +62,41 @@ const fetchTool = async () => {
   loading.value = true
   error.value = false
   try {
-    const response = await api.get(`/tools/${route.params.id}`)
-    tool.value = response.data.data
+    const toolDetail = await getToolDetail(Number(route.params.id))
+    tool.value = {
+      id: toolDetail.id,
+      name: toolDetail.name,
+      categoryName: toolDetail.categoryName,
+      categoryIcon: toolDetail.categoryIcon,
+      content: toolDetail.content,
+      uploaderId: toolDetail.uploaderId,
+      uploaderUsername: toolDetail.uploaderUsername,
+      createdAt: toolDetail.createdAt,
+      updatedAt: toolDetail.updatedAt
+    }
+    toolStats.value = {
+      viewCount: toolDetail.viewCount || 0,
+      likeCount: toolDetail.likeCount || 0,
+      commentCount: toolDetail.commentCount || 0,
+      score: toolDetail.score || 0,
+      isLiked: toolDetail.isLiked || false
+    }
   } catch {
     error.value = true
   } finally {
     loading.value = false
+  }
+}
+
+const fetchComments = async () => {
+  if (!route.params.id) return
+  commentsLoading.value = true
+  try {
+    comments.value = await getComments(Number(route.params.id))
+  } catch {
+    comments.value = []
+  } finally {
+    commentsLoading.value = false
   }
 }
 
@@ -86,7 +124,23 @@ const goBack = () => router.push('/')
 onMounted(() => {
   fetchTool()
   fetchFiles()
+  fetchComments()
 })
+
+const handleLikeUpdate = (data: { isLiked: boolean; likeCount: number }) => {
+  toolStats.value.isLiked = data.isLiked
+  toolStats.value.likeCount = data.likeCount
+}
+
+const handleRequireLogin = () => {
+  showLoginTip.value = true
+  setTimeout(() => { showLoginTip.value = false }, 3000)
+}
+
+const handleCommentSubmitted = (comment: Comment) => {
+  comments.value.unshift(comment)
+  toolStats.value.commentCount++
+}
 </script>
 
 <template>
@@ -170,9 +224,51 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- Stats Bar -->
+          <div class="stats-bar">
+            <div class="stat-item">
+              <Eye :size="16" />
+              <span>{{ toolStats.viewCount.toLocaleString() }}</span>
+            </div>
+            <div class="stat-item">
+              <ThumbsUp :size="16" />
+              <span>{{ toolStats.likeCount.toLocaleString() }}</span>
+            </div>
+            <div class="stat-item">
+              <MessageCircle :size="16" />
+              <span>{{ toolStats.commentCount.toLocaleString() }}</span>
+            </div>
+          </div>
+
+          <!-- Action Bar -->
+          <div class="action-bar">
+            <ToolLikeButton
+              :tool-id="tool.id"
+              :initial-liked="toolStats.isLiked"
+              :initial-count="toolStats.likeCount"
+              @update="handleLikeUpdate"
+              @require-login="handleRequireLogin"
+            />
+          </div>
+
+          <!-- Login Tip -->
+          <div v-if="showLoginTip" class="login-tip">
+            请先登录后再进行操作
+          </div>
+
           <!-- Content -->
           <div class="tool-content">
             <div class="markdown-body" v-html="renderedContent"></div>
+          </div>
+
+          <!-- Comments Section -->
+          <div class="comments-section">
+            <ToolCommentList :comments="comments" />
+            <ToolCommentEditor
+              :tool-id="tool.id"
+              @submitted="handleCommentSubmitted"
+              @require-login="handleRequireLogin"
+            />
           </div>
         </div>
 
@@ -744,6 +840,78 @@ onMounted(() => {
 
   .tool-title {
     font-size: 28px;
+  }
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+.stat-item svg {
+  color: var(--accent-1);
+}
+
+/* Action Bar */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Login Tip */
+.login-tip {
+  margin: 0 32px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 14px;
+  text-align: center;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Comments Section */
+.comments-section {
+  padding: 0 32px 32px;
+}
+
+@media (max-width: 768px) {
+  .stats-bar,
+  .action-bar {
+    padding: 16px 20px;
+  }
+
+  .comments-section {
+    padding: 0 20px 24px;
   }
 }
 </style>

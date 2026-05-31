@@ -50,38 +50,6 @@ argument-hint: "[component-path or --fix or --all]"
 4. 发现问题自动修复并写回
 5. 生成验证报告
 
-## 输出报告
-
-```
-## UI Verification & Auto-Fix Report
-
-### Components Verified: 5
-### Issues Found: 3
-### Issues Fixed: 3
-
-| Component | Issues | Status |
-|------------|---------|--------|
-| StatsCard.vue | 2 CSS variables | ✅ Fixed |
-| RankItem.vue | 1 radius value | ✅ Fixed |
-| ToolRankList.vue | 0 | ✅ OK |
-
-### Auto-Fixed Issues
-
-1. **StatsCard.vue:32** - CSS variable added
-   - Before: `color: #00FFFF`
-   - After: `color: var(--color-accent-cyan)`
-
-2. **StatsCard.vue:64** - radius-lg applied
-   - Before: `border-radius: 16px`
-   - After: `border-radius: var(--radius-lg, 12px)`
-
-3. **RankItem.vue:38** - radius-sm applied
-   - Before: `border-radius: 8px`
-   - After: `border-radius: var(--radius-sm, 4px)`
-
-**All issues automatically fixed.**
-```
-
 ## Prerequisites
 
 1. Load ui-ux-pro-max skill:
@@ -103,12 +71,6 @@ argument-hint: "[component-path or --fix or --all]"
     ↓
 /opsx:archive       # 归档变更
 ```
-
-## Notes
-
-- 自动修复会修改源文件，建议修复前 commit 当前状态
-- 使用 `--fix` 前确保设计系统规范正确定义
-- 如需回滚，可使用 `git checkout` 恢复
 
 ---
 **Version**: 1.1 - Auto-Fix Enabled

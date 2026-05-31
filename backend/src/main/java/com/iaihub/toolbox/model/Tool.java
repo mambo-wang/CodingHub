@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -55,6 +56,50 @@ public class Tool {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "view_count")
+    @Builder.Default
+    private Integer viewCount = 0;
+
+    @Column(name = "like_count")
+    @Builder.Default
+    private Integer likeCount = 0;
+
+    @Column(name = "comment_count")
+    @Builder.Default
+    private Integer commentCount = 0;
+
+    @Column(name = "score", precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal score = BigDecimal.ZERO;
+
+    // 更新 score 的方法：score = viewCount * 1 + likeCount * 3 + commentCount * 5
+    public void updateScore() {
+        this.score = BigDecimal.valueOf(this.viewCount)
+            .multiply(BigDecimal.valueOf(1))
+            .add(BigDecimal.valueOf(this.likeCount).multiply(BigDecimal.valueOf(3)))
+            .add(BigDecimal.valueOf(this.commentCount).multiply(BigDecimal.valueOf(5)));
+    }
+
+    public void incrementViewCount() {
+        this.viewCount++;
+        updateScore();
+    }
+
+    public void incrementLikeCount() {
+        this.likeCount++;
+        updateScore();
+    }
+
+    public void decrementLikeCount() {
+        if (this.likeCount > 0) this.likeCount--;
+        updateScore();
+    }
+
+    public void incrementCommentCount() {
+        this.commentCount++;
+        updateScore();
+    }
 
     @PrePersist
     protected void onCreate() {

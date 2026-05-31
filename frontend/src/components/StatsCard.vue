@@ -1,19 +1,23 @@
 <template>
-  <div class="stats-card glass-card">
-    <div class="flex items-center gap-3">
-      <div class="icon-wrapper" :style="iconStyle">
-        <component :is="iconComponent" :size="20" />
+  <div class="stats-card" :class="`accent-${icon}`">
+    <div class="scan-line"></div>
+    <div class="card-inner">
+      <div class="icon-ring">
+        <div class="ring-glow"></div>
+        <component :is="iconComponent" :size="22" />
       </div>
-      <div>
-        <p class="text-xs text-muted">{{ label }}</p>
-        <p class="font-code text-2xl font-bold text-main">{{ formattedValue }}</p>
+      <div class="data-display">
+        <span class="data-label">{{ label }}</span>
+        <span class="data-value font-code">{{ animatedValue }}</span>
       </div>
     </div>
+    <div class="corner-accent"></div>
+    <div class="grid-overlay"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { Users, MessageSquare, Wrench } from '@lucide/vue';
 
 const props = defineProps<{
@@ -22,60 +26,144 @@ const props = defineProps<{
   icon: 'users' | 'message-square' | 'wrench';
 }>();
 
+const displayValue = ref(0);
+const animatedValue = computed(() => displayValue.value.toLocaleString('zh-CN'));
+
 const iconComponent = computed(() => {
   const icons = { users: Users, 'message-square': MessageSquare, wrench: Wrench };
   return icons[props.icon];
 });
 
-const iconStyle = computed(() => {
-  const styles = {
-    users: { background: 'rgba(0,255,255,0.1)', border: '1px solid rgba(0,255,255,0.2)', color: 'var(--color-accent-cyan)' },
-    'message-square': { background: 'rgba(255,0,255,0.1)', border: '1px solid rgba(255,0,255,0.2)', color: 'var(--color-accent-magenta)' },
-    wrench: { background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--color-accent-green)' }
-  };
-  return styles[props.icon];
-});
+watch(() => props.value, (newVal) => {
+  const duration = 1200;
+  const start = displayValue.value;
+  const diff = newVal - start;
+  const startTime = performance.now();
+  const easeOutQuart = (t: number) => 1 - Math.pow(1 - t, 4);
 
-const formattedValue = computed(() => props.value.toLocaleString('zh-CN'));
+  const animate = (currentTime: number) => {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    displayValue.value = Math.round(start + diff * easeOutQuart(progress));
+    if (progress < 1) requestAnimationFrame(animate);
+  };
+  requestAnimationFrame(animate);
+}, { immediate: true });
 </script>
 
 <style scoped>
 .stats-card {
   position: relative;
-  padding: var(--space-lg, 16px);
+  padding: 24px;
+  border-radius: 16px;
   overflow: hidden;
+  background: rgba(10, 14, 23, 0.9);
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.stats-card::before {
-  content: '';
+
+.stats-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(0, 255, 255, 0.4);
+}
+
+.scan-line {
   position: absolute;
-  inset: -100%;
-  background: radial-gradient(circle, rgba(0,255,255,0.08) 0%, transparent 50%);
-  opacity: 0;
-  transition: opacity 400ms ease;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  animation: scan 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(400px); }
+}
+
+.card-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.icon-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 255, 255, 0.05);
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 20px var(--accent-color), inset 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.ring-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
+  opacity: 0.3;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+}
+
+.data-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.data-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.data-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #F8FAFC;
+  text-shadow: 0 0 20px var(--accent-color);
+}
+
+.corner-accent {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle at bottom right, var(--accent-color) 0%, transparent 70%);
+  opacity: 0.1;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
   pointer-events: none;
 }
-.stats-card:hover::before {
-  opacity: 1;
-}
-.glass-card {
-  background: var(--color-surface, rgba(15, 23, 42, 0.9));
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 12px);
-  transition: all 200ms ease;
-}
-.glass-card:hover {
-  border-color: var(--color-accent-cyan, #00FFFF);
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.15);
-}
-.icon-wrapper {
-  padding: var(--space-sm, 8px);
-  border-radius: var(--radius-md, 8px);
-}
-.text-muted {
-  color: var(--color-text-muted, #94A3B8);
-}
-.text-main {
-  color: var(--color-text, #F8FAFC);
+
+/* Accent Colors */
+.accent-users { --accent-color: #00FFFF; }
+.accent-message-square { --accent-color: #FF00FF; }
+.accent-wrench { --accent-color: #00FF88; }
+
+.stats-card:hover .icon-ring {
+  box-shadow: 0 0 30px var(--accent-color), 0 0 60px var(--accent-color), inset 0 0 20px rgba(0, 255, 255, 0.2);
 }
 </style>

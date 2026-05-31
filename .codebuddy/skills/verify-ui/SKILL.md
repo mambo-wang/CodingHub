@@ -94,7 +94,7 @@ description: 独立的 UI 验证 skill，使用 ui-ux-pro-max 检查 UI 实现�
 
 ## 验证步骤
 
-### Step 1: 确定验证范围
+对比设计规范中的要求：
 
 - 读取 design-system.md 获取设计规范
 - 确定要验证的组件列表
@@ -120,46 +120,6 @@ cat design-system.md  # 读取项目设计规范
 git diff --stat
 ```
 
-## 输出报告
-
-```
-## UI Verification & Auto-Fix Report
-
-### Components Verified: 5
-### Issues Found: 3
-### Issues Fixed: 3
-
-| Component | Issues | Status |
-|------------|---------|--------|
-| StatsCard.vue | 2 CSS variables | ✅ Fixed |
-| RankItem.vue | 1 radius value | ✅ Fixed |
-| ToolRankList.vue | 0 | ✅ OK |
-
-### Auto-Fixed Issues
-
-1. **StatsCard.vue:32** - CSS variable added
-   - Before: `color: #00FFFF`
-   - After: `color: var(--color-accent-cyan)`
-
-2. **StatsCard.vue:64** - CSS variable added
-   - Before: `border-radius: 16px`
-   - After: `border-radius: var(--radius-lg)`
-
-3. **RankItem.vue:38** - CSS variable added
-   - Before: `border-radius: 8px`
-   - After: `border-radius: var(--radius-sm)`
-
-### Summary
-
-| Dimension | Status |
-|-----------|--------|
-| Components | 5/5 verified |
-| Auto-Fixed | 3/3 fixed |
-| Design Adherence | ✅ All issues resolved |
-
-**All issues automatically fixed. Components are now design-compliant.**
-```
-
 ## 命令行工具
 
 ```bash
@@ -173,9 +133,6 @@ verify-ui --check
 verify-ui src/components/StatsCard.vue
 ```
 
-## 集成
-
-此 skill 可以独立使用，也可以集成到 openspec-verify-change 工作流中作为 Step 8。
 
 ---
 **Created**: 2026-05-31

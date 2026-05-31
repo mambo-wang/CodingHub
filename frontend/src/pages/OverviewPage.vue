@@ -1,38 +1,73 @@
 <template>
   <div class="overview-page">
-    <header class="page-header">
-      <h1 class="font-code text-xl font-bold" style="color: #00FFFF;">数据概览</h1>
-      <p class="text-sm mt-1" style="color: var(--color-muted);">Platform Overview</p>
-    </header>
+    <div class="page-container">
+      <header class="page-header">
+        <div class="header-content">
+          <div class="header-left">
+            <div class="logo-icon">
+              <LayoutDashboard :size="24" />
+            </div>
+            <div class="header-text">
+              <h1 class="title">热榜</h1>
+              <p class="subtitle">Hot Rankings</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="update-time">
+              <Clock :size="14" />
+              <span>{{ currentTime }}</span>
+            </div>
+          </div>
+        </div>
+      </header>
 
-    <section class="stats-grid">
-      <StatsCard label="用户" :value="stats.userCount" icon="users" />
-      <StatsCard label="帖子" :value="stats.postCount" icon="message-square" />
-      <StatsCard label="工具" :value="stats.toolCount" icon="wrench" />
-    </section>
+      <section class="stats-section">
+        <div class="stats-grid">
+          <StatsCard label="用户总数" :value="stats.userCount" icon="users" />
+          <StatsCard label="帖子总数" :value="stats.postCount" icon="message-square" />
+          <StatsCard label="工具总数" :value="stats.toolCount" icon="wrench" />
+        </div>
+      </section>
 
-    <section class="main-content">
-      <div class="rank-section">
-        <h2 class="font-code text-base font-semibold flex items-center gap-2 mb-3">
-          <Flame :size="16" style="color: #00FFFF;" /> 工具热榜
-        </h2>
-        <ToolRankList :categories="toolCategories" :selectedCategory="selectedToolCategory" :items="toolItems"
-          @select="selectedToolCategory = $event" />
-      </div>
-      <div class="rank-section">
-        <h2 class="font-code text-base font-semibold flex items-center gap-2 mb-3">
-          <MessageCircle :size="16" style="color: #FF00FF;" /> 帖子热榜
-        </h2>
-        <PostRankList :categories="postCategories" :selectedCategory="selectedPostCategory" :items="postItems"
-          @select="selectedPostCategory = $event" />
-      </div>
-    </section>
+      <section class="rankings-section">
+        <div class="section-label">
+          <span class="label-line"></span>
+          <span class="label-text">实时热榜</span>
+          <span class="label-line"></span>
+        </div>
+        <div class="rankings-grid">
+          <ToolRankList
+            :categories="toolCategories"
+            :selectedCategory="selectedToolCategory"
+            :items="toolItems"
+            :loading="loading"
+            @select="selectedToolCategory = $event"
+          />
+          <PostRankList
+            :categories="postCategories"
+            :selectedCategory="selectedPostCategory"
+            :items="postItems"
+            :loading="loading"
+            @select="selectedPostCategory = $event"
+          />
+        </div>
+      </section>
+
+      <footer class="page-footer">
+        <div class="footer-line"></div>
+        <div class="footer-content">
+          <span class="footer-text">AI Tool Square</span>
+          <span class="footer-divider">|</span>
+          <span class="footer-version">v1.0.0</span>
+        </div>
+      </footer>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Flame, MessageCircle } from '@lucide/vue';
+import { LayoutDashboard, Clock } from '@lucide/vue';
 import StatsCard from '@/components/StatsCard.vue';
 import ToolRankList from '@/components/ToolRankList.vue';
 import PostRankList from '@/components/PostRankList.vue';
@@ -46,11 +81,17 @@ const toolItems = ref<ToolRankDto[]>([]);
 const postItems = ref<PostRankDto[]>([]);
 const selectedToolCategory = ref<string | null>(null);
 const selectedPostCategory = ref<string | null>(null);
+const loading = ref(true);
+
+const currentTime = ref('');
 
 onMounted(async () => {
   try {
+    loading.value = true;
     const [statsData, toolData, postData] = await Promise.all([
-      fetchStats(), fetchToolRanks(), fetchPostRanks()
+      fetchStats(),
+      fetchToolRanks(),
+      fetchPostRanks()
     ]);
     stats.value = statsData;
     toolItems.value = toolData;
@@ -59,18 +100,195 @@ onMounted(async () => {
     postCategories.value = [...new Set(postData.map(p => p.category))];
   } catch (error) {
     console.error('Failed to load overview data', error);
+  } finally {
+    loading.value = false;
   }
+
+  const now = new Date();
+  currentTime.value = now.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 });
 </script>
 
 <style scoped>
-.overview-page { padding: 16px; max-width: 1400px; margin: 0 auto; }
-.page-header { margin-bottom: 24px; }
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
-.main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.rank-section { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 16px; }
+.overview-page {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(0, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(12px);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(0,255,255,0.15), rgba(255,0,255,0.1));
+  border: 1px solid rgba(0,255,255,0.25);
+  border-radius: 14px;
+  color: #00FFFF;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-family: 'Fira Code', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #F8FAFC;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #64748B;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.update-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  color: #94A3B8;
+  font-size: 12px;
+}
+
+.stats-section {
+  margin-bottom: 32px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.rankings-section {
+  margin-bottom: 24px;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.label-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+}
+
+.label-text {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #64748B;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.rankings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.page-footer {
+  padding-top: 24px;
+}
+
+.footer-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  margin-bottom: 16px;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.footer-text {
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: #475569;
+  letter-spacing: 1px;
+}
+
+.footer-divider {
+  color: #334155;
+}
+
+.footer-version {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: #475569;
+}
+
+@media (max-width: 1024px) {
+  .rankings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .main-content { grid-template-columns: 1fr; }
+  .overview-page {
+    padding: 16px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

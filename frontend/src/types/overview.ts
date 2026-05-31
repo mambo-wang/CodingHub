@@ -5,15 +5,15 @@ export interface StatsDto {
 }
 
 export interface ToolRankDto {
-  id?: number;
+  id: number;
   category: string;
   toolName: string;
-  hotScore: number;
+  score: number;
 }
 
 export interface PostRankDto {
-  id?: number;
+  id: number;
   category: string;
   postTitle: string;
-  commentCount: number;
+  score: number;
 }

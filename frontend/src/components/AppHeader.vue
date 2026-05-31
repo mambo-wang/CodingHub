@@ -22,6 +22,7 @@ const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 const goToMyTools = () => router.push('/me/tools')
 const goToForum = () => router.push('/forum')
+const goToOverview = () => router.push('/overview')
 const goHome = () => router.push('/')
 const toggleTheme = () => themeStore.toggleTheme()
 </script>
@@ -50,6 +51,7 @@ const toggleTheme = () => themeStore.toggleTheme()
       <nav class="nav-links">
         <button class="nav-btn" @click="goHome">工具广场</button>
         <button class="nav-btn" @click="goToForum">论坛</button>
+        <button class="nav-btn" @click="goToOverview">热榜</button>
         <template v-if="isLoggedIn">
           <button class="nav-btn" @click="goToMyTools">我的工具</button>
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">

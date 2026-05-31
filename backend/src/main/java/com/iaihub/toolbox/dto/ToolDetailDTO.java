@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -22,4 +23,8 @@ public class ToolDetailDTO {
     private String uploaderUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer viewCount;
+    private Integer likeCount;
+    private Integer commentCount;
+    private BigDecimal score;
 }
