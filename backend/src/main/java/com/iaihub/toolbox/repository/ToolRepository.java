@@ -51,4 +51,11 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
            "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
            "ORDER BY t.createdAt DESC")
     List<Tool> findApprovedToolsWithCategory(@Param("keyword") String keyword, Pageable pageable);
+
+    // MCP Server 所需方法
+    List<Tool> findTop10ByStatusAndNameContainingIgnoreCase(Tool.Status status, String keyword);
+
+    List<Tool> findTop10ByStatusOrderByCreatedAtDesc(Tool.Status status);
+
+    long countByStatus(Tool.Status status);
 }
