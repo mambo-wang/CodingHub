@@ -88,7 +88,10 @@ public class ToolController {
     public ResponseEntity<ApiResponse<Boolean>> getLikeStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
-
+        
+        if (currentUser == null) {
+            return ResponseEntity.ok(ApiResponse.success(false));
+        }
         boolean isLiked = toolService.isLikedByUser(id, currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(isLiked));
     }

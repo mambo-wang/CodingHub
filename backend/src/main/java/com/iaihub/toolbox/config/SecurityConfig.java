@@ -37,6 +37,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/like-status").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/comments").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
                 // File endpoints (must be before /api/v1/tools/**)
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files").permitAll()
