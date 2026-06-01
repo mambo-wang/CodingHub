@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: iaihub
+  datasource:
+    url: jdbc:mysql://localhost:3306/watcher_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+jwt:
+  secret: IEFkcm半手动192819283819238188aifoundationHub2024SecretKeyThatIsLongEnough
+  expiration: 86400000
+
+logging:
+  level:
+    root: INFO
+    com.iaihub: DEBUG
