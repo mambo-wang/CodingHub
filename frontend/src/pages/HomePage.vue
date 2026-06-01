@@ -12,12 +12,36 @@ const selectedCategory = ref<number | null>(null)
 const searchKeyword = ref('')
 const sortBy = ref('latest')
 const loading = ref(false)
+const showMcpModal = ref(false)
+const copySuccess = ref(false)
 const pagination = ref({
   page: 0,
   size: 12,
   totalElements: 0,
   totalPages: 0
 })
+
+const mcpConfig = {
+  "CodingHub-mcp": {
+    type: "sse",
+    url: `http://${window.location.hostname}:8080/sse`,
+    description: "CodingHub MCP Server"
+  }
+}
+
+const mcpConfigJson = JSON.stringify(mcpConfig, null, 2)
+
+const copyMcpConfig = async () => {
+  try {
+    await navigator.clipboard.writeText(mcpConfigJson)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy:', error)
+  }
+}
 
 const fetchCategories = async () => {
   try {
@@ -245,6 +269,47 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- MCP Float Button -->
+    <button class="mcp-float-btn" @click="showMcpModal = true">
+      <span class="mcp-float-icon">MCP</span>
+      <span class="mcp-float-text">配置到CodeBuddy</span>
+    </button>
+
+    <!-- MCP Modal -->
+    <Teleport to="body">
+      <div v-if="showMcpModal" class="mcp-modal-overlay" @click.self="showMcpModal = false">
+        <div class="mcp-modal glass-card">
+          <div class="mcp-modal-header">
+            <div class="mcp-modal-title">
+              <span class="mcp-badge">SSE</span>
+              MCP 配置
+            </div>
+            <button class="mcp-modal-close" @click="showMcpModal = false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="mcp-modal-body">
+            <p class="mcp-modal-desc">将以下配置添加到 CodeBuddy 的 MCP 配置中：</p>
+            <pre class="mcp-code-block">{{ mcpConfigJson }}</pre>
+          </div>
+          <div class="mcp-modal-footer">
+            <button class="mcp-copy-btn" :class="{ success: copySuccess }" @click="copyMcpConfig">
+              <svg v-if="!copySuccess" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              {{ copySuccess ? '已复制' : '一键复制' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Deerflow Branding -->
     <a href="https://deerflow.tech" target="_blank" class="deerflow-brand">
@@ -687,7 +752,192 @@ onMounted(() => {
   box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
 }
 
-/* Responsive */
+/* Deerflow Branding */
+.deerflow-brand {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  z-index: 10;
+}
+
+.deerflow-brand:hover {
+  color: var(--text-secondary);
+}
+
+/* MCP Float Button */
+.mcp-float-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(6, 182, 212, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+}
+
+.mcp-float-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(139, 92, 246, 0.4);
+}
+
+.mcp-float-icon {
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.mcp-float-text {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+/* MCP Modal */
+.mcp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.mcp-modal {
+  width: 90%;
+  max-width: 520px;
+  padding: 0;
+  animation: slideUp 0.3s ease;
+}
+
+.mcp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mcp-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mcp-badge {
+  padding: 4px 10px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-1);
+  font-family: var(--font-mono);
+}
+
+.mcp-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mcp-modal-close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.mcp-modal-body {
+  padding: 24px;
+}
+
+.mcp-modal-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.mcp-code-block {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.mcp-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mcp-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mcp-copy-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.mcp-copy-btn.success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8), rgba(6, 182, 212, 0.8));
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 768px) {
   .hero-title {
     font-size: 32px;
@@ -711,6 +961,17 @@ onMounted(() => {
 
   .tools-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mcp-float-btn {
+    right: 16px;
+    bottom: 50px;
+    padding: 10px 14px;
+  }
+
+  .mcp-modal {
+    width: 95%;
+    margin: 16px;
   }
 }
 </style>
