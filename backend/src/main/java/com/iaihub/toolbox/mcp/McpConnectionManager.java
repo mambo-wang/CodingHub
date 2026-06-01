@@ -11,7 +11,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MCP 连接管理器（支持 SSE）
+ *
+ * @deprecated 使用 MCP SDK HttpServletSseServerTransportProvider 替代，
+ *             连接管理由 SDK 内部处理
  */
+@Deprecated
 @Component
 public class McpConnectionManager {
 

@@ -41,6 +41,9 @@ public class SecurityConfig {
                 // File endpoints (must be before /api/v1/tools/**)
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files/{fileId}/download").permitAll()
+                // MCP endpoints (无认证)
+                .requestMatchers("/mcp/**").permitAll()
+                .requestMatchers("/sse").permitAll()
                 // Protected endpoints
                 .requestMatchers("/api/v1/tools/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()

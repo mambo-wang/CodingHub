@@ -123,4 +123,12 @@ public class McpSearchService {
         logger.info("Getting post by id: {}", postId);
         return forumPostRepository.findById(postId).orElse(null);
     }
+
+    /**
+     * 获取工具文件详情
+     */
+    public com.iaihub.toolbox.model.ToolFile getToolFile(Long toolId, Long fileId) {
+        logger.info("Getting tool file: toolId={}, fileId={}", toolId, fileId);
+        return toolFileRepository.findByIdAndToolId(fileId, toolId).orElse(null);
+    }
 }
