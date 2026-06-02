@@ -22,6 +22,7 @@ const handleLogout = () => {
 const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 const goToMyTools = () => router.push('/me/tools')
+const goToUpload = () => router.push('/tools/upload')
 const goToForum = () => router.push('/forum')
 const goToOverview = () => router.push('/overview')
 const goHome = () => router.push('/')

@@ -61,6 +61,15 @@ onMounted(() => {
         <p class="page-subtitle">管理您上传的所有工具</p>
       </div>
 
+      <div class="header-actions">
+        <button class="upload-btn" @click="router.push('/tools/upload')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          上传工具
+        </button>
+      </div>
+
       <div v-if="loading" class="tools-list glass-card">
         <div v-for="i in 4" :key="i" class="tool-item-skeleton">
           <div class="skeleton-badge"></div><div class="skeleton-title"></div><div class="skeleton-date"></div>
@@ -134,7 +143,8 @@ onMounted(() => {
 .bg-orb-1 { width: 400px; height: 400px; background: rgba(139, 92, 246, 0.3); top: -100px; right: -100px; }
 .bg-orb-2 { width: 300px; height: 300px; background: rgba(6, 182, 212, 0.2); bottom: 100px; left: -100px; }
 .app-container { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
-.page-header { text-align: center; margin-bottom: 40px; }
+.page-header { text-align: center; margin-bottom: 24px; }
+.header-actions { display: flex; justify-content: center; margin-bottom: 24px; }
 .page-title { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
 .title-icon { filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5)); }
 .page-subtitle { font-size: 16px; color: var(--text-secondary); }
