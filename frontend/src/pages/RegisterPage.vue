@@ -13,14 +13,25 @@ const errorMessage = ref('')
 
 const form = ref<RegisterRequest>({
   username: '',
+  nickname: '',
   password: ''
 })
 
 const handleSubmit = async () => {
   errorMessage.value = ''
 
-  if (!form.value.username || !form.value.password) {
+  if (!form.value.username || !form.value.nickname || !form.value.password) {
     errorMessage.value = '请填写所有字段'
+    return
+  }
+
+  if (form.value.username.length < 4 || form.value.username.length > 20) {
+    errorMessage.value = '用户名长度需在4-20字符之间'
+    return
+  }
+
+  if (form.value.nickname.length < 2 || form.value.nickname.length > 10) {
+    errorMessage.value = '昵称长度需在2-10字符之间'
     return
   }
 
@@ -97,6 +108,25 @@ const goToLogin = () => router.push('/login')
                 placeholder="选择一个好听的名字"
                 maxlength="100"
                 autocomplete="username"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">昵称</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+                <path d="M12 11l-1 4M12 11l1 4"/>
+              </svg>
+              <input
+                v-model="form.nickname"
+                type="text"
+                class="form-input"
+                placeholder="给自己起个好听的昵称"
+                maxlength="10"
+                autocomplete="nickname"
               />
             </div>
           </div>

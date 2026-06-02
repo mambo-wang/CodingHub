@@ -16,7 +16,11 @@
               <div class="author-avatar">
                 <User :size="16" />
               </div>
-              <span>{{ post.authorName }}</span>
+              <AuthorBadge
+                :username="post.authorName"
+                :nickname="post.authorNickname"
+                size="md"
+              />
             </div>
             <span class="separator">·</span>
             <span>{{ formatDate(post.createdAt) }}</span>
@@ -84,6 +88,7 @@ import CommentEditor from '@/components/forum/CommentEditor.vue';
 import forumService from '@/services/forum';
 import { postFavoriteApi } from '@/services/api';
 import type { ForumComment } from '@/types/forum';
+import AuthorBadge from '@/components/AuthorBadge.vue';
 
 const route = useRoute();
 const forumStore = useForumStore();

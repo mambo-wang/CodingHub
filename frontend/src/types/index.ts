@@ -1,6 +1,7 @@
 export interface User {
   id: number
   username: string
+  nickname?: string
   createdAt?: string
   lastLoginAt?: string
 }
@@ -29,6 +30,7 @@ export interface ToolDetail {
   content: string
   uploaderId: number
   uploaderUsername: string
+  uploaderNickname?: string
   createdAt: string
   updatedAt: string
 }
@@ -54,6 +56,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   username: string
+  nickname: string
   password: string
 }
 

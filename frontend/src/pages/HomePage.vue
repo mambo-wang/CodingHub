@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import type { ToolSummary, Category, PageResponse } from '@/types'
+import AuthorBadge from '@/components/AuthorBadge.vue'
 
 const router = useRouter()
 
@@ -211,10 +212,11 @@ onMounted(() => {
               <h3 class="tool-name">{{ tool.name }}</h3>
               <div class="tool-footer">
                 <div class="tool-uploader">
-                  <div class="uploader-avatar">
-                    {{ tool.uploaderUsername?.charAt(0).toUpperCase() }}
-                  </div>
-                  <span class="uploader-name">{{ tool.uploaderUsername }}</span>
+                  <AuthorBadge
+                    :username="tool.uploaderUsername"
+                    :nickname="tool.uploaderNickname"
+                    size="sm"
+                  />
                 </div>
                 <span class="tool-date">{{ new Date(tool.createdAt).toLocaleDateString('zh-CN') }}</span>
               </div>

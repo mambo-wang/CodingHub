@@ -4,6 +4,7 @@ export interface ForumPost {
   content: string;
   authorId: number;
   authorName: string;
+  authorNickname?: string;
   categoryId: number;
   categoryName: string;
   viewCount: number;
@@ -27,6 +28,7 @@ export interface ForumComment {
   postId: number;
   authorId: number | null;
   authorName: string | null;
+  authorNickname?: string | null;
   parentId: number | null;
   rootId: number | null;
   content: string;

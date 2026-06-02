@@ -13,7 +13,11 @@
           <div class="avatar-placeholder">
             <User :size="14" />
           </div>
-          <span class="author-name">{{ post.authorName }}</span>
+          <AuthorBadge
+            :username="post.authorName"
+            :nickname="post.authorNickname"
+            size="sm"
+          />
         </div>
         <span class="separator">·</span>
         <span class="post-date">{{ formatDate(post.createdAt) }}</span>
@@ -46,6 +50,7 @@ import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { postFavoriteApi } from '@/services/api';
+import AuthorBadge from '@/components/AuthorBadge.vue';
 
 const props = defineProps<{ post: ForumPost }>();
 const router = useRouter();

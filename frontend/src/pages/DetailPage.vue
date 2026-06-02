@@ -11,6 +11,7 @@ import type { ToolDetail, ToolFile } from '@/types'
 import ToolLikeButton from '@/components/ToolLikeButton.vue'
 import ToolCommentList from '@/components/ToolCommentList.vue'
 import ToolCommentEditor from '@/components/ToolCommentEditor.vue'
+import AuthorBadge from '@/components/AuthorBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -208,12 +209,11 @@ const handleCommentSubmitted = (comment: Comment) => {
               <h1 class="tool-title">{{ tool.name }}</h1>
 
               <div class="tool-meta">
-                <div class="uploader-info">
-                  <div class="uploader-avatar">
-                    {{ tool.uploaderUsername?.charAt(0).toUpperCase() }}
-                  </div>
-                  <span class="uploader-name">{{ tool.uploaderUsername }}</span>
-                </div>
+                <AuthorBadge
+                  :username="tool.uploaderUsername"
+                  :nickname="tool.uploaderNickname"
+                  size="md"
+                />
                 <span class="meta-separator">•</span>
                 <span class="meta-date">{{ formatDate(tool.createdAt) }}</span>
                 <template v-if="tool.updatedAt !== tool.createdAt">
