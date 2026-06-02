@@ -1,20 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import api from '@/services/api'
+import { ref } from 'vue'
 
-const tools = ref([])
-const loading = ref(true)
+const copySuccess = ref(false)
 
-onMounted(async () => {
+const mcpConfig = {
+  "mcpServers": {
+    "CodingHub-mcp": {
+      "type": "sse",
+      "url": `http://localhost:8080/sse`,
+      "description": "CodingHub MCP Server"
+    }
+  }
+}
+
+const mcpConfigJson = JSON.stringify(mcpConfig, null, 2)
+
+const copyConfig = async () => {
   try {
-    const response = await api.get('/tools')
-    tools.value = response.data.data?.content?.slice(0, 10) || []
+    await navigator.clipboard.writeText(mcpConfigJson)
+    copySuccess.value = true
+    setTimeout(() => { copySuccess.value = false }, 2000)
   } catch (e) {
     console.error(e)
-  } finally {
-    loading.value = false
   }
-})
+}
 
 const mcpTools = [
   { name: 'h3_coding_hub_tool_search', desc: '搜索工具列表', params: 'keyword?: string' },
@@ -31,45 +40,43 @@ const mcpTools = [
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">快速开始</h1>
-        <p class="page-subtitle">快速集成 MCP 服务到你的应用中</p>
+        <p class="page-subtitle">快速集成 MCP 服务到你的 AI 助手</p>
       </div>
 
       <!-- MCP Config Section -->
-      <section class="section">
-        <h2 class="section-title">MCP 服务配置</h2>
-        
-        <div class="config-steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <h3>安装 OpenClaw</h3>
-              <pre><code>npm install -g openclaw</code></pre>
-            </div>
-          </div>
-          
-          <div class="step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <h3>配置 MCP Server</h3>
-              <pre><code>openclaw mcp set iaihub '{"url":"http://localhost:8080/mcp","transport":"sse"}'</code></pre>
-            </div>
-          </div>
-          
-          <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <h3>验证连接</h3>
-              <pre><code>openclaw mcp list</code></pre>
-            </div>
-          </div>
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">01</div>
+          <h2 class="section-title">配置 MCP</h2>
+        </div>
+
+        <p class="section-desc">将以下配置添加到 CodeBuddy 的 MCP 配置中，即可连接 CodingHub MCP 服务：</p>
+
+        <div class="config-card">
+          <div class="config-label">MCP 配置</div>
+          <pre class="config-code">{{ mcpConfigJson }}</pre>
+          <button class="copy-btn" :class="{ success: copySuccess }" @click="copyConfig">
+            <svg v-if="!copySuccess" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            {{ copySuccess ? '已复制' : '一键复制' }}
+          </button>
         </div>
       </section>
 
       <!-- MCP Tools Section -->
-      <section class="section">
-        <h2 class="section-title">MCP 工具函数</h2>
-        <p class="section-desc">以下是可用的 MCP 工具函数列表：</p>
-        
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">02</div>
+          <h2 class="section-title">MCP 工具列表</h2>
+        </div>
+
+        <p class="section-desc">CodingHub MCP 提供以下工具函数，可通过 AI 助手直接调用：</p>
+
         <div class="tools-table">
           <div class="tool-row header">
             <span class="tool-name">函数名</span>
@@ -84,57 +91,33 @@ const mcpTools = [
         </div>
       </section>
 
-      <!-- Usage Example -->
-      <section class="section">
-        <h2 class="section-title">使用示例</h2>
-        
-        <div class="code-examples">
-          <div class="code-block">
-            <h3>搜索工具</h3>
-            <pre><code>{ "jsonrpc": "2.0", "method": "tools/call", "params": { "name": "h3_coding_hub_tool_search", "arguments": { "keyword": "harness" } } }</code></pre>
-          </div>
-          
-          <div class="code-block">
-            <h3>获取工具详情</h3>
-            <pre><code>{ "jsonrpc": "2.0", "method": "tools/call", "params": { "name": "h3_coding_hub_tool_get", "arguments": { "toolId": 8 } } }</code></pre>
-          </div>
-          
-          <div class="code-block">
-            <h3>获取文件列表</h3>
-            <pre><code>{ "jsonrpc": "2.0", "method": "tools/call", "params": { "name": "h3_coding_hub_tool_files", "arguments": { "toolId": 8 } } }</code></pre>
-          </div>
+      <!-- Usage Tips -->
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">03</div>
+          <h2 class="section-title">使用示例</h2>
         </div>
-      </section>
 
-      <!-- API Reference -->
-      <section class="section">
-        <h2 class="section-title">REST API 参考</h2>
-        
-        <div class="api-endpoints">
-          <div class="endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/tools</span>
-            <span class="desc">获取工具列表</span>
+        <div class="tips-grid">
+          <div class="tip-card">
+            <div class="tip-icon">🔍</div>
+            <h3>搜索工具</h3>
+            <p>通过关键词搜索工具列表，快速找到所需工具</p>
           </div>
-          <div class="endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/tools/:id</span>
-            <span class="desc">获取工具详情</span>
+          <div class="tip-card">
+            <div class="tip-icon">📦</div>
+            <h3>获取详情</h3>
+            <p>获取工具的完整信息和文件列表</p>
           </div>
-          <div class="endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/tools/:id/files</span>
-            <span class="desc">获取工具文件</span>
+          <div class="tip-card">
+            <div class="tip-icon">💬</div>
+            <h3>社区交流</h3>
+            <p>搜索和浏览论坛帖子，参与社区讨论</p>
           </div>
-          <div class="endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/categories</span>
-            <span class="desc">获取分类</span>
-          </div>
-          <div class="endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/readme</span>
-            <span class="desc">获取 README</span>
+          <div class="tip-card">
+            <div class="tip-icon">⬇️</div>
+            <h3>下载资源</h3>
+            <p>获取工具文件下载链接，快速获取资源</p>
           </div>
         </div>
       </section>
@@ -145,8 +128,11 @@ const mcpTools = [
 <style scoped>
 .quickstart-page {
   min-height: 100vh;
-  padding: 32px 24px 64px;
+  padding: 48px 24px 80px;
   background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
 }
 
 .page-container {
@@ -157,14 +143,12 @@ const mcpTools = [
 .page-header {
   text-align: center;
   margin-bottom: 48px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border-color);
 }
 
 .page-title {
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4, #ec4899);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -177,92 +161,131 @@ const mcpTools = [
 }
 
 .section {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 24px;
+  padding: 32px;
   margin-bottom: 24px;
+  border-radius: 20px;
+  background: rgba(15, 15, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-badge {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .section-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
-  margin-bottom: 16px;
   color: var(--text-primary);
 }
 
 .section-desc {
   font-size: 14px;
   color: var(--text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  line-height: 1.6;
 }
 
-.config-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.step {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.2);
+.config-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
+  padding: 20px;
+  position: relative;
 }
 
-.step-number {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-  border-radius: 50%;
+.config-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b5cf6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.config-code {
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  color: #ffffff;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0 0 16px 0;
+}
+
+.copy-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 600;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(6, 182, 212, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
   font-size: 14px;
-  flex-shrink: 0;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
 }
 
-.step-content h3 {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 8px;
+.copy-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
 }
 
-.step-content pre {
-  margin: 0;
+.copy-btn.success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8), rgba(6, 182, 212, 0.8));
 }
 
 .tools-table {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .tool-row {
   display: grid;
-  grid-template-columns: 220px 1fr 1fr;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
+  grid-template-columns: 200px 1fr 160px;
+  gap: 16px;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.3);
   font-size: 13px;
 }
 
 .tool-row.header {
-  background: rgba(139, 92, 246, 0.1);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
   font-weight: 600;
-  border-radius: 8px 8px 0 0;
-}
-
-.tool-row:first-child {
-  border-radius: 8px 8px 0 0;
+  color: var(--text-primary);
 }
 
 .tool-name code {
-  color: var(--accent-1);
+  color: #8b5cf6;
   font-size: 12px;
+  font-family: 'Fira Code', monospace;
 }
 
 .tool-desc {
@@ -270,70 +293,109 @@ const mcpTools = [
 }
 
 .tool-params {
-  font-family: monospace;
+  font-family: 'Fira Code', monospace;
   font-size: 11px;
   color: var(--text-tertiary);
 }
 
-.code-examples {
-  display: flex;
-  flex-direction: column;
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
-.code-block {
-  padding: 16px;
+.tip-card {
+  padding: 20px;
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.25s ease;
 }
 
-.code-block h3 {
-  font-size: 14px;
-  font-weight: 600;
+.tip-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.tip-icon {
+  font-size: 28px;
   margin-bottom: 12px;
 }
 
-.code-block pre {
-  margin: 0;
-  overflow-x: auto;
-}
-
-.api-endpoints {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.endpoint {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.method {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+.tip-card h3 {
+  font-size: 15px;
   font-weight: 600;
-  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 6px;
 }
 
-.method.get {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.path {
-  font-family: monospace;
+.tip-card p {
   font-size: 13px;
-}
-
-.desc {
   color: var(--text-secondary);
-  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .tools-table {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 24px 20px;
+  }
+}
+
+/* Light theme fixes */
+[data-theme="light"] .config-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .config-code {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .section {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .tool-row {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .tool-name code {
+  color: #7c3aed;
+}
+
+[data-theme="light"] .tip-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .tip-card:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="light"] .page-title {
+  background: linear-gradient(135deg, #7c3aed, #0891b2, #db2777);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .section-badge {
+  background: linear-gradient(135deg, #7c3aed, #0891b2);
 }
 </style>
