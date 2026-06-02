@@ -11,6 +11,7 @@ const themeStore = useThemeStore()
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const username = computed(() => authStore.user?.username)
+const displayName = computed(() => authStore.user?.nickname || authStore.user?.username)
 const isDark = computed(() => themeStore.theme === 'dark')
 
 const handleLogout = () => {
@@ -25,6 +26,8 @@ const goToForum = () => router.push('/forum')
 const goToOverview = () => router.push('/overview')
 const goHome = () => router.push('/')
 const toggleTheme = () => themeStore.toggleTheme()
+const goToQuickStart = () => router.push('/quickstart')
+const goToAbout = () => router.push('/about')
 </script>
 
 <template>
@@ -52,6 +55,9 @@ const toggleTheme = () => themeStore.toggleTheme()
         <button class="nav-btn" @click="goHome">工具广场</button>
         <button class="nav-btn" @click="goToForum">论坛</button>
         <button class="nav-btn" @click="goToOverview">热榜</button>
+        <button class="nav-btn" @click="goToQuickStart">快速开始</button>
+        <button class="nav-btn" @click="goToAbout">关于</button>
+
         <template v-if="isLoggedIn">
           <button class="nav-btn" @click="goToMyTools">我的工具</button>
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
@@ -62,7 +68,7 @@ const toggleTheme = () => themeStore.toggleTheme()
             <div class="user-avatar">
               <span>{{ username?.charAt(0).toUpperCase() }}</span>
             </div>
-            <span class="user-name">{{ username }}</span>
+            <span class="user-name">{{ displayName }}</span>
             <button class="logout-btn" @click="handleLogout">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
@@ -142,6 +148,61 @@ const toggleTheme = () => themeStore.toggleTheme()
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* Dropdown */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--text-primary);
+}
+
+.dropdown-icon {
+  font-size: 16px;
 }
 
 .nav-btn {
