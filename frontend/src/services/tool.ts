@@ -1,7 +1,5 @@
-import axios from 'axios';
+import api from './api';
 import type { ToolDetailDTO } from '@/types/tool';
-
-const api = axios.create({ baseURL: '/api/v1/tools' });
 
 export interface ToolDetailVO extends ToolDetailDTO {
   viewCount: number;
@@ -19,34 +17,34 @@ export interface Comment {
 }
 
 export async function getToolDetail(id: number): Promise<ToolDetailVO> {
-  const response = await api.get<{code: number; message: string; data: ToolDetailVO}>(`/${id}`);
+  const response = await api.get<{code: number; message: string; data: ToolDetailVO}>(`/tools/${id}`);
   return response.data.data;
 }
 
 export async function likeTool(id: number): Promise<void> {
-  await api.post(`/${id}/like`);
+  await api.post(`/tools/${id}/like`);
 }
 
 export async function unlikeTool(id: number): Promise<void> {
-  await api.delete(`/${id}/like`);
+  await api.delete(`/tools/${id}/like`);
 }
 
 export async function getLikeStatus(id: number): Promise<boolean> {
-  const response = await api.get<{code: number; message: string; data: boolean}>(`/${id}/like-status`);
+  const response = await api.get<{code: number; message: string; data: boolean}>(`/tools/${id}/like-status`);
   return response.data.data;
 }
 
 export async function getComments(id: number): Promise<Comment[]> {
-  const response = await api.get<{code: number; message: string; data: Comment[]}>(`/${id}/comments`);
+  const response = await api.get<{code: number; message: string; data: Comment[]}>(`/tools/${id}/comments`);
   return response.data.data || [];
 }
 
 export async function addComment(id: number, content: string): Promise<Comment> {
-  const response = await api.post<{code: number; message: string; data: Comment}>(`/${id}/comments`, { content });
+  const response = await api.post<{code: number; message: string; data: Comment}>(`/tools/${id}/comments`, { content });
   return response.data.data;
 }
 
 export async function getTool(id: number): Promise<ToolDetailVO> {
-  const response = await api.get<ToolDetailVO>(`/${id}`);
+  const response = await api.get<ToolDetailVO>(`/tools/${id}`);
   return response.data;
 }
