@@ -7,7 +7,7 @@ const mcpConfig = {
   "mcpServers": {
     "CodingHub-mcp": {
       "type": "sse",
-      "url": `http://localhost:8080/sse`,
+      "url": `${window.location.origin}/sse`,
       "description": "CodingHub MCP Server"
     }
   }
