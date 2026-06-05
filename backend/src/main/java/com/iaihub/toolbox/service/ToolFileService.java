@@ -5,6 +5,7 @@ import com.iaihub.toolbox.dto.FileListResponse;
 import com.iaihub.toolbox.dto.FileUploadResponse;
 import com.iaihub.toolbox.dto.ToolFileDTO;
 import com.iaihub.toolbox.exception.FileValidationException;
+import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
@@ -39,11 +40,16 @@ public class ToolFileService {
     private static final long MAX_REQUEST_SIZE = 200 * 1024 * 1024L; // 200MB
 
     @Transactional
-    public FileUploadResponse uploadFiles(Long toolId, List<MultipartFile> files, String readme) {
+    public FileUploadResponse uploadFiles(Long toolId, List<MultipartFile> files, String readme, Long userId) {
         log.info("Uploading {} files for tool {}", files.size(), toolId);
 
         Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
+
+        // Verify ownership
+        if (!tool.getUploader().getId().equals(userId)) {
+            throw new ForbiddenException("您只能上传文件到自己的工具");
+        }
 
         // Validate total size
         long totalSize = files.stream().mapToLong(MultipartFile::getSize).sum();
@@ -71,6 +77,23 @@ public class ToolFileService {
             Path targetPath = toolFolder.resolve(originalName);
 
             try {
+                // Check for existing file with same name - if exists, delete old record
+                toolFileRepository.findByToolIdAndOriginalNameAndStatus(toolId, originalName, ToolFile.Status.NORMAL)
+                        .ifPresent(existing -> {
+                            // Delete old physical file first
+                            Path oldPath = Paths.get(uploadConfig.getBaseDir(), existing.getStoredPath());
+                            try {
+                                Files.deleteIfExists(oldPath);
+                            } catch (IOException e) {
+                                log.warn("Failed to delete old physical file: {}", oldPath, e);
+                            }
+                            // Physically delete old database record to free unique constraint
+                            toolFileRepository.delete(existing);
+                            // Flush to ensure unique constraint is released before inserting new record
+                            toolFileRepository.flush();
+                            log.info("Replaced existing file: {} for tool {}", originalName, toolId);
+                        });
+
                 Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
                 String storedPath = Paths.get(String.valueOf(toolId), originalName).toString();
@@ -171,7 +194,15 @@ public class ToolFileService {
     }
 
     @Transactional
-    public void deleteToolFile(Long toolId, Long fileId) {
+    public void deleteToolFile(Long toolId, Long fileId, Long userId) {
+        // Verify the tool belongs to the user
+        Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
+                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
+
+        if (!tool.getUploader().getId().equals(userId)) {
+            throw new ForbiddenException("无权限删除此文件");
+        }
+
         ToolFile toolFile = toolFileRepository.findByIdAndToolId(fileId, toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("文件不存在"));
 

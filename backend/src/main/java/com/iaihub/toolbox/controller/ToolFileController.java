@@ -4,6 +4,7 @@ import com.iaihub.toolbox.dto.ApiResponse;
 import com.iaihub.toolbox.dto.FileListResponse;
 import com.iaihub.toolbox.dto.FileUploadResponse;
 import com.iaihub.toolbox.model.ToolFile;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.service.ToolFileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,11 +31,12 @@ public class ToolFileController {
     public ApiResponse<FileUploadResponse> uploadFiles(
             @PathVariable Long toolId,
             @RequestParam("files") List<MultipartFile> files,
-            @RequestParam(value = "readme", required = false) String readme) {
+            @RequestParam(value = "readme", required = false) String readme,
+            @AuthenticationPrincipal User currentUser) {
 
         log.info("Received file upload request for tool {}, files count: {}", toolId, files.size());
 
-        FileUploadResponse response = toolFileService.uploadFiles(toolId, files, readme);
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, files, readme, currentUser.getId());
 
         return ApiResponse.success("文件上传成功", response);
     }
@@ -50,11 +53,12 @@ public class ToolFileController {
     @DeleteMapping("/{fileId}")
     public ApiResponse<Void> deleteToolFile(
             @PathVariable Long toolId,
-            @PathVariable Long fileId) {
+            @PathVariable Long fileId,
+            @AuthenticationPrincipal User currentUser) {
 
         log.info("Deleting file {} for tool {}", fileId, toolId);
 
-        toolFileService.deleteToolFile(toolId, fileId);
+        toolFileService.deleteToolFile(toolId, fileId, currentUser.getId());
 
         return ApiResponse.success("文件删除成功", null);
     }

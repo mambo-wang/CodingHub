@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
     page.on('console', msg => console.log('Browser console:', msg.text()));
     page.on('pageerror', err => console.log('Page error:', err.message));
     
-    console.log('Navigating to http://localhost:5174/tool/1...');
+    console.log('Navigating to http://localhost:5173/tool/1...');
     await page.goto('http://localhost:5174/tool/1', { timeout: 30000 });
     
     console.log('\nWaiting for network idle...');

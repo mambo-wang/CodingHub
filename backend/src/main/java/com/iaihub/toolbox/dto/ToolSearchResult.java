@@ -19,17 +19,21 @@ public class ToolSearchResult {
     @JsonProperty("category")
     private String category;
 
+    @JsonProperty("version")
+    private String version;
+
     @JsonProperty("createdAt")
     private String createdAt;
 
     public ToolSearchResult() {
     }
 
-    public ToolSearchResult(Long id, String name, String description, String category, String createdAt) {
+    public ToolSearchResult(Long id, String name, String description, String category, String version, String createdAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.category = category;
+        this.version = version;
         this.createdAt = createdAt;
     }
 
@@ -63,6 +67,14 @@ public class ToolSearchResult {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     public String getCreatedAt() {

@@ -67,7 +67,7 @@ class ToolFileControllerTest {
                 .readmeSaved(true)
                 .build();
 
-        when(toolFileService.uploadFiles(eq(toolId), anyList(), anyString())).thenReturn(response);
+        when(toolFileService.uploadFiles(eq(toolId), anyList(), anyString(), any())).thenReturn(response);
 
         // When & Then
         mockMvc.perform(multipart("/api/v1/tools/{toolId}/files", toolId)
@@ -93,7 +93,7 @@ class ToolFileControllerTest {
                 "malicious".getBytes()
         );
 
-        when(toolFileService.uploadFiles(eq(toolId), anyList(), isNull()))
+        when(toolFileService.uploadFiles(eq(toolId), anyList(), isNull(), any()))
                 .thenThrow(new FileValidationException("不支持的文件类型: .exe"));
 
         // When & Then
@@ -142,7 +142,7 @@ class ToolFileControllerTest {
         Long toolId = 1L;
         Long fileId = 1L;
 
-        doNothing().when(toolFileService).deleteToolFile(toolId, fileId);
+        doNothing().when(toolFileService).deleteToolFile(toolId, fileId, any());
 
         // When & Then
         mockMvc.perform(delete("/api/v1/tools/{toolId}/files/{fileId}", toolId, fileId)
@@ -159,7 +159,7 @@ class ToolFileControllerTest {
         Long fileId = 999L;
 
         doThrow(new ResourceNotFoundException("文件不存在"))
-                .when(toolFileService).deleteToolFile(toolId, fileId);
+                .when(toolFileService).deleteToolFile(toolId, fileId, any());
 
         // When & Then
         mockMvc.perform(delete("/api/v1/tools/{toolId}/files/{fileId}", toolId, fileId)

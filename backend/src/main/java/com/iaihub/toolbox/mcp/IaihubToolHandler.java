@@ -68,6 +68,7 @@ public class IaihubToolHandler {
             String json = toJson(new ToolDetailResponse(
                     tool.getId(),
                     tool.getName(),
+                    tool.getVersion() != null ? tool.getVersion() : "1.0.0",
                     tool.getContent() != null ? tool.getContent() : "",
                     tool.getCategory() != null ? tool.getCategory().getName() : ""
             ));
@@ -196,11 +197,13 @@ public class IaihubToolHandler {
     private static class ToolDetailResponse {
         public Long id;
         public String name;
+        public String version;
         public String content;
         public String category;
-        public ToolDetailResponse(Long id, String name, String content, String category) {
+        public ToolDetailResponse(Long id, String name, String version, String content, String category) {
             this.id = id;
             this.name = name;
+            this.version = version;
             this.content = content;
             this.category = category;
         }

@@ -16,6 +16,7 @@ export interface Category {
 export interface ToolSummary {
   id: number
   name: string
+  version?: string
   categoryName: string
   categoryIcon: string
   uploaderUsername: string
@@ -25,6 +26,7 @@ export interface ToolSummary {
 export interface ToolDetail {
   id: number
   name: string
+  version?: string
   categoryName: string
   categoryIcon: string
   content: string
@@ -64,12 +66,14 @@ export interface CreateToolRequest {
   name: string
   categoryId: number
   content: string
+  version: string
 }
 
 export interface UpdateToolRequest {
   name: string
   categoryId: number
   content: string
+  version?: string
 }
 
 export interface ToolFile {

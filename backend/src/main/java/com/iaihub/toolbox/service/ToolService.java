@@ -66,9 +66,10 @@ public class ToolService {
 
     @Transactional
     public ToolSummaryDTO createTool(CreateToolRequest request, Long uploaderId) {
-        // Check for duplicate tool name for this user
-        if (toolRepository.existsByNameAndUploaderIdAndStatus(request.getName(), uploaderId, Tool.Status.NORMAL)) {
-            throw new DuplicateResourceException("您已上传过同名工具");
+        // Check for duplicate tool name for this user in the same category
+        if (toolRepository.existsByNameAndUploaderIdAndCategoryIdAndStatus(
+                request.getName(), uploaderId, request.getCategoryId(), Tool.Status.NORMAL)) {
+            throw new DuplicateResourceException("您已在该分类下上传过同名工具");
         }
 
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -84,6 +85,7 @@ public class ToolService {
                 .name(request.getName())
                 .category(category)
                 .content(sanitizedContent)
+                .version(request.getVersion())
                 .uploader(uploader)
                 .status(Tool.Status.NORMAL)
                 .build();
@@ -106,21 +108,37 @@ public class ToolService {
             throw new ForbiddenException("您只能编辑自己的工具");
         }
 
-        // Check for duplicate name (excluding current tool)
-        if (!tool.getName().equals(request.getName()) &&
-            toolRepository.existsByNameAndUploaderIdAndStatus(request.getName(), userId, Tool.Status.NORMAL)) {
-            throw new DuplicateResourceException("您已上传过同名工具");
+        String newName = request.getName() != null ? request.getName() : tool.getName();
+        Long newCategoryId = request.getCategoryId() != null ? request.getCategoryId() : tool.getCategory().getId();
+
+        // Check for duplicate name (excluding current tool, same category)
+        boolean nameChanged = !tool.getName().equals(newName);
+        boolean categoryChanged = !tool.getCategory().getId().equals(newCategoryId);
+        if (nameChanged || categoryChanged) {
+            if (toolRepository.existsByNameAndUploaderIdAndCategoryIdAndStatusAndIdNot(
+                    newName, userId, newCategoryId, Tool.Status.NORMAL, id)) {
+                throw new DuplicateResourceException("您已在该分类下上传过同名工具");
+            }
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("分类不存在"));
+        if (categoryChanged) {
+            Category category = categoryRepository.findById(newCategoryId)
+                    .orElseThrow(() -> new ResourceNotFoundException("分类不存在"));
+            tool.setCategory(category);
+        }
 
         // Sanitize content for XSS
-        String sanitizedContent = XssSanitizer.sanitize(request.getContent());
+        if (request.getContent() != null) {
+            String sanitizedContent = XssSanitizer.sanitize(request.getContent());
+            tool.setContent(sanitizedContent);
+        }
 
-        tool.setName(request.getName());
-        tool.setCategory(category);
-        tool.setContent(sanitizedContent);
+        if (newName != null) {
+            tool.setName(newName);
+        }
+        if (request.getVersion() != null && !request.getVersion().isBlank()) {
+            tool.setVersion(request.getVersion());
+        }
 
         tool = toolRepository.save(tool);
 
@@ -258,6 +276,7 @@ public class ToolService {
         return ToolSummaryDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
+                .version(tool.getVersion())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
                 .uploaderUsername(tool.getUploader().getUsername())
@@ -272,6 +291,7 @@ public class ToolService {
         return ToolDetailDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
+                .version(tool.getVersion())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
                 .content(tool.getContent())

@@ -13,9 +13,10 @@ import java.time.LocalDateTime;
 @Table(name = "tool", indexes = {
     @Index(name = "idx_tool_category", columnList = "category_id, status"),
     @Index(name = "idx_tool_uploader", columnList = "uploader_id, status"),
-    @Index(name = "idx_tool_name_status", columnList = "name, status")
+    @Index(name = "idx_tool_name_status", columnList = "name, status"),
+    @Index(name = "idx_tool_version", columnList = "version")
 }, uniqueConstraints = {
-    @UniqueConstraint(name = "uk_tool_uploader_name", columnNames = {"uploader_id", "name", "status"})
+    @UniqueConstraint(name = "uk_tool_uploader_name_category", columnNames = {"uploader_id", "name", "category_id", "status"})
 })
 @Data
 @NoArgsConstructor
@@ -41,6 +42,10 @@ public class Tool {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Column(nullable = false, length = 50)
+    @Builder.Default
+    private String version = "1.0.0";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploader_id", nullable = false)

@@ -114,8 +114,9 @@ make stop
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | `/api/files/upload` | 上传文件 | 是 |
-| GET | `/api/files/{id}` | 下载文件 | 是 |
+| POST | `/api/v1/tools/{id}/files` | 上传文件（支持同名替换） | 是 |
+| GET | `/api/v1/tools/{toolId}/files` | 获取文件列表 | 否 |
+| DELETE | `/api/v1/tools/{toolId}/files/{fileId}` | 删除文件 | 是 |
 
 ### 前端页面 (http://localhost:5173)
 
@@ -131,8 +132,8 @@ make stop
 
 - **user**: id, email, password, username, created_at, updated_at, last_login_at
 - **category**: id, name, icon, sort_order, created_at
-- **tool**: id, name, category_id, content, uploader_id, status, created_at, updated_at
-- **tool_file**: id, tool_id, file_path, file_name, file_size, created_at
+- **tool**: id, name, version, category_id, content, uploader_id, status, view_count, like_count, comment_count, score, created_at, updated_at
+- **tool_file**: id, tool_id, original_name, stored_path, file_size, content_type, status, created_at
 
 ## 核心功能
 

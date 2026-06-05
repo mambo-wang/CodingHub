@@ -5,7 +5,7 @@ echo "║           AI工具广场 - 全功能测试报告                      
 echo "╚══════════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "测试时间: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "后端服务: http://localhost:8080"
+echo "后端服务: http://localhost:8081"
 echo "前端服务: http://localhost:5174"
 echo ""
 

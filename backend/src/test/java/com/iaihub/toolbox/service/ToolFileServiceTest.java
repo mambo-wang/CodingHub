@@ -8,6 +8,7 @@ import com.iaihub.toolbox.exception.FileValidationException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.ToolFileRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,12 +41,15 @@ class ToolFileServiceTest {
 
     private ToolFileService toolFileService;
 
+    private User testUser;
+
     @BeforeEach
     void setUp() {
         UploadConfig uploadConfig = new UploadConfig();
         uploadConfig.setBaseDir(tempDir.toString());
         uploadConfig.setAllowedExtensions(List.of("zip", "py", "js", "md", "txt", "json"));
 
+        testUser = User.builder().id(99L).username("tester").build();
         toolFileService = new ToolFileService(
                 toolFileRepository,
                 toolRepository,
@@ -64,7 +68,7 @@ class ToolFileServiceTest {
                 "print('hello')".getBytes()
         );
 
-        Tool tool = Tool.builder().id(toolId).name("TestTool").build();
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
         when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
         when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
             ToolFile tf = invocation.getArgument(0);
@@ -73,7 +77,7 @@ class ToolFileServiceTest {
         });
 
         // When
-        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(file), null);
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(file), null, 99L);
 
         // Then
         assertNotNull(response);
@@ -95,7 +99,7 @@ class ToolFileServiceTest {
         );
         String readmeContent = "# Test Tool\n\nThis is a test.";
 
-        Tool tool = Tool.builder().id(toolId).name("TestTool").build();
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
         when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
         when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
             ToolFile tf = invocation.getArgument(0);
@@ -104,7 +108,7 @@ class ToolFileServiceTest {
         });
 
         // When
-        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(file), readmeContent);
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(file), readmeContent, 99L);
 
         // Then
         assertTrue(response.isReadmeSaved());
@@ -121,12 +125,12 @@ class ToolFileServiceTest {
                 "malicious".getBytes()
         );
 
-        Tool tool = Tool.builder().id(toolId).name("TestTool").build();
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
         when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
 
         // When & Then
         assertThrows(FileValidationException.class, () ->
-                toolFileService.uploadFiles(toolId, List.of(file), null)
+                toolFileService.uploadFiles(toolId, List.of(file), null, 99L)
         );
     }
 
@@ -142,12 +146,12 @@ class ToolFileServiceTest {
                 largeContent
         );
 
-        Tool tool = Tool.builder().id(toolId).name("TestTool").build();
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
         when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
 
         // When & Then
         assertThrows(FileValidationException.class, () ->
-                toolFileService.uploadFiles(toolId, List.of(file), null)
+                toolFileService.uploadFiles(toolId, List.of(file), null, 99L)
         );
     }
 
@@ -166,7 +170,7 @@ class ToolFileServiceTest {
 
         // When & Then
         assertThrows(ResourceNotFoundException.class, () ->
-                toolFileService.uploadFiles(toolId, List.of(file), null)
+                toolFileService.uploadFiles(toolId, List.of(file), null, 99L)
         );
     }
 
@@ -211,7 +215,7 @@ class ToolFileServiceTest {
         when(toolFileRepository.findByIdAndToolId(fileId, toolId)).thenReturn(Optional.of(file));
 
         // When
-        toolFileService.deleteToolFile(toolId, fileId);
+        toolFileService.deleteToolFile(toolId, fileId, 99L);
 
         // Then
         verify(toolFileRepository).deleteById(fileId);
@@ -227,7 +231,7 @@ class ToolFileServiceTest {
 
         // When & Then
         assertThrows(ResourceNotFoundException.class, () ->
-                toolFileService.deleteToolFile(toolId, fileId)
+                toolFileService.deleteToolFile(toolId, fileId, 99L)
         );
     }
 
@@ -241,5 +245,135 @@ class ToolFileServiceTest {
 
         // Then
         verify(toolFileRepository).deleteByToolId(toolId);
+    }
+
+    // ========================================
+    // T023: 同名文件替换测试
+    // ========================================
+
+    @Test
+    void uploadFiles_shouldReplaceExistingFileWithSameName() {
+        // Given
+        Long toolId = 1L;
+        MockMultipartFile newFile = new MockMultipartFile(
+                "files",
+                "test.py",
+                "text/x-python",
+                "print('updated')".getBytes()
+        );
+
+        ToolFile existingFile = ToolFile.builder()
+                .id(1L)
+                .toolId(toolId)
+                .originalName("test.py")
+                .storedPath("1/test.py")
+                .fileSize(100L)
+                .contentType("text/x-python")
+                .status(ToolFile.Status.NORMAL)
+                .build();
+
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
+        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(
+                toolId, "test.py", ToolFile.Status.NORMAL)).thenReturn(Optional.of(existingFile));
+        when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
+            ToolFile tf = invocation.getArgument(0);
+            if (tf.getId() == null) {
+                tf.setId(2L); // new file gets new id
+            }
+            return tf;
+        });
+
+        // When
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(newFile), null, 99L);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getFiles().size());
+        assertEquals("test.py", response.getFiles().get(0).getOriginalName());
+        // Verify old file was soft-deleted
+        assertEquals(ToolFile.Status.DELETED, existingFile.getStatus());
+        verify(toolFileRepository, times(2)).save(any(ToolFile.class)); // one for soft-delete, one for new
+    }
+
+    @Test
+    void uploadFiles_shouldNotReplaceWhenNoExistingFileWithSameName() {
+        // Given
+        Long toolId = 1L;
+        MockMultipartFile newFile = new MockMultipartFile(
+                "files",
+                "unique.py",
+                "text/x-python",
+                "print('new')".getBytes()
+        );
+
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
+        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(
+                toolId, "unique.py", ToolFile.Status.NORMAL)).thenReturn(Optional.empty());
+        when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
+            ToolFile tf = invocation.getArgument(0);
+            tf.setId(3L);
+            return tf;
+        });
+
+        // When
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(newFile), null, 99L);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(1, response.getFiles().size());
+        assertEquals("unique.py", response.getFiles().get(0).getOriginalName());
+        verify(toolFileRepository, times(1)).save(any(ToolFile.class)); // only new file saved
+    }
+
+    @Test
+    void uploadFiles_shouldHandleMultipleFilesWithMixedReplacements() {
+        // Given
+        Long toolId = 1L;
+        MockMultipartFile newFile1 = new MockMultipartFile(
+                "files", "existing.py", "text/x-python", "updated content".getBytes()
+        );
+        MockMultipartFile newFile2 = new MockMultipartFile(
+                "files", "new.py", "text/x-python", "new file content".getBytes()
+        );
+
+        ToolFile existingFile = ToolFile.builder()
+                .id(10L)
+                .toolId(toolId)
+                .originalName("existing.py")
+                .storedPath("1/existing.py")
+                .fileSize(50L)
+                .contentType("text/x-python")
+                .status(ToolFile.Status.NORMAL)
+                .build();
+
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
+        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
+
+        // First file exists, second doesn't
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(
+                toolId, "existing.py", ToolFile.Status.NORMAL)).thenReturn(Optional.of(existingFile));
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(
+                toolId, "new.py", ToolFile.Status.NORMAL)).thenReturn(Optional.empty());
+
+        when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
+            ToolFile tf = invocation.getArgument(0);
+            if (tf.getId() == null) {
+                tf.setId(System.currentTimeMillis());
+            }
+            return tf;
+        });
+
+        // When
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, List.of(newFile1, newFile2), null, 99L);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(2, response.getFiles().size());
+        // Verify old existing.py was soft-deleted
+        assertEquals(ToolFile.Status.DELETED, existingFile.getStatus());
+        // save called: 1 for soft-delete existing + 2 for new files = 3
+        verify(toolFileRepository, times(3)).save(any(ToolFile.class));
     }
 }

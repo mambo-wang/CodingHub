@@ -18,6 +18,8 @@ public interface ToolFileRepository extends JpaRepository<ToolFile, Long> {
     @Query("SELECT tf FROM ToolFile tf WHERE tf.toolId = :toolId AND tf.status = 'NORMAL'")
     List<ToolFile> findByToolIdAndStatusNormal(@Param("toolId") Long toolId);
 
+    Optional<ToolFile> findByToolIdAndOriginalNameAndStatus(Long toolId, String originalName, ToolFile.Status status);
+
     Optional<ToolFile> findByIdAndToolId(Long id, Long toolId);
 
     @Modifying

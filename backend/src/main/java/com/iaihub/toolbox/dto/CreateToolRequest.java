@@ -27,4 +27,9 @@ public class CreateToolRequest {
     @NotBlank(message = "介绍内容不能为空")
     @Size(max = 5000, message = "介绍内容最大5000字符")
     private String content;
+
+    @NotBlank(message = "版本号不能为空")
+    @Pattern(regexp = "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+)?$",
+             message = "版本号格式不正确，请使用标准格式（如 1.0.0）")
+    private String version;
 }

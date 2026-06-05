@@ -45,6 +45,10 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
                                            @Param("keyword") String keyword,
                                            Pageable pageable);
 
+    boolean existsByNameAndUploaderIdAndCategoryIdAndStatus(String name, Long uploaderId, Long categoryId, Tool.Status status);
+
+    boolean existsByNameAndUploaderIdAndCategoryIdAndStatusAndIdNot(String name, Long uploaderId, Long categoryId, Tool.Status status, Long id);
+
     boolean existsByNameAndUploaderIdAndStatus(String name, Long uploaderId, Tool.Status status);
 
     @Query("SELECT t FROM Tool t JOIN FETCH t.category WHERE t.status = 'NORMAL' " +

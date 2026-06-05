@@ -28,7 +28,8 @@ const maxTotalSize = 200 * 1024 * 1024 // 200MB
 const form = ref<CreateToolRequest>({
   name: '',
   categoryId: 0,
-  content: ''
+  content: '',
+  version: '1.0.0'
 })
 
 const md = new MarkdownIt()
@@ -105,8 +106,14 @@ const triggerFileInput = () => {
 }
 
 const handleSubmit = async () => {
-  if (!form.value.name || !form.value.categoryId || !form.value.content) {
+  if (!form.value.name || !form.value.categoryId || !form.value.content || !form.value.version) {
     ElMessage.warning('请填写完整的工具信息')
+    return
+  }
+  // Version format validation (SemVer)
+  const versionPattern = /^\d+\.\d+\.\d+(-[a-zA-Z0-9]+)?$/
+  if (!versionPattern.test(form.value.version)) {
+    ElMessage.warning('版本号格式不正确，请使用标准格式（如 1.0.0）')
     return
   }
 
@@ -145,6 +152,7 @@ const handleReset = () => {
   form.value.name = ''
   form.value.categoryId = categories.value[0]?.id || 0
   form.value.content = ''
+  form.value.version = '1.0.0'
   previewContent.value = ''
   selectedFiles.value = []
 }
@@ -217,6 +225,25 @@ onMounted(() => {
                 <path d="M6 9l6 6 6-6"/>
               </svg>
             </div>
+          </div>
+
+          <!-- Version -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🏷️</span>
+              版本号
+            </label>
+            <div class="input-wrapper">
+              <input
+                v-model="form.version"
+                type="text"
+                class="form-input"
+                placeholder="如 1.0.0"
+                maxlength="50"
+              />
+              <span class="char-count">{{ form.version.length }}/50</span>
+            </div>
+            <div class="input-hint">使用语义化版本号格式，如 1.0.0、2.1.3-alpha</div>
           </div>
 
           <!-- Content -->
@@ -312,7 +339,7 @@ onMounted(() => {
               </svg>
               重置
             </button>
-            <button type="submit" class="submit-btn" :disabled="loading || uploading || !form.name || !form.content">
+            <button type="submit" class="submit-btn" :disabled="loading || uploading || !form.name || !form.content || !form.version">
               <span v-if="loading || uploading" class="loading-spinner"></span>
               <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
@@ -433,6 +460,12 @@ onMounted(() => {
 
 .input-wrapper {
   position: relative;
+}
+
+.input-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 .form-input {

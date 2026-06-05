@@ -60,6 +60,7 @@ public class McpSearchService {
                         tool.getName(),
                         tool.getContent() != null ? tool.getContent().substring(0, Math.min(100, tool.getContent().length())) : "",
                         tool.getCategory() != null ? tool.getCategory().getName() : "",
+                        tool.getVersion() != null ? tool.getVersion() : "1.0.0",
                         tool.getCreatedAt() != null ? tool.getCreatedAt().toString() : ""
                 ))
                 .collect(Collectors.toList());
