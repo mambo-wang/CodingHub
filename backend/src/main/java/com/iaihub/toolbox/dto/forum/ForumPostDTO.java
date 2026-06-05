@@ -8,6 +8,7 @@ public record ForumPostDTO(
     String content,
     Long authorId,
     String authorName,
+    String authorNickname,
     Long categoryId,
     String categoryName,
     Integer viewCount,

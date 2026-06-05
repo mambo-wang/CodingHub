@@ -5,7 +5,9 @@ import com.iaihub.toolbox.dto.forum.ForumPostDTO;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.forum.*;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.forum.*;
+import com.iaihub.toolbox.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class ForumPostService {
     private final ForumPostRepository postRepository;
     private final ForumCategoryRepository categoryRepository;
     private final ForumPostTagRepository postTagRepository;
+    private final UserRepository userRepository;
 
     public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, Pageable pageable) {
         Page<ForumPost> posts;
@@ -110,6 +113,9 @@ public class ForumPostService {
         return new ForumPostDTO(
             post.getId(), post.getTitle(), post.getContent(),
             post.getAuthorId(), "用户" + post.getAuthorId(),
+            userRepository.findById(post.getAuthorId())
+                .map(u -> u.getNickname())
+                .orElse(null),
             post.getCategoryId(), categoryName,
             post.getViewCount(), post.getLikeCount(), post.getCommentCount(),
             post.getCreatedAt(), post.getUpdatedAt()

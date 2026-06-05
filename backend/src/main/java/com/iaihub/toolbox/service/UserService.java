@@ -26,9 +26,13 @@ public class UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new DuplicateResourceException("该用户名已被注册");
         }
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new DuplicateResourceException("该昵称已被使用");
+        }
 
         User user = User.builder()
                 .username(request.getUsername())
+                .nickname(request.getNickname())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
@@ -43,6 +47,7 @@ public class UserService {
                 .user(LoginResponse.UserDTO.builder()
                         .id(user.getId())
                         .username(user.getUsername())
+                        .nickname(user.getNickname())
                         .build())
                 .build();
     }
@@ -62,12 +67,14 @@ public class UserService {
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
 
+
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(LoginResponse.UserDTO.builder()
                         .id(user.getId())
                         .username(user.getUsername())
+                        .nickname(user.getNickname())
                         .build())
                 .build();
     }
@@ -95,6 +102,7 @@ public class UserService {
         return UserDTO.builder()
                 .id(user.getId())
                 .username(user.getUsername())
+                .nickname(user.getNickname())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();

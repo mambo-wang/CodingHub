@@ -21,6 +21,7 @@ public class ToolDetailDTO {
     private String content;
     private Long uploaderId;
     private String uploaderUsername;
+    private String uploaderNickname;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Integer viewCount;

@@ -261,6 +261,7 @@ public class ToolService {
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
                 .uploaderUsername(tool.getUploader().getUsername())
+                .uploaderNickname(tool.getUploader().getNickname())
                 .createdAt(tool.getCreatedAt())
                 .build();
     }
@@ -276,6 +277,7 @@ public class ToolService {
                 .content(tool.getContent())
                 .uploaderId(tool.getUploader().getId())
                 .uploaderUsername(tool.getUploader().getUsername())
+                .uploaderNickname(tool.getUploader().getNickname())
                 .createdAt(tool.getCreatedAt())
                 .updatedAt(tool.getUpdatedAt())
                 .viewCount(tool.getViewCount() != null ? tool.getViewCount() : 0)

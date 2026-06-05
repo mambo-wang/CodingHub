@@ -4,8 +4,10 @@ import com.iaihub.toolbox.dto.forum.ForumCommentDTO;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.forum.ForumComment;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.forum.ForumCommentRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
+import com.iaihub.toolbox.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ public class ForumCommentService {
 
     private final ForumCommentRepository commentRepository;
     private final ForumPostRepository postRepository;
+    private final UserRepository userRepository;
 
     public List<ForumCommentDTO> getCommentsByPostId(Long postId) {
         return commentRepository.findByPostIdOrderByCreatedAtAsc(postId)
@@ -83,9 +86,16 @@ public class ForumCommentService {
     }
 
     private ForumCommentDTO toDTO(ForumComment comment) {
+        String authorNickname = null;
+        if (comment.getAuthorId() != null) {
+            authorNickname = userRepository.findById(comment.getAuthorId())
+                .map(u -> u.getNickname())
+                .orElse(null);
+        }
         return new ForumCommentDTO(
             comment.getId(), comment.getPostId(),
             comment.getAuthorId(), comment.getAuthorName(),
+            authorNickname,
             comment.getParentId(), comment.getRootId(),
             comment.getContent(), comment.getLikeCount(),
             comment.getCreatedAt()

@@ -7,6 +7,7 @@ public record ForumCommentDTO(
     Long postId,
     Long authorId,
     String authorName,
+    String authorNickname,
     Long parentId,
     Long rootId,
     String content,

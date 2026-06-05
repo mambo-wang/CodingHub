@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user", indexes = {
-    @Index(name = "idx_user_username", columnList = "username", unique = true)
+    @Index(name = "idx_user_username", columnList = "username", unique = true),
+    @Index(name = "idx_user_nickname", columnList = "nickname", unique = true)
 })
 @Data
 @NoArgsConstructor
@@ -27,6 +28,9 @@ public class User {
 
     @Column(nullable = false, unique = true, length = 100)
     private String username;
+
+    @Column(unique = true, length = 50)
+    private String nickname;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
