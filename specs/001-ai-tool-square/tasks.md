@@ -18,7 +18,7 @@
 - [X] T006 [P] Configure frontend `package.json` with dependencies: Vue 3.4+, Vite 5+, Pinia, Vue Router 4, Axios, Element Plus, markdown-it, highlight.js
 - [X] T007 [P] Configure TypeScript `tsconfig.json` with strict mode enabled
 - [X] T008 [P] Configure Vite `vite.config.ts` with proxy settings for API backend
-- [X] T009 Create `.env` file in frontend with `VITE_API_BASE_URL=http://localhost:8080/api/v1`
+- [X] T009 Create `.env` file in frontend with `VITE_API_BASE_URL=http://localhost:8081/api/v1`
 
 ---
 

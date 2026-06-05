@@ -25,7 +25,7 @@ const pagination = ref({
 const mcpConfig = {
   "CodingHub-mcp": {
     type: "sse",
-    url: `http://${window.location.hostname}:8080/sse`,
+    url: `http://${window.location.hostname}:8081/sse`,
     description: "CodingHub MCP Server"
   }
 }

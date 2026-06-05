@@ -40,7 +40,7 @@ cd backend
 ./gradlew bootRun
 ```
 
-The backend starts on `http://localhost:8080`.
+The backend starts on `http://localhost:8081`.
 
 ### Useful Backend Commands
 
@@ -70,7 +70,7 @@ The backend starts on `http://localhost:8080`.
 
 ```yaml
 server:
-  port: 8080
+  port: 8081
 
 spring:
   datasource:
@@ -129,7 +129,7 @@ npm run type-check # Run Vue TypeScript checker
 Environment variables (create `.env` in frontend root):
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+VITE_API_BASE_URL=http://localhost:8081/api/v1
 ```
 
 ## Running the Full Stack
@@ -190,7 +190,7 @@ ai-tool-square/
 
 After starting both services, verify:
 
-1. **API Health**: `curl http://localhost:8080/api/v1/categories` returns category list
+1. **API Health**: `curl http://localhost:8081/api/v1/categories` returns category list
 2. **Frontend**: http://localhost:5173 shows the tool square homepage
 3. **Registration**: POST to `/api/v1/auth/register` creates a user
 4. **Login**: POST to `/api/v1/auth/login` returns JWT tokens

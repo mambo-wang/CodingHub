@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -17,6 +17,12 @@ spring:
 jwt:
   secret: IEFkcm半手动192819283819238188aifoundationHub2024SecretKeyThatIsLongEnough
   expiration: 86400000
+
+app:
+  jwt:
+    secret: IEFkcm半手动192819283819238188aifoundationHub2024SecretKeyThatIsLongEnough
+    access-token-expiration: 86400000
+    refresh-token-expiration: 604800000
 
 logging:
   level:

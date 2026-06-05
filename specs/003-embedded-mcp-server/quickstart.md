@@ -31,7 +31,7 @@ cd backend
 ./gradlew bootRun
 
 # MCP Server 将在 8081 端口启动
-# 主应用 REST API 仍在 8080 端口
+# 主应用 REST API 仍在 8081 端口
 ```
 
 ### 2.2 验证 MCP Server

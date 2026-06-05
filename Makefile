@@ -6,7 +6,7 @@ help:
 	@echo "可用命令:"
 	@echo "  make db       - 创建数据库并初始化表结构"
 	@echo "  make install  - 安装前端依赖"
-	@echo "  make backend  - 启动后端服务 (8080端口)"
+	@echo "  make backend  - 启动后端服务 (8081端口)"
 	@echo "  make frontend - 启动前端服务 (5173端口)"
 	@echo "  make run      - 同时启动后端和前端"
 	@echo "  make stop     - 停止所有服务"
