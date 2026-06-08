@@ -1,6 +1,6 @@
 # UI Preview
 
-> 本预览由 frontend-design skill 生成，作为视觉验收标准。
+> 本预览基于 design-system.md 与 ui-ux-pro-max 设计规范生成，作为视觉验收标准。
 
 ## Preview File
 

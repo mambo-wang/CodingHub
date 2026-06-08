@@ -63,26 +63,69 @@ artifacts:
       - proposal
       - specs
 
+  - id: impact-analysis
+    generates: impact-analysis.md
+    description: |
+      代码影响范围分析——基于 design.md 中的文件/类清单执行 codegraph 扫描
+      【条件必选】仅当 design 涉及修改现有代码时执行；纯新增模块/页面可跳过
+    template: impact-analysis.md
+    instruction: |
+      【条件必选 artifact】执行规则：
+      1. 读取 design.md 中的文件列表、类列表、源码文件与测试文件对应关系
+      2. 判定改动类型：
+         - design.md 中所有源码文件均为新增 → 跳过此 artifact
+         - design.md 中存在任意现有源码文件 → 必须执行
+      3. 若需执行，使用 Task(code-explorer) 子代理扫描代码库：
+         - 以 design.md 中列出的现有类/函数/组件/API 作为 codegraph 入口
+         - 追踪直接调用方与传递调用方（深度 2-3 层）
+         - 列出依赖的上游服务（repository、config、util）
+         - 找出受影响的测试文件
+         - 检查 design.md 的源码文件与测试文件对应关系是否完整
+         - 评估改动风险等级（L0 纯新增 / L1 修改公共 API / L2 修改 schema 或业务规则）
+         - 生成回归测试建议清单
+      4. 校验后端层级依赖仍合法：
+         ```bash
+         bash scripts/lint-arch.sh
+         ```
+         若 FAIL 必须修复 design 后再继续
+      5. 若发现 design.md 漏掉受影响文件/测试，必须在报告中列出“设计修正建议”
+      6. 报告保存到 impact-analysis.md
+    requires:
+      - design
+
   - id: ui-preview
     generates: ui-preview.html
     description: |
-      HTML 界面预览——基于 design-system 生成可交互的 UI 原型
+      HTML 界面预览——基于 design-system 与 ui-ux-pro-max 设计规范生成可交互的 UI 原型
       【仅当改动涉及前端 UI 时生成】
     template: ui-preview.md
     instruction: |
       【可选 artifact】仅当改动涉及前端界面修改时执行。
 
-      使用 frontend-design skill 生成 HTML 页面预览。
+      使用 ui-ux-pro-max skill 获取设计规范与样式决策，然后生成 HTML 预览页面。
       目的：让用户直观预览最终效果，作为视觉验收标准。
+
+      ## 第一步：调用 ui-ux-pro-max 获取设计规范
+      基于 design-system.md 的产品类型与风格，调用 ui-ux-pro-max 检索样式、配色、字体、UX 规则：
+      ```bash
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
+      ```
+      可按需指定领域：
+      ```bash
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<查询>" --domain style --max-results 5
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<查询>" --domain ux --max-results 5
+      ```
+
+      ## 第二步：生成 HTML 预览
+      基于 design-system.md 和 ui-ux-pro-max 的输出生成代码：
 
       生成要求：
       1. 基于 design-system.md 中的设计规范生成代码
       2. 必须生成可运行的 HTML 文件（使用 Tailwind CDN）
       3. 包含页面主要状态的预览：正常态、悬停态、加载态、空状态
       4. 所有图标使用 SVG（Lucide 或 Heroicons），禁止 emoji
-      5. 必须包含 "Created By Deerflow" 签名（见 frontend-design skill 要求）
-      6. 文件保存到 ui-preview.html
-      7. 生成后使用 preview_url 工具打开预览
+      5. 文件保存到 ui-preview.html
+      6. 生成后使用 preview_url 工具打开预览
 
       如不需要生成 UI，此 artifact 可跳过。
     requires:
@@ -95,6 +138,9 @@ artifacts:
     template: tasks.md
     instruction: |
       关键要求：将工作拆分为原子化 TDD 任务 + UI 实现任务 + 浏览器测试任务。
+
+      【前置参考】如 impact-analysis.md 已生成，必须参考其调用图、受影响测试、
+      回归测试建议和设计修正建议；如已跳过（纯新增场景），直接按 design.md 拆分。
 
       ## A. TDD 任务（后端/业务逻辑）
       每个任务必须是且仅是一个 TDD 阶段（RED / GREEN / REFACTOR）。
