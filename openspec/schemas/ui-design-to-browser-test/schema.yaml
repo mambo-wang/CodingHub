@@ -176,19 +176,6 @@ artifacts:
       1. UI 任务在 TDD 任务完成后执行
       2. 每个组件独立一个任务块
       3. 如已生成 design-system.md / ui-preview.html，必须引用它们作为验收参考；否则引用全局设计系统和 design.md
-
-      【如无 UI 改动，此部分可省略】
-
-      ## C. 浏览器测试任务【如有 UI 改动】
-      基于 specs、design.md、ui-preview.html 生成端到端验证任务：
-      ### Test: [测试场景]
-      - [ ] TC-XXX: [测试名称]——开发完成后使用 `/openspec-browser-test` skill 或 opencli browser 执行测试
-      规则：
-      1. 必须在 UI 实现任务完成后执行
-      2. 每个测试用例独立一个任务
-      3. 必须引用 specs、design.md 和 ui-preview.html 作为测试定义来源
-      4. 测试前确保 opencli doctor 通过
-      5. 测试后记录结果（PASS / FAIL）
     requires:
       - specs
       - design

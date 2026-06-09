@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>帖子删除 UI 预览 - CodingHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #0D0D0D;
+      --color-surface: rgba(255, 255, 255, 0.08);
+      --color-surface-sub: rgba(255, 255, 255, 0.06);
+      --color-primary: #00FFFF;
+      --color-destructive: #EF4444;
+      --color-success: #00FF00;
+      --color-text: #FFFFFF;
+      --color-text-secondary: rgba(255, 255, 255, 0.7);
+      --color-text-muted: rgba(255, 255, 255, 0.5);
+      --color-border: rgba(255, 255, 255, 0.15);
+      --color-border-strong: rgba(255, 255, 255, 0.25);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: 'Fira Sans', sans-serif;
+      background: var(--color-bg); color: var(--color-text);
+      padding: 32px 16px; min-height: 100vh;
+    }
+    .container { max-width: 1280px; margin: 0 auto; }
+    h1, h2, h3, .font-code { font-family: 'Fira Code', monospace; }
+    h1 { font-size: 28px; font-weight: 700; margin: 0 0 8px; color: var(--color-primary); }
+    h2 { font-size: 20px; font-weight: 600; margin: 48px 0 16px; color: var(--color-text); border-bottom: 1px solid var(--color-border); padding-bottom: 8px; }
+    h3 { font-size: 15px; font-weight: 500; margin: 24px 0 12px; color: var(--color-text-secondary); }
+    p { color: var(--color-text-secondary); line-height: 1.6; font-size: 14px; }
+    code { font-family: 'Fira Code', monospace; font-size: 13px; color: var(--color-primary); background: rgba(0,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+    .glass-card {
+      background: var(--color-surface); backdrop-filter: blur(15px);
+      border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+      padding: 24px; margin-bottom: 16px;
+    }
+    .glass-card-sub {
+      background: var(--color-surface-sub); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 12px;
+    }
+    .btn-delete {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; background: var(--color-destructive); color: #FFFFFF;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'Fira Sans', sans-serif; font-weight: 500; font-size: 14px;
+      cursor: pointer; transition: all 200ms ease;
+    }
+    .btn-delete:hover { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); transform: translateY(-1px); }
+    .btn-delete:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .btn-delete:disabled { background: rgba(239, 68, 68, 0.5); cursor: not-allowed; }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; background: transparent; color: var(--color-text-secondary);
+      border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 500; cursor: pointer; transition: all 200ms ease;
+    }
+    .btn-icon-delete {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; padding: 6px; color: var(--color-text-secondary);
+      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      cursor: pointer; transition: all 150ms ease;
+    }
+    .btn-icon-delete:hover { color: var(--color-destructive); background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+    .btn-icon-delete:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: #FFFFFF;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .post-card {
+      display: flex; background: var(--color-surface);
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      overflow: hidden; cursor: pointer; transition: all 200ms ease;
+    }
+    .post-card .card-accent { width: 4px; flex-shrink: 0; background: #7C3AED; }
+    .post-card .card-content { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .post-card .card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .post-card .category-tag {
+      display: inline-block; padding: 4px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 500; color: #7C3AED; background: rgba(124, 58, 237, 0.15);
+    }
+    .post-card .post-title { margin: 0; font-size: 16px; font-weight: 600; }
+    .post-card .card-stats { display: flex; gap: 16px; font-size: 12px; color: var(--color-text-muted); }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+      background: var(--color-surface); backdrop-filter: blur(20px);
+      border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg);
+      padding: 24px; width: 400px; max-width: 90vw;
+      animation: scaleIn 200ms ease-out;
+    }
+    @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-content h2 { margin: 0 0 12px; font-size: 18px; font-weight: 600; color: var(--color-text); }
+    .modal-content p { margin: 0 0 24px; font-size: 14px; color: var(--color-text-secondary); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+    .btn-cancel {
+      padding: 10px 20px; background: transparent; color: var(--color-text);
+      border: 1.5px solid var(--color-border); border-radius: var(--radius-sm);
+      font-size: 14px; font-weight: 500; cursor: pointer; transition: all 200ms ease;
+    }
+    .btn-cancel:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .btn-cancel:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-confirm-danger {
+      padding: 10px 20px; background: var(--color-destructive); color: #FFFFFF;
+      border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 200ms ease; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-confirm-danger:hover { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+    .btn-confirm-danger:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .btn-confirm-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+    .toast {
+      padding: 12px 24px; background: var(--color-surface); backdrop-filter: blur(15px);
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      color: var(--color-text); font-size: 14px; display: inline-flex; align-items: center; gap: 10px;
+    }
+    .toast-success { border-left: 3px solid var(--color-success); }
+    .toast-error { border-left: 3px solid var(--color-destructive); }
+    .state-row {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-sm); margin-bottom: 12px;
+    }
+    .state-label { min-width: 130px; font-family: 'Fira Code', monospace; font-size: 13px; color: var(--color-text-muted); }
+    .responsive-grid { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1023px) { .responsive-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 639px) { .responsive-grid { grid-template-columns: 1fr; } }
+    .viewport-tag {
+      display: inline-block; padding: 2px 8px; background: var(--color-primary);
+      color: var(--color-bg); font-family: 'Fira Code', monospace; font-size: 11px;
+      font-weight: 600; border-radius: 4px; margin-bottom: 8px;
+    }
+    .checklist { font-size: 14px; line-height: 2; color: var(--color-text-secondary); padding-left: 24px; }
+    .checklist li::marker { color: var(--color-success); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    .nav-arrows { display: flex; gap: 4px; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>帖子删除 UI 预览</h1>
+    <p>本页面展示帖子删除功能在帖子详情页、我的帖子页、确认对话框中的所有交互状态。引用全局设计系统 <code>design-system/CodingHub/MASTER.md</code>。</p>
+
+    <!-- 1. 详情页删除按钮 -->
+    <h2>1. 帖子详情页 - 删除按钮</h2>
+    <p>仅当 <code>isLoggedIn &amp;&amp; currentUserId === post.authorId</code> 时渲染。</p>
+
+    <h3>1.1 按钮状态</h3>
+    <div class="state-row">
+      <span class="state-label">normal</span>
+      <button class="btn-delete" aria-label="删除帖子">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        删除
+      </button>
+      <span class="state-label">hover</span>
+      <button class="btn-delete" style="box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); transform: translateY(-1px);" aria-label="删除帖子">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        删除
+      </button>
+      <span class="state-label">focus-visible</span>
+      <button class="btn-delete" style="outline: 2px solid var(--color-primary); outline-offset: 2px;" aria-label="删除帖子">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        删除
+      </button>
+      <span class="state-label">loading</span>
+      <button class="btn-delete" disabled aria-busy="true" aria-label="删除中">
+        <span class="spinner" aria-hidden="true"></span>
+        删除中...
+      </button>
+    </div>
+
+    <h3>1.2 真实页面位置</h3>
+    <div class="glass-card">
+      <div style="margin-bottom: 16px;">
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #7C3AED; background: rgba(124,58,237,0.15);">技术交流</span>
+        <h1 style="font-size: 24px; font-weight: 700; margin: 12px 0 8px;">如何优雅地使用 Vue 3 Composition API？</h1>
+        <p style="font-size: 13px; color: var(--color-text-muted); margin: 0;">@alice · 2026-06-09</p>
+      </div>
+      <div style="display: flex; gap: 16px; padding: 12px 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); margin-bottom: 16px; font-size: 14px; color: var(--color-text-secondary);">
+        <span>1.2k 浏览</span><span>5 评论</span><span>12 点赞</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+        <button class="btn-outline">点赞</button>
+        <button class="btn-outline">收藏</button>
+        <!-- 本次新增：删除按钮 -->
+        <button class="btn-delete" aria-label="删除帖子">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+          删除
+        </button>
+      </div>
+      <p style="font-size: 14px; color: var(--color-text-secondary);">Compose 函数让代码更易复用...</p>
+    </div>
+
+    <!-- 2. 我的帖子页 -->
+    <h2>2. 我的帖子页 - 列表项删除图标</h2>
+    <p><code>PostCard.vue</code> 新增 <code>deletable?: boolean</code> prop（默认 <code>false</code>，不影响其他 4 个调用点）。</p>
+
+    <h3>2.1 图标按钮状态</h3>
+    <div class="state-row">
+      <span class="state-label">normal</span>
+      <button class="btn-icon-delete" aria-label="删除此帖">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+      </button>
+      <span class="state-label">hover</span>
+      <button class="btn-icon-delete" style="color: var(--color-destructive); background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3);" aria-label="删除此帖">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+      </button>
+      <span class="state-label">focus-visible</span>
+      <button class="btn-icon-delete" style="outline: 2px solid var(--color-primary); outline-offset: 2px;" aria-label="删除此帖">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+      </button>
+    </div>
+
+    <h3>2.2 在 PostCard 中的实际位置</h3>
+    <div class="glass-card-sub">
+      <div class="post-card">
+        <div class="card-accent"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <span class="category-tag">技术交流</span>
+            <button class="btn-icon-delete" style="color: var(--color-destructive);" aria-label="删除此帖">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+            </button>
+          </div>
+          <h3 class="post-title">如何优雅地使用 Vue 3 Composition API？</h3>
+          <div class="card-stats">
+            <span>1.2k 浏览</span><span>5 评论</span><span>12 点赞</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 确认对话框 -->
+    <h2>3. 确认对话框 (ConfirmDialog) - 所有状态</h2>
+
+    <h3>3.1 正常态（打开）</h3>
+    <div class="glass-card" style="position: relative; min-height: 240px;">
+      <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="d1-t" aria-describedby="d1-d">
+          <h2 id="d1-t">删除帖子</h2>
+          <p id="d1-d">删除后无法恢复，确定要删除吗？</p>
+          <div class="modal-actions">
+            <button class="btn-cancel" type="button">取消</button>
+            <button class="btn-confirm-danger" type="button" autofocus>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>3.2 加载态（删除进行中）</h3>
+    <div class="glass-card" style="position: relative; min-height: 240px;">
+      <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-busy="true" aria-labelledby="d2-t" aria-describedby="d2-d">
+          <h2 id="d2-t">删除帖子</h2>
+          <p id="d2-d">删除后无法恢复，确定要删除吗？</p>
+          <div class="modal-actions">
+            <button class="btn-cancel" type="button" disabled>取消</button>
+            <button class="btn-confirm-danger" type="button" disabled>
+              <span class="spinner" aria-hidden="true"></span>
+              删除中...
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Toast -->
+    <h2>4. Toast 反馈</h2>
+    <div class="state-row">
+      <span class="state-label">success</span>
+      <div class="toast toast-success" role="status" aria-live="polite">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00FF00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        帖子已删除
+      </div>
+    </div>
+    <div class="state-row">
+      <span class="state-label">403 forbidden</span>
+      <div class="toast toast-error" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        您不是该帖子的作者，无权删除
+      </div>
+    </div>
+    <div class="state-row">
+      <span class="state-label">404 not found</span>
+      <div class="toast toast-error" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        帖子不存在或已被删除
+      </div>
+    </div>
+    <div class="state-row">
+      <span class="state-label">401 / 网络错误</span>
+      <div class="toast toast-error" role="alert">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        请先登录 / 删除失败，请稍后重试
+      </div>
+    </div>
+
+    <!-- 5. 响应式 -->
+    <h2>5. 响应式预览</h2>
+    <div class="responsive-grid">
+      <div>
+        <span class="viewport-tag">≥1024px Desktop</span>
+        <div class="glass-card-sub">
+          <p style="font-size: 12px; color: var(--color-text-muted); margin: 0 0 8px;">按钮水平排列</p>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-outline">点赞</button>
+            <button class="btn-outline">收藏</button>
+            <button class="btn-delete" aria-label="删除帖子">删除</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <span class="viewport-tag">768-1023px Tablet</span>
+        <div class="glass-card-sub">
+          <p style="font-size: 12px; color: var(--color-text-muted); margin: 0 0 8px;">按钮水平排列</p>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-outline">点赞</button>
+            <button class="btn-outline">收藏</button>
+            <button class="btn-delete" aria-label="删除帖子">删除</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <span class="viewport-tag">&lt;768px Mobile</span>
+        <div class="glass-card-sub">
+          <p style="font-size: 12px; color: var(--color-text-muted); margin: 0 0 8px;">按钮垂直堆叠</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn-outline" style="justify-content: center;">点赞</button>
+            <button class="btn-outline" style="justify-content: center;">收藏</button>
+            <button class="btn-delete" aria-label="删除帖子" style="justify-content: center;">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. a11y -->
+    <h2>6. 可访问性 (a11y) 检查清单</h2>
+    <div class="glass-card">
+      <ul class="checklist">
+        <li>删除按钮 <code>aria-label="删除帖子"</code></li>
+        <li>图标删除按钮 <code>aria-label="删除此帖"</code></li>
+        <li><code>ConfirmDialog</code> 使用 <code>role="dialog"</code> + <code>aria-modal="true"</code> + <code>aria-labelledby</code> + <code>aria-describedby</code></li>
+        <li>打开对话框时焦点落在"确认删除"按钮（autofocus）</li>
+        <li>关闭对话框时焦点回到触发按钮（实现时处理）</li>
+        <li>焦点环可见（<code>outline: 2px solid var(--color-primary)</code>）</li>
+        <li>颜色对比度：白字 on 红底 <code>#EF4444</code> = 4.7:1 ≥ AA</li>
+        <li><code>prefers-reduced-motion: reduce</code> 关闭淡入/缩放动画</li>
+        <li>错误提示 <code>role="alert"</code> + <code>aria-live="assertive"</code></li>
+        <li>键盘可达：Tab 循环、Esc 关闭、Enter 触发</li>
+        <li>无 emoji，所有图标使用 Lucide SVG（<code>Trash2</code> / <code>Loader2</code> / <code>X</code>）</li>
+        <li>移动端 / 平板 / 桌面三档响应式不溢出</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
