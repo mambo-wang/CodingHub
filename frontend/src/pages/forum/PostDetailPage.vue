@@ -42,14 +42,24 @@
           </span>
         </div>
 
-        <div class="like-section">
-          <button @click="handleLike" :class="['like-btn', { liked: hasLiked }]">
+        <div class="post-actions">
+          <button @click="handleLike" :class="['action-btn', { liked: hasLiked }]">
             <Heart :size="18" :fill="hasLiked ? 'currentColor' : 'none'" />
             {{ hasLiked ? '已赞' : '点赞' }}
           </button>
-          <button @click="handleFavorite" :class="['like-btn', { liked: hasFavorited }]">
+          <button @click="handleFavorite" :class="['action-btn', { liked: hasFavorited }]">
             <Bookmark :size="18" :fill="hasFavorited ? 'currentColor' : 'none'" />
             {{ hasFavorited ? '已收藏' : '收藏' }}
+          </button>
+          <button
+            v-if="isLoggedIn && currentUserId === post.authorId"
+            data-testid="delete-post-btn"
+            class="action-btn btn-delete"
+            :disabled="deleting"
+            @click="handleDeleteClick"
+          >
+            <Trash2 :size="18" />
+            删除
           </button>
         </div>
 
@@ -71,37 +81,57 @@
           @cancel="handleCancelReply"
         />
       </div>
+
+      <ConfirmDialog
+        :visible="dialogVisible"
+        title="删除帖子"
+        description="确定要删除这篇帖子吗？此操作不可撤销。"
+        confirm-text="确认删除"
+        cancel-text="取消"
+        :danger="true"
+        :loading="deleting"
+        @confirm="handleConfirmDelete"
+        @cancel="handleDialogCancel"
+        @update:visible="dialogVisible = $event"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { User, Eye, MessageCircle, Heart, Bookmark, Loader2 } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Loader2 } from '@lucide/vue';
+import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
 import PostContent from '@/components/forum/PostContent.vue';
 import CommentList from '@/components/forum/CommentList.vue';
 import CommentEditor from '@/components/forum/CommentEditor.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import forumService from '@/services/forum';
 import { postFavoriteApi } from '@/services/api';
 import type { ForumComment } from '@/types/forum';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
 const route = useRoute();
+const router = useRouter();
 const forumStore = useForumStore();
 const authStore = useAuthStore();
 
 const { currentPost: post } = storeToRefs(forumStore);
 const { isLoggedIn } = storeToRefs(authStore);
 
+const currentUserId = computed(() => authStore.user?.id ?? null);
+
 const loading = ref(true);
 const comments = ref<ForumComment[]>([]);
 const replyToId = ref<number | undefined>();
 const hasLiked = ref(false);
 const hasFavorited = ref(false);
+const dialogVisible = ref(false);
+const deleting = ref(false);
 
 const categoryColors: Record<number, string> = {
   1: '#7C3AED',
@@ -177,6 +207,54 @@ const handleCommentSubmit = async (data: { content: string; authorName?: string;
     comments.value.push(newComment);
     replyToId.value = undefined;
   } catch (e) {}
+};
+
+const handleDeleteClick = () => {
+  dialogVisible.value = true;
+};
+
+const handleDialogCancel = () => {
+  dialogVisible.value = false;
+};
+
+const handleConfirmDelete = async () => {
+  if (!post.value) return;
+  deleting.value = true;
+
+  try {
+    const result = await forumStore.deletePost(post.value.id);
+    if (result.success) {
+      ElMessage.success('帖子已删除');
+      dialogVisible.value = false;
+      router.push('/forum');
+    } else {
+      handleDeleteError(result.errorCode!);
+    }
+  } catch (e) {
+    ElMessage.error('删除失败，请稍后重试');
+  } finally {
+    deleting.value = false;
+  }
+};
+
+const handleDeleteError = (errorCode: string) => {
+  switch (errorCode) {
+    case 'AUTH':
+      ElMessage.warning('请先登录');
+      break;
+    case 'FORBIDDEN':
+      ElMessage.warning('您不是该帖子的作者，无权删除');
+      break;
+    case 'NOT_FOUND':
+      ElMessage.warning('帖子不存在或已被删除');
+      dialogVisible.value = false;
+      router.push('/forum');
+      break;
+    default:
+      ElMessage.error('删除失败，请稍后重试');
+      dialogVisible.value = false;
+      break;
+  }
 };
 
 const formatDate = (dateStr: string) => {
@@ -305,11 +383,14 @@ const formatCount = (count: number) => {
   color: var(--text-secondary);
 }
 
-.like-section {
+.post-actions {
+  display: flex;
+  gap: 12px;
   margin-bottom: 32px;
+  flex-wrap: wrap;
 }
 
-.like-btn {
+.action-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -324,16 +405,32 @@ const formatCount = (count: number) => {
   transition: all 0.2s;
 }
 
-.like-btn:hover {
+.action-btn:hover:not(:disabled) {
   border-color: var(--accent-3);
   color: var(--accent-3);
   background: rgba(236, 72, 153, 0.1);
 }
 
-.like-btn.liked {
+.action-btn.liked {
   border-color: var(--accent-3);
   background: rgba(236, 72, 153, 0.15);
   color: var(--accent-3);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-delete {
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.btn-delete:hover:not(:disabled) {
+  border-color: #EF4444 !important;
+  color: #EF4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
 }
 
 .comments-section {

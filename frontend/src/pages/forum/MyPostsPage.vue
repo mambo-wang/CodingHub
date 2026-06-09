@@ -12,24 +12,45 @@
           v-for="post in posts"
           :key="post.id"
           :post="post"
+          :deletable="true"
           @click="goToDetail(post.id)"
+          @delete="handlePostDelete"
         />
       </div>
+
+      <ConfirmDialog
+        :visible="dialogVisible"
+        title="删除帖子"
+        description="确定要删除这篇帖子吗？此操作不可撤销。"
+        confirm-text="确认删除"
+        cancel-text="取消"
+        :danger="true"
+        :loading="deleting"
+        @confirm="handleConfirmDelete"
+        @cancel="handleDialogCancel"
+        @update:visible="dialogVisible = $event"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import PostCard from '@/components/forum/PostCard.vue';
 import SidebarNav from '@/components/forum/SidebarNav.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const router = useRouter();
 const forumStore = useForumStore();
 const { posts, loading } = storeToRefs(forumStore);
+
+const dialogVisible = ref(false);
+const deleteId = ref<number | null>(null);
+const deleting = ref(false);
 
 onMounted(async () => {
   await forumStore.fetchMyPosts();
@@ -37,6 +58,56 @@ onMounted(async () => {
 
 const goToDetail = (postId: number) => {
   router.push(`/forum/posts/${postId}`);
+};
+
+const handlePostDelete = (postId: number) => {
+  deleteId.value = postId;
+  dialogVisible.value = true;
+};
+
+const handleDialogCancel = () => {
+  dialogVisible.value = false;
+  deleteId.value = null;
+};
+
+const handleConfirmDelete = async () => {
+  if (deleteId.value === null) return;
+  deleting.value = true;
+
+  try {
+    const result = await forumStore.deletePost(deleteId.value);
+    if (result.success) {
+      ElMessage.success('帖子已删除');
+      dialogVisible.value = false;
+      deleteId.value = null;
+    } else {
+      handleDeleteError(result.errorCode!);
+    }
+  } catch (e) {
+    ElMessage.error('删除失败，请稍后重试');
+  } finally {
+    deleting.value = false;
+  }
+};
+
+const handleDeleteError = (errorCode: string) => {
+  switch (errorCode) {
+    case 'AUTH':
+      ElMessage.warning('请先登录');
+      break;
+    case 'FORBIDDEN':
+      ElMessage.warning('您不是该帖子的作者，无权删除');
+      dialogVisible.value = false;
+      break;
+    case 'NOT_FOUND':
+      ElMessage.warning('帖子不存在或已被删除');
+      dialogVisible.value = false;
+      break;
+    default:
+      ElMessage.error('删除失败，请稍后重试');
+      dialogVisible.value = false;
+      break;
+  }
 };
 </script>
 

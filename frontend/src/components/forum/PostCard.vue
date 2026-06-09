@@ -1,6 +1,14 @@
 <template>
   <div class="post-card" @click="goToDetail">
     <div class="card-accent" :style="{ background: getCategoryColor(post.categoryId) }"></div>
+    <button
+      v-if="deletable"
+      class="btn-icon-delete"
+      aria-label="删除此帖"
+      @click.stop="$emit('delete', post.id)"
+    >
+      <Trash2 :size="16" />
+    </button>
     <div class="card-content">
       <div class="card-header">
         <span class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
@@ -45,14 +53,19 @@
 </template>
 
 <script setup lang="ts">
-import { User, Eye, MessageCircle, Heart, Bookmark } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2 } from '@lucide/vue';
 import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { postFavoriteApi } from '@/services/api';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
-const props = defineProps<{ post: ForumPost }>();
+const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean }>(), {
+  deletable: false,
+});
+const emit = defineEmits<{
+  (e: 'delete', postId: number): void;
+}>();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -108,6 +121,7 @@ const toggleFavorite = async () => {
 <style scoped>
 .post-card {
   display: flex;
+  position: relative;
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -234,5 +248,35 @@ const toggleFavorite = async () => {
 
 .favorite-btn.active svg {
   opacity: 1;
+}
+
+.btn-icon-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 200ms ease;
+  z-index: 2;
+}
+
+.btn-icon-delete:hover {
+  color: #EF4444;
+  border-color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.btn-icon-delete:focus-visible {
+  outline: 2px solid #00FFFF;
+  outline-offset: 2px;
 }
 </style>

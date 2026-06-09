@@ -71,6 +71,27 @@ export const useForumStore = defineStore('forum', {
       } finally {
         this.loading = false;
       }
+    },
+
+    async deletePost(id: number): Promise<{ success: boolean; errorCode?: string }> {
+      try {
+        await forumService.deletePost(id);
+        this.posts = this.posts.filter(p => p.id !== id);
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, errorCode: this._mapErrorToCode(error) };
+      }
+    },
+
+    _mapErrorToCode(error: any): string {
+      if (!error.response) return 'UNKNOWN';
+      const status = error.response.status;
+      switch (status) {
+        case 401: return 'AUTH';
+        case 403: return 'FORBIDDEN';
+        case 404: return 'NOT_FOUND';
+        default: return 'UNKNOWN';
+      }
     }
   }
 });
