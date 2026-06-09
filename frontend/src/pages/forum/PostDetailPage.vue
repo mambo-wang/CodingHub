@@ -423,14 +423,30 @@ const formatCount = (count: number) => {
 }
 
 .btn-delete {
-  color: var(--text-muted);
   margin-left: auto;
+  background: var(--color-destructive);
+  color: #FFFFFF;
+  border-color: transparent;
 }
 
 .btn-delete:hover:not(:disabled) {
-  border-color: #EF4444 !important;
-  color: #EF4444 !important;
-  background: rgba(239, 68, 68, 0.1) !important;
+  background: #DC2626;
+  border-color: transparent !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 20px var(--delete-shadow);
+  transform: translateY(-1px);
+}
+
+.btn-delete:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .comments-section {

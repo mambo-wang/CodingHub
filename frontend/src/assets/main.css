@@ -29,6 +29,28 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
 
+  /* Interaction states */
+  --focus-ring: #00FFFF;
+  --color-destructive: #EF4444;
+  --delete-shadow: rgba(239, 68, 68, 0.3);
+
+  /* Modal / Dialog */
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --modal-bg: rgba(15, 15, 20, 0.95);
+  --modal-border: rgba(255, 255, 255, 0.12);
+
+  /* Cancel button */
+  --btn-cancel-border: rgba(255, 255, 255, 0.2);
+  --btn-cancel-text: rgba(255, 255, 255, 0.7);
+  --btn-cancel-hover-bg: rgba(255, 255, 255, 0.05);
+  --btn-cancel-hover-border: rgba(255, 255, 255, 0.4);
+
+  /* Toast */
+  --toast-bg: rgba(15, 15, 20, 0.9);
+
+  /* Delete icon button */
+  --icon-del-hover-bg: rgba(239, 68, 68, 0.1);
+
   /* Typography */
   --font-display: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;
@@ -64,6 +86,19 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
   --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.1);
+
+  --focus-ring: #7c3aed;
+  --color-destructive: #EF4444;
+  --delete-shadow: rgba(239, 68, 68, 0.25);
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --modal-bg: rgba(255, 255, 255, 0.95);
+  --modal-border: rgba(0, 0, 0, 0.1);
+  --btn-cancel-border: rgba(0, 0, 0, 0.15);
+  --btn-cancel-text: #475569;
+  --btn-cancel-hover-bg: rgba(124, 58, 237, 0.05);
+  --btn-cancel-hover-border: #7c3aed;
+  --toast-bg: rgba(255, 255, 255, 0.95);
+  --icon-del-hover-bg: rgba(239, 68, 68, 0.08);
 }
 
 * {
@@ -350,3 +385,11 @@ body {
 .mb-1 { margin-bottom: var(--space-sm); }
 .mb-2 { margin-bottom: var(--space-md); }
 .mb-3 { margin-bottom: var(--space-lg); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

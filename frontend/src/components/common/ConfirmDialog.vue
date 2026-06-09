@@ -113,22 +113,22 @@ function handleCancel() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   animation: overlayIn 200ms ease-out;
 }
 
 .dialog-container {
-  background: rgba(20, 20, 20, 0.95);
+  background: var(--modal-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--modal-border);
   border-radius: 16px;
   padding: 0;
   max-width: 400px;
   width: calc(100% - 32px);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   animation: dialogIn 200ms ease-out;
 }
 
@@ -144,14 +144,14 @@ function handleCancel() {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #FFFFFF;
-  font-family: 'Fira Code', monospace;
+  color: var(--text-primary);
+  font-family: var(--font-display);
 }
 
 .dialog-description {
   margin: 0 0 24px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -164,19 +164,25 @@ function handleCancel() {
 .btn-cancel {
   padding: 10px 20px;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid var(--btn-cancel-border);
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--btn-cancel-text);
   font-size: 14px;
   font-weight: 500;
+  font-family: var(--font-display);
   cursor: pointer;
   transition: all 200ms ease;
 }
 
 .btn-cancel:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--btn-cancel-hover-border);
+  background: var(--btn-cancel-hover-bg);
+  color: var(--accent-1);
+}
+
+.btn-cancel:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .btn-cancel:disabled {
@@ -193,29 +199,35 @@ function handleCancel() {
   border: none;
   font-size: 14px;
   font-weight: 600;
+  font-family: var(--font-display);
   cursor: pointer;
   transition: all 200ms ease;
-  background: linear-gradient(135deg, #00FFFF, #00CCCC);
-  color: #0D0D0D;
+  background: var(--accent-1);
+  color: #FFFFFF;
 }
 
 .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 20px var(--border-glow);
   transform: translateY(-1px);
 }
 
+.btn-confirm:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .btn-confirm:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #EF4444, #DC2626);
-  color: #FFFFFF;
+  background: var(--color-destructive);
 }
 
 .btn-danger:hover:not(:disabled) {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+  background: #DC2626;
+  box-shadow: 0 0 20px var(--delete-shadow);
 }
 
 .spinner {

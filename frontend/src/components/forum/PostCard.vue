@@ -259,24 +259,29 @@ const toggleFavorite = async () => {
   justify-content: center;
   width: 32px;
   height: 32px;
+  padding: 6px;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.4);
-  color: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 200ms ease;
   z-index: 2;
 }
 
 .btn-icon-delete:hover {
-  color: #EF4444;
-  border-color: #EF4444;
-  background: rgba(239, 68, 68, 0.1);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+  color: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent);
+  background: var(--icon-del-hover-bg);
+  box-shadow: 0 0 12px var(--delete-shadow);
 }
 
 .btn-icon-delete:focus-visible {
-  outline: 2px solid #00FFFF;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+.btn-icon-delete:active {
+  transform: scale(0.95);
 }
 </style>
