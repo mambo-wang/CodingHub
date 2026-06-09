@@ -31,6 +31,9 @@ artifacts:
     description: |
       本次变更的 UI 约束摘要——引用全局设计系统，列出本次涉及的组件/样式/交互规范
       【可选 artifact】仅当改动涉及前端 UI 时生成；纯后端/逻辑变更可跳过
+      【双主题固定配置】项目始终使用暗色 (dark) + 亮色 (light) 双主题，
+      token 映射表必须并列两列（暗色 | 亮色 | CSS 变量），
+      交互状态按组件分子节，每个组件下按暗色/亮色分两个子节
     template: design-system.md
     instruction: |
       【可选 artifact】仅当改动涉及前端界面修改时执行。
@@ -46,12 +49,19 @@ artifacts:
       ```
 
       ## 第三步：生成本次 UI 约束摘要
-      基于 MASTER.md + 补充检索结果，生成本次变更的 UI 约束摘要（design-system.md），
-      仅列出本次变更涉及的：
-      - 组件清单及样式规范
-      - 配色/字体/间距 token
-      - 交互状态（normal/hover/focus/disabled/loading/empty）
-      - 响应式策略
+      基于 MASTER.md + 补充检索结果，生成本次变更的 UI 约束摘要（design-system.md）。
+
+      必须包含的章节：
+      1. **全局样式引用** — 字体、圆角、阴影（阴影表需暗色/亮色两列）
+      2. **双主题 Tokens 映射** — 暗色主题 | 亮色主题 | CSS 变量 三列表，涵盖页面背景、面板、卡片、毛玻璃、主色、辅助色、文字色、边框色等全部角色
+      3. **涉及组件清单** — 组件/页面、用途、状态覆盖
+      4. **交互状态（双主题）** — 每个组件按暗色/亮色分别列出所有状态的完整样式（normal/hover/focus/disabled/loading/active）
+      5. **响应式策略** — 断点与布局行为
+      6. **可访问性要求** — checkbox 清单（暗色/亮色焦点环分别列出）
+      7. **图标清单** — Lucide 图标及 aria 属性
+      8. **Antipatterns 检查** — 合规/不合规项
+
+      每个组件的暗色/亮色交互状态必须分别列出完整样式，确保每个主题可独立验证。
 
       如不需要生成 UI，此 artifact 可跳过。
     requires:
@@ -112,6 +122,7 @@ artifacts:
     description: |
       HTML 界面预览——基于 design-system 与 ui-ux-pro-max 设计规范生成可交互的 UI 原型
       【仅当改动涉及前端 UI 时生成】
+      【双主题固定配置】在同一 HTML 文件中使用 CSS 变量 + [data-theme] 属性实现暗色/亮色双主题切换预览，
     template: ui-preview.md
     instruction: |
       【可选 artifact】仅当改动涉及前端界面修改时执行。
@@ -127,14 +138,28 @@ artifacts:
       ```
 
       ## 第二步：生成 HTML 预览
-      基于 design.md 和设计依据生成代码：
+      基于 design.md 和 design-system.md 生成代码。参考 `openspec/changes/add-post-delete/ui-preview.html` 的结构。
+
+      双主题 CSS 变量方案：
+      - 在 `:root` 中定义暗色主题（默认）的全部 CSS 变量
+      - 使用 `[data-theme="light"]` 选择器覆盖亮色主题的变量值
+      - 页面 `<html>` 初始设置 `data-theme="dark"`
+      - 提供主题切换按钮（月亮/太阳图标），通过 JS 切换 `data-theme` 属性
+      - 暗色/亮色分别定义背景渐变效果和网格 overlay
+      - 使用 `var(--xxx)` 引用变量实现组件样式自动跟随主题
+
+      内容结构要求：
+      1. 页面头部：渐变标题 + 副标题 + 主题切换按钮
+      2. 每个组件的状态行按暗色/亮色分组，用 `<h3>` + 主题徽章标注（如 `theme-badge-dk` / `theme-badge-lt`）
+      3. 对话框等复合组件使用 `.dialog-demo > .dialog-overlay > .dialog-panel` 结构
+      4. 响应式网格使用 CSS Grid，三断点自适应
 
       生成要求：
-      1. 必须生成可运行的 HTML 文件（使用 Tailwind CDN）
+      1. 必须生成可独立运行的 HTML 文件（内联 CSS + JS，无外部依赖）
       2. 包含页面主要状态的预览：正常态、悬停态、聚焦态、加载态、空状态、错误态
       3. 覆盖桌面/平板/移动端响应式布局
-      4. 所有图标使用 SVG（Lucide 或 Heroicons），禁止 emoji
-      5. 包含基础可访问性标记（语义标签、aria-label、focus-visible）
+      4. 所有图标使用内联 SVG（Lucide），禁止 emoji
+      5. 包含基础可访问性标记（语义标签、aria-label、focus-visible、aria-busy）
       6. 文件保存到 ui-preview.html
       7. 生成后使用 preview_url 工具打开预览
 
@@ -170,12 +195,14 @@ artifacts:
       ## B. UI 实现任务（前端）【如有 UI 改动】
       基于 design.md、设计系统和 ui-preview.html（如已生成）创建 UI 任务：
       ### UI: [组件/页面名称]
-      - [ ] 实现 [组件名]——基于设计系统规范，参考 ui-preview.html（如已生成）
+      - [ ] 实现 [组件名]——基于设计系统规范，参考 ui-preview.html（如已生成），使用 CSS 变量支持双主题
       - [ ] 验证 [组件名]——视觉检查是否符合设计规范、交互状态、响应式和可访问性要求
+      - [ ] 双主题验证——验证暗色/亮色主题下组件显示正确，焦点环、阴影、背景效果均随主题切换
       规则：
       1. UI 任务在 TDD 任务完成后执行
       2. 每个组件独立一个任务块
       3. 如已生成 design-system.md / ui-preview.html，必须引用它们作为验收参考；否则引用全局设计系统和 design.md
+      4. 双主题固定规则：每个组件必须使用 CSS 变量实现暗色/亮色适配，验证时需切换两种主题分别检查
     requires:
       - specs
       - design
