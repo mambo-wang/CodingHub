@@ -1,6 +1,6 @@
 name: ui-design-to-browser-test
-version: 3
-description: 原子化TDD工作流 + UI/UX设计系统 + 浏览器预览验证
+version: 4
+description: 原子化TDD工作流 + 条件式UI/UX设计系统 + 浏览器预览验证
 
 artifacts:
   - id: proposal
@@ -29,16 +29,29 @@ artifacts:
   - id: design-system
     generates: design-system.md
     description: |
-      UI/UX 设计系统——pattern/style/colors/typography/组件规范
-      【仅当改动涉及前端 UI 时生成】
+      本次变更的 UI 约束摘要——引用全局设计系统，列出本次涉及的组件/样式/交互规范
+      【可选 artifact】仅当改动涉及前端 UI 时生成；纯后端/逻辑变更可跳过
     template: design-system.md
     instruction: |
       【可选 artifact】仅当改动涉及前端界面修改时执行。
 
-      使用 ui-ux-pro-max skill 生成完整的设计系统：
+      ## 第一步：读取全局设计系统
+      读取项目全局设计系统文件 `design-system/CodingHub/MASTER.md`，
+      提取与本次变更相关的组件、样式、配色、字体、交互规范。
+
+      ## 第二步：按需补充 ui-ux-pro-max 检索
+      如全局设计系统未覆盖本次需要的 UI 模式，调用 ui-ux-pro-max 补充：
       ```bash
-      python3 skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
       ```
+
+      ## 第三步：生成本次 UI 约束摘要
+      基于 MASTER.md + 补充检索结果，生成本次变更的 UI 约束摘要（design-system.md），
+      仅列出本次变更涉及的：
+      - 组件清单及样式规范
+      - 配色/字体/间距 token
+      - 交互状态（normal/hover/focus/disabled/loading/empty）
+      - 响应式策略
 
       如不需要生成 UI，此 artifact 可跳过。
     requires:
@@ -57,8 +70,9 @@ artifacts:
       - 测试运行命令
 
       【如有 UI 改动，增加以下内容】
-      - UI 组件清单：基于 design-system 定义需要实现的组件
-      - 页面布局说明：基于 design-system 说明主要页面的结构和响应式策略
+      - UI 组件清单：优先基于本次变更的 design-system.md；如未生成，则引用全局 `design-system/CodingHub/MASTER.md`
+      - 页面布局说明：说明主要页面结构、交互状态和响应式策略
+      - 可访问性要求：键盘焦点、ARIA、对比度、错误提示等验收点
     requires:
       - proposal
       - specs
@@ -105,31 +119,27 @@ artifacts:
       使用 ui-ux-pro-max skill 获取设计规范与样式决策，然后生成 HTML 预览页面。
       目的：让用户直观预览最终效果，作为视觉验收标准。
 
-      ## 第一步：调用 ui-ux-pro-max 获取设计规范
-      基于 design-system.md 的产品类型与风格，调用 ui-ux-pro-max 检索样式、配色、字体、UX 规则：
+      ## 第一步：确认设计依据
+      优先读取本次变更生成的 design-system.md；如未生成，则读取全局 `design-system/CodingHub/MASTER.md`。
+      如设计依据仍不足，可调用 ui-ux-pro-max 检索样式、配色、字体、UX 规则：
       ```bash
       python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
       ```
-      可按需指定领域：
-      ```bash
-      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<查询>" --domain style --max-results 5
-      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<查询>" --domain ux --max-results 5
-      ```
 
       ## 第二步：生成 HTML 预览
-      基于 design-system.md 和 ui-ux-pro-max 的输出生成代码：
+      基于 design.md 和设计依据生成代码：
 
       生成要求：
-      1. 基于 design-system.md 中的设计规范生成代码
-      2. 必须生成可运行的 HTML 文件（使用 Tailwind CDN）
-      3. 包含页面主要状态的预览：正常态、悬停态、加载态、空状态
+      1. 必须生成可运行的 HTML 文件（使用 Tailwind CDN）
+      2. 包含页面主要状态的预览：正常态、悬停态、聚焦态、加载态、空状态、错误态
+      3. 覆盖桌面/平板/移动端响应式布局
       4. 所有图标使用 SVG（Lucide 或 Heroicons），禁止 emoji
-      5. 文件保存到 ui-preview.html
-      6. 生成后使用 preview_url 工具打开预览
+      5. 包含基础可访问性标记（语义标签、aria-label、focus-visible）
+      6. 文件保存到 ui-preview.html
+      7. 生成后使用 preview_url 工具打开预览
 
       如不需要生成 UI，此 artifact 可跳过。
     requires:
-      - design-system
       - design
 
   - id: tasks
@@ -139,8 +149,9 @@ artifacts:
     instruction: |
       关键要求：将工作拆分为原子化 TDD 任务 + UI 实现任务 + 浏览器测试任务。
 
-      【前置参考】如 impact-analysis.md 已生成，必须参考其调用图、受影响测试、
-      回归测试建议和设计修正建议；如已跳过（纯新增场景），直接按 design.md 拆分。
+      【前置参考】
+      - 如 design.md 涉及修改现有源码，则必须先生成 impact-analysis.md，并参考其调用图、受影响测试、回归测试建议和设计修正建议。
+      - 如 impact-analysis.md 已跳过，必须在 tasks.md 中记录跳过原因（例如：全部源码文件为新增），再按 design.md 拆分。
 
       ## A. TDD 任务（后端/业务逻辑）
       每个任务必须是且仅是一个 TDD 阶段（RED / GREEN / REFACTOR）。
@@ -157,29 +168,27 @@ artifacts:
       5. 每个任务应在2-5分钟内可完成
 
       ## B. UI 实现任务（前端）【如有 UI 改动】
-      基于 ui-preview.html 和 design-system.md 创建 UI 任务：
+      基于 design.md、设计系统和 ui-preview.html（如已生成）创建 UI 任务：
       ### UI: [组件/页面名称]
-      - [ ] 实现 [组件名]——基于 design-system 规范，参考 ui-preview.html
-      - [ ] 验证 [组件名]——视觉检查是否符合设计规范
+      - [ ] 实现 [组件名]——基于设计系统规范，参考 ui-preview.html（如已生成）
+      - [ ] 验证 [组件名]——视觉检查是否符合设计规范、交互状态、响应式和可访问性要求
       规则：
       1. UI 任务在 TDD 任务完成后执行
       2. 每个组件独立一个任务块
-      3. 必须引用 design-system 和 ui-preview 作为验收参考
+      3. 如已生成 design-system.md / ui-preview.html，必须引用它们作为验收参考；否则引用全局设计系统和 design.md
 
       【如无 UI 改动，此部分可省略】
 
       ## C. 浏览器测试任务【如有 UI 改动】
-      基于 browser-test.md 执行端到端自动化测试：
+      基于 specs、design.md、ui-preview.html 生成端到端验证任务：
       ### Test: [测试场景]
-      - [ ] TC-XXX: [测试名称]——使用 opencli browser 执行测试
+      - [ ] TC-XXX: [测试名称]——开发完成后使用 `/openspec-browser-test` skill 或 opencli browser 执行测试
       规则：
       1. 必须在 UI 实现任务完成后执行
       2. 每个测试用例独立一个任务
-      3. 必须引用 browser-test.md 作为测试定义来源
+      3. 必须引用 specs、design.md 和 ui-preview.html 作为测试定义来源
       4. 测试前确保 opencli doctor 通过
-      5. 测试后记录结果（✅ PASS / ❌ FAIL）
+      5. 测试后记录结果（PASS / FAIL）
     requires:
       - specs
       - design
-      - design-system
-      - ui-preview

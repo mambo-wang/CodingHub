@@ -1,7 +1,7 @@
 .PHONY: help backend frontend db init install run stop lint lint-arch lint-quality lint-deps
 
 help:
-	@echo "AI 工具广场 - Makefile"
+	@echo "CodingHub - Makefile"
 	@echo ""
 	@echo "可用命令:"
 	@echo "  make db       - 创建数据库并初始化表结构"

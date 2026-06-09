@@ -5,7 +5,7 @@ const BACKEND_URL = 'http://localhost:8081';
 
 async function runTests() {
     console.log('==========================================');
-    console.log('AI工具广场 - 浏览器自动化测试');
+    console.log('CodingHub - 浏览器自动化测试');
     console.log('==========================================\n');
 
     let browser;

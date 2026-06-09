@@ -32,8 +32,8 @@ const { chromium } = require('playwright');
     console.log('截图保存到 /tmp/about-page.png');
     
     const aboutContent = await page.textContent('body');
-    if (aboutContent.includes('AI 工具广场')) {
-        console.log('✅ 页面包含"AI 工具广场"');
+    if (aboutContent.includes('CodingHub')) {
+        console.log('✅ 页面包含"CodingHub"');
     }
     if (aboutContent.includes('技术栈')) {
         console.log('✅ 页面包含 README 内容');

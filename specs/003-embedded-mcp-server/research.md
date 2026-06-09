@@ -81,7 +81,7 @@ MCP 协议使用 JSON-RPC 2.0 格式：
     "tools": [
       {
         "name": "h3_coding_hub_tool_search",
-        "description": "Search tools in the tool square",
+        "description": "Search tools in CodingHub",
         "inputSchema": {...}
       }
     ]

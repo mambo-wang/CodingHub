@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "name": "ai-tool-square",
-  "description": "AI 工具广场 - 全栈 Web 应用",
+  "description": "CodingHub - 全栈 Web 应用",
 
   "runtime": {
     "java": "17",

@@ -1,4 +1,4 @@
-# Implementation Plan: AI 工具广场
+# Implementation Plan: CodingHub
 
 **Branch**: `001-ai-tool-square` | **Date**: 2026-05-29 | **Spec**: [spec.md](spec.md)
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-AI 工具广场是一个帮助用户发现、分享和管理 AI 工具（Skill、MCP、API、Prompt 等）的社区平台。核心功能包括：工具浏览与搜索、工具详情展示（Markdown 渲染）、用户注册登录、工具上传管理。
+CodingHub是一个帮助用户发现、分享和管理 AI 工具（Skill、MCP、API、Prompt 等）的社区平台。核心功能包括：工具浏览与搜索、工具详情展示（Markdown 渲染）、用户注册登录、工具上传管理。
 
 技术方案：前后端分离架构，前端使用 Vue3 + TypeScript（frontend-design 技能辅助 UI 设计），后端使用 Spring Boot + Gradle，数据库使用 MySQL。RESTful API 提供数据交互通道。
 

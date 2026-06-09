@@ -1,4 +1,4 @@
-# Research Notes: AI 工具广场
+# Research Notes: CodingHub
 
 **Feature**: 001-ai-tool-square
 **Date**: 2026-05-29

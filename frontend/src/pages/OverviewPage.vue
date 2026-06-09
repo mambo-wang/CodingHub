@@ -56,7 +56,7 @@
       <footer class="page-footer">
         <div class="footer-line"></div>
         <div class="footer-content">
-          <span class="footer-text">AI Tool Square</span>
+          <span class="footer-text">CodingHub</span>
           <span class="footer-divider">|</span>
           <span class="footer-version">v1.0.0</span>
         </div>

@@ -45,7 +45,7 @@ Content-Type: application/json
     "tools": [
       {
         "name": "h3_coding_hub_tool_search",
-        "description": "Search tools in the tool square",
+        "description": "Search tools in CodingHub",
         "inputSchema": {
           "type": "object",
           "properties": {

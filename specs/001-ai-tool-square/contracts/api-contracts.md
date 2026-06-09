@@ -1,4 +1,4 @@
-# API Contracts: AI 工具广场
+# API Contracts: CodingHub
 
 **Feature**: 001-ai-tool-square
 **Date**: 2026-05-29

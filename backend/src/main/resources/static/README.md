@@ -1,4 +1,4 @@
-# AI 工具广场 (AI Tool Square)
+# CodingHub
 
 > 一个全栈 Web 应用，提供 AI 工具/资源的管理和展示平台。
 
@@ -151,7 +151,7 @@ make stop
 - **成功色**: `#00FF00` Matrix Green
 - **字体**: Fira Code + Fira Sans
 
-详细设计规范请参阅 [design-system/ai工具广场/MASTER.md](design-system/ai工具广场/MASTER.md)。
+详细设计规范请参阅 [design-system/CodingHub/MASTER.md](design-system/CodingHub/MASTER.md)。
 
 ## 约束规则
 

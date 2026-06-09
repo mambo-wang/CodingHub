@@ -1,4 +1,4 @@
-# Data Model: AI 工具广场
+# Data Model: CodingHub
 
 **Feature**: 001-ai-tool-square
 **Date**: 2026-05-29

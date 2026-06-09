@@ -5,7 +5,7 @@ const API_BASE = 'http://localhost:8081/api/v1';
 
 async function runFullTests() {
     console.log('╔══════════════════════════════════════════════════════╗');
-    console.log('║       AI工具广场 - 完整自动化测试套件                  ║');
+    console.log('║       CodingHub - 完整自动化测试套件                  ║');
     console.log('╚══════════════════════════════════════════════════════╝\n');
 
     const browser = await chromium.launch({ headless: true });

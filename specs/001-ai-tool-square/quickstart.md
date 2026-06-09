@@ -1,4 +1,4 @@
-# Quickstart: AI 工具广场
+# Quickstart: CodingHub
 
 **Feature**: 001-ai-tool-square
 **Date**: 2026-05-29
@@ -191,6 +191,6 @@ ai-tool-square/
 After starting both services, verify:
 
 1. **API Health**: `curl http://localhost:8081/api/v1/categories` returns category list
-2. **Frontend**: http://localhost:5173 shows the tool square homepage
+2. **Frontend**: http://localhost:5173 shows the CodingHub homepage
 3. **Registration**: POST to `/api/v1/auth/register` creates a user
 4. **Login**: POST to `/api/v1/auth/login` returns JWT tokens

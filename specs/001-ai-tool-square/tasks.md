@@ -1,4 +1,4 @@
-# Tasks: AI 工具广场
+# Tasks: CodingHub
 
 **Input**: Design documents from `/specs/001-ai-tool-square/`
 

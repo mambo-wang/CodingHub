@@ -1,4 +1,4 @@
-# Feature Specification: AI 工具广场
+# Feature Specification: CodingHub
 
 **Feature Branch**: `001-ai-tool-square`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "创建一个AI工具广场项目，可以上传skill mcp等工具，上传时写markdown介绍，填写上传人名字，UI参考skillhub.cn，使用frontend-design完善UI设计，前端使用vue3后端使用gradle+springboot的组合，数据库使用mysql（已安装，账号密码都为root）"
+**Input**: User description: "创建一个CodingHub项目，可以上传skill mcp等工具，上传时写markdown介绍，填写上传人名字，UI参考skillhub.cn，使用frontend-design完善UI设计，前端使用vue3后端使用gradle+springboot的组合，数据库使用mysql（已安装，账号密码都为root）"
 
 ## User Scenarios & Testing *(mandatory)*
 

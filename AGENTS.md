@@ -1,10 +1,10 @@
-# AI 工具广场 - Agent 导航地图
+# CodingHub - Agent 导航地图
 
 > 本文档为 AI 代理提供项目结构、入口点、约束规则的快速参考。
 
 ## 1. 项目概述
 
-- **项目名称**: AI 工具广场 (AI Tool Square)
+- **项目名称**: CodingHub
 - **技术栈**: Java 17 / Spring Boot 3.2.5 (后端) + Vue 3 / TypeScript / Vite (前端)
 - **构建工具**: Gradle (后端) + npm (前端)
 - **数据库**: MySQL 8.x (用户: root, 密码: root)

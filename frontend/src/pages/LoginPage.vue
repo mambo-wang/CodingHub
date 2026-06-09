@@ -63,7 +63,7 @@ const goToRegister = () => router.push('/register')
             </svg>
           </div>
           <h1 class="auth-title">欢迎回来</h1>
-          <p class="auth-subtitle">登录到 AI 工具广场</p>
+          <p class="auth-subtitle">登录到 CodingHub</p>
         </div>
 
         <!-- Error Message -->

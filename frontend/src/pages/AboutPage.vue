@@ -25,7 +25,7 @@ onMounted(async () => {
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">关于</h1>
-        <p class="page-subtitle">AI 工具广场 - 发现和使用 AI 工具的一站式平台</p>
+        <p class="page-subtitle">CodingHub - 发现和使用 AI 工具的一站式平台</p>
       </div>
 
       <div v-if="loading" class="loading">

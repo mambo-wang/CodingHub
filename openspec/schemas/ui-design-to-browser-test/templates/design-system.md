@@ -1,138 +1,63 @@
 # Design System
 
-> 本设计系统由 ui-ux-pro-max skill 生成，定义项目级视觉规范。
+> 本文档是本次变更的 UI 约束摘要。优先引用全局设计系统 `design-system/CodingHubs/MASTER.md`，仅补充本次变更相关的组件、样式和交互规范。
 
-## 1. Design Style
+## 1. Applicability
 
-| 属性 | 值 |
-|------|------|
-| **Style Name** | `<style_name>` |
-| **Keywords** | `<keywords>` |
-| **Best For** | `<best_for>` |
+- 是否涉及前端 UI：是 / 否
+- 如不涉及 UI：说明跳过原因
+- 参考来源：
+  - `design-system/CodingHub/MASTER.md`
+  - ui-ux-pro-max 检索结果（如有）
 
-## 2. Color Palette
+## 2. Related Components
 
-| Role | Hex | CSS Variable | Usage |
-|------|-----|--------------|-------|
-| Primary | `<hex>` | `--color-primary` | 主色调 |
-| Secondary | `<hex>` | `--color-secondary` | 辅助色 |
-| Background | `<hex>` | `--color-background` | 背景色 |
-| Surface | `<hex>` | `--color-surface` | 卡片/容器背景 |
-| Text | `<hex>` | `--color-text` | 主文字 |
-| Text Muted | `<hex>` | `--color-text-muted` | 次要文字 |
-| Border | `<hex>` | `--color-border` | 边框色 |
-| Accent | `<hex>` | `--color-accent` | 强调/CTA |
+| 组件/页面 | 用途 | 状态覆盖 |
+|----------|------|----------|
+| `<component/page>` | `<purpose>` | normal / hover / focus / disabled / loading / empty / error |
 
-## 3. Typography
+## 3. Visual Tokens
 
-| 用途 | 字体 | 字重 |
-|------|------|------|
-| 标题 | `<font_name>`, fallback | 600-700 |
-| 正文 | `<font_name>`, fallback | 400-500 |
-| 辅助 | `<font_name>`, fallback | 300-400 |
-
-## 4. Spacing System
-
-| Token | Value |
-|-------|-------|
-| `--space-xs` | `<value>` |
-| `--space-sm` | `<value>` |
-| `--space-md` | `<value>` |
-| `--space-lg` | `<value>` |
-| `--space-xl` | `<value>` |
-
-## 5. Effects
+### Colors
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `<value>` | 轻微阴影 |
-| `--shadow-md` | `<value>` | 卡片/按钮 |
-| `--radius-sm` | `<value>` | 小圆角 |
-| `--radius-md` | `<value>` | 中圆角 |
-| `--radius-lg` | `<value>` | 大圆角 |
+| `<token>` | `<value>` | `<usage>` |
 
-## 6. Component Specs
+### Typography
 
-### Button
+| 层级 | 字体/字号/行高 | 用途 |
+|------|----------------|------|
+| `<level>` | `<font-size/line-height>` | `<usage>` |
 
-```css
-.btn {
-  /* 主按钮样式 */
-  background: var(--color-primary);
-  color: var(--color-text);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
+### Spacing & Radius
 
-.btn:hover {
-  /* 悬停状态 */
-}
+| Token | Value | Usage |
+|-------|-------|-------|
+| `<token>` | `<value>` | `<usage>` |
 
-.btn:disabled {
-  /* 禁用状态 */
-}
-```
+## 4. Interaction States
 
-### Card
+| 元素 | 状态 | 视觉/行为要求 |
+|------|------|----------------|
+| `<element>` | hover / focus / disabled / loading / error | `<requirement>` |
 
-```css
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
+## 5. Responsive Strategy
 
-.card:hover {
-  /* 悬停状态 */
-}
-```
+| 断点 | 布局策略 |
+|------|----------|
+| Desktop ≥1024px | `<layout>` |
+| Tablet 768px-1023px | `<layout>` |
+| Mobile <768px | `<layout>` |
 
-### Input
+## 6. Accessibility Requirements
 
-```css
-.input {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-sm) var(--space-md);
-  color: var(--color-text);
-  transition: border-color 200ms ease;
-}
+- [ ] 关键交互元素支持键盘访问
+- [ ] focus-visible 状态清晰可见
+- [ ] 功能性图标提供 `aria-label` 或可读文本
+- [ ] 表单错误提示使用 `aria-live` 或等效机制
+- [ ] 文本与背景对比度满足 WCAG AA
 
-.input:focus {
-  border-color: var(--color-primary);
-  outline: none;
-}
-```
+## 7. Open Questions
 
-## 7. Icon Specification
-
-| 用途 | Icon Name |
-|------|-----------|
-| `<usage>` | `<icon_name>` |
-
-**规则**: 使用 SVG 图标库，禁止 emoji 作为图标。
-
-## 8. Anti-Patterns
-
-- ❌ 使用 emoji 作为 UI 图标
-- ❌ 缺少 `cursor-pointer` 在可点击元素上
-- ❌ 悬停状态使用 scale 变换导致布局位移
-- ❌ 文字对比度低于 4.5:1
-- ❌ 状态变化无过渡动画
-- ❌ focus 状态不可见
-
-## 9. Pre-Delivery Checklist
-
-- [ ] 无 emoji 作为图标
-- [ ] 可点击元素有 `cursor-pointer`
-- [ ] 悬停状态有平滑过渡 (150-300ms)
-- [ ] 文字对比度 ≥ 4.5:1
-- [ ] focus 状态可见
-- [ ] 响应式布局正常 (375px, 768px, 1024px, 1440px)
+- `<需要用户或设计确认的问题>`

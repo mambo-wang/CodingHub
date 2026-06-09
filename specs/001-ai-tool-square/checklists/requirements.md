@@ -1,4 +1,4 @@
-# Specification Quality Checklist: AI 工具广场
+# Specification Quality Checklist: CodingHub
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-05-29

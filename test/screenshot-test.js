@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 
 (async () => {
     console.log('==========================================');
-    console.log('AI工具广场 - 工具详情页测试');
+    console.log('CodingHub - 工具详情页测试');
     console.log('==========================================\n');
     
     const browser = await chromium.launch({ headless: true });

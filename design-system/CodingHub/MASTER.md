@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** AI工具广场
+**Project:** CodingHub
 **Generated:** 2026-05-30 23:27:02
 **Enhanced:** 2026-06-08 (基于 ui-ux-pro-max 检索)
 **Category:** AI Tools SaaS Platform

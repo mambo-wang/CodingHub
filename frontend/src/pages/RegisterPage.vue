@@ -80,7 +80,7 @@ const goToLogin = () => router.push('/login')
             </svg>
           </div>
           <h1 class="auth-title">创建账号</h1>
-          <p class="auth-subtitle">加入 AI 工具广场</p>
+          <p class="auth-subtitle">加入 CodingHub</p>
         </div>
 
         <!-- Error Message -->
