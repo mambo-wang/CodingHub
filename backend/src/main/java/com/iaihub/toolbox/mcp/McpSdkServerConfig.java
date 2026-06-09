@@ -163,7 +163,7 @@ public class McpSdkServerConfig {
                 });
 
         // 注册 h3_coding_hub_tool_download 工具
-        registerTool(mcpSyncServer, "h3_coding_hub_tool_download", "获取工具文件的下载链接，用于下载附件; 本方法返回的是相对路径，需要用mcp地址（http://mcp_server_ip:8081）拼接为完整的下载链接",
+        registerTool(mcpSyncServer, "h3_coding_hub_tool_download", "获取工具文件的下载链接，用于下载附件; 本方法返回的是相对路径，需要用mcp地址（http://mcp_server_ip:8082）拼接为完整的下载链接",
                 """
                 {
                     "type":"object",

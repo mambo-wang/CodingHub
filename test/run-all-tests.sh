@@ -12,7 +12,7 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-BASE_URL="http://localhost:8081/api/v1"
+BASE_URL="http://localhost:8082/api/v1"
 FRONTEND_URL="http://localhost:5174"
 
 test_result() {

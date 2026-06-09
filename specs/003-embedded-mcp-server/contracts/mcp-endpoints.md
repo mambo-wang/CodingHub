@@ -5,7 +5,7 @@
 
 ## 1. MCP Server 端点
 
-MCP Server 运行在独立端口 `8081`，提供以下 HTTP 端点：
+MCP Server 运行在独立端口 `8082`，提供以下 HTTP 端点：
 
 ### 1.1 健康检查
 

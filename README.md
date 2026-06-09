@@ -78,13 +78,13 @@ make stop
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| 后端 | 8081 | Spring Boot 应用 |
+| 后端 | 8082 | Spring Boot 应用 |
 | 前端 | 5173 | Vite 开发服务器 |
 | MySQL | 3306 | 数据库服务 |
 
 ## API 入口点
 
-### 后端 API (http://localhost:8081)
+### 后端 API (http://localhost:8082)
 
 #### 认证相关
 

@@ -30,15 +30,15 @@ MCP Server 随 Spring Boot 应用自动启动，无需额外配置。
 cd backend
 ./gradlew bootRun
 
-# MCP Server 将在 8081 端口启动
-# 主应用 REST API 仍在 8081 端口
+# MCP Server 将在 8082 端口启动
+# 主应用 REST API 仍在 8082 端口
 ```
 
 ### 2.2 验证 MCP Server
 
 ```bash
 # 健康检查
-curl http://localhost:8081/mcp/health
+curl http://localhost:8082/mcp/health
 
 # 预期响应
 {"status":"ok","version":"1.0.0","timestamp":"2026-05-31T20:00:00Z"}
@@ -49,7 +49,7 @@ curl http://localhost:8081/mcp/health
 ### 3.1 列出所有工具
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -62,7 +62,7 @@ curl -X POST http://localhost:8081/mcp \
 ### 3.2 搜索工具
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -81,7 +81,7 @@ curl -X POST http://localhost:8081/mcp \
 ### 3.3 获取工具详情
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -99,7 +99,7 @@ curl -X POST http://localhost:8081/mcp \
 ### 3.4 获取工具文件
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -117,7 +117,7 @@ curl -X POST http://localhost:8081/mcp \
 ### 3.5 搜索帖子
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8081/mcp \
 ### 3.6 获取帖子内容
 
 ```bash
-curl -X POST http://localhost:8081/mcp \
+curl -X POST http://localhost:8082/mcp \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -159,7 +159,7 @@ curl -X POST http://localhost:8081/mcp \
 {
   "mcpServers": {
     "iaihub": {
-      "url": "http://localhost:8081/mcp"
+      "url": "http://localhost:8082/mcp"
     }
   }
 }
@@ -179,7 +179,7 @@ cd backend
 
 ### MCP Server 未启动
 
-检查日志中是否有 `MCP Server started on port 8081`：
+检查日志中是否有 `MCP Server started on port 8082`：
 
 ```bash
 tail -f backend/logs/application.log | grep MCP
@@ -187,10 +187,10 @@ tail -f backend/logs/application.log | grep MCP
 
 ### 连接被拒绝
 
-确保 8081 端口未被占用：
+确保 8082 端口未被占用：
 
 ```bash
-lsof -i :8081
+lsof -i :8082
 ```
 
 ### 数据库连接错误

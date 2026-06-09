@@ -178,7 +178,7 @@ frontend/src/
 | POST | /api/auth/login | 用户登录 | 否 |
 | GET | /api/auth/me | 获取当前用户 | 是 |
 
-后端 API 地址: http://localhost:8081
+后端 API 地址: http://localhost:8082
 
 ### 4.2 工具相关
 

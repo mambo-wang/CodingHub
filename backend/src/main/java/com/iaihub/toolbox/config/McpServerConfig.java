@@ -5,13 +5,13 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * MCP Server 自动配置类
- * 在独立端口（默认 8081）启动 MCP Server
+ * 在独立端口（默认 8082）启动 MCP Server
  */
 @Configuration
 @ConfigurationProperties(prefix = "mcp.server")
 public class McpServerConfig {
 
-    private int port = 8081;
+    private int port = 8082;
     private String host = "0.0.0.0";
     private boolean enabled = true;
     private int maxConnections = 10;

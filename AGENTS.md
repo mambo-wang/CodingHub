@@ -8,7 +8,7 @@
 - **技术栈**: Java 17 / Spring Boot 3.2.5 (后端) + Vue 3 / TypeScript / Vite (前端)
 - **构建工具**: Gradle (后端) + npm (前端)
 - **数据库**: MySQL 8.x (用户: root, 密码: root)
-- **端口**: 后端 8081, 前端 5173
+- **端口**: 后端 8082, 前端 5173
 
 ## 2. 项目结构
 
@@ -74,7 +74,7 @@ controller → service → repository → model
 
 ## 4. API 入口点
 
-### 后端 API (http://localhost:8081)
+### 后端 API (http://localhost:8082)
 
 | 路径 | 方法 | 说明 |
 |------|------|------|

@@ -1,11 +1,11 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
     name: iaihub
   datasource:
-    url: jdbc:mysql://localhost:3306/watcher_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/ai_tool_square?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver

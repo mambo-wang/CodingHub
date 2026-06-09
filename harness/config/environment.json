@@ -35,8 +35,8 @@
   "startup": {
     "backend": {
       "command": "cd backend && ./gradlew bootRun",
-      "port": 8081,
-      "ready_check": "curl -f http://localhost:8081/actuator/health || echo 'checking'",
+      "port": 8082,
+      "ready_check": "curl -f http://localhost:8082/actuator/health || echo 'checking'",
       "depends_on": ["mysql"]
     },
     "frontend": {
@@ -48,7 +48,7 @@
   },
 
   "ports": {
-    "backend": 8081,
+    "backend": 8082,
     "frontend": 5173,
     "mysql": 3306
   },

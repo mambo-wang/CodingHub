@@ -22,10 +22,13 @@ const pagination = ref({
   totalPages: 0
 })
 
+// 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
+const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
+
 const mcpConfig = {
   "CodingHub-mcp": {
     type: "sse",
-    url: `http://${window.location.hostname}:8081/sse`,
+    url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
     description: "CodingHub MCP Server"
   }
 }

@@ -4,7 +4,7 @@ echo "=========================================="
 echo "CodingHub - 自动化测试"
 echo "=========================================="
 
-BASE_URL="http://localhost:8081/api/v1"
+BASE_URL="http://localhost:8082/api/v1"
 FRONTEND_URL="http://localhost:5174"
 
 echo -e "\n[1/6] 测试工具详情页API (未登录状态)..."

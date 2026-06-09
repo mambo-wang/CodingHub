@@ -129,7 +129,7 @@ if [ -n "$TOKEN" ]; then
     
     echo ""
     echo "  [获取我的帖子]"
-    MY_POSTS=$(curl -s "http://localhost:8081/api/forum/posts/my" \
+    MY_POSTS=$(curl -s "http://localhost:8082/api/forum/posts/my" \
       -H "Authorization: Bearer $TOKEN")
     echo "$MY_POSTS" | grep -q '"content"' && test_result "GET /api/forum/posts/my (我的帖子)" "PASS" || test_result "我的帖子" "FAIL" ""
 fi

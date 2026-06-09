@@ -16,5 +16,5 @@ if ! mysql -u root -proot -e "USE ai_tool_square;" 2>/dev/null; then
 fi
 
 # 启动后端
-echo "启动 Spring Boot 后端 (端口 8081)..."
+echo "启动 Spring Boot 后端 (端口 8082)..."
 cd backend && ./gradlew bootRun

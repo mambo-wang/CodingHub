@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
 const BASE_URL = 'http://localhost:5174';
-const API_BASE = 'http://localhost:8081/api/v1';
+const API_BASE = 'http://localhost:8082/api/v1';
 
 async function runFullTests() {
     console.log('╔══════════════════════════════════════════════════════╗');

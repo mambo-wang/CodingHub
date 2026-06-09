@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
+// 后端端口可通过环境变量 BACKEND_PORT 覆盖，默认 8082
+const backendPort = process.env.BACKEND_PORT || '8082'
+const backendTarget = `http://localhost:${backendPort}`
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -14,15 +18,15 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api/v1': {
-        target: 'http://localhost:8081',
+        target: backendTarget,
         changeOrigin: true
       },
       '/api/forum': {
-        target: 'http://localhost:8081',
+        target: backendTarget,
         changeOrigin: true
       },
       '/api/overview': {
-        target: 'http://localhost:8081',
+        target: backendTarget,
         changeOrigin: true
       }
     }

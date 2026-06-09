@@ -24,11 +24,11 @@ AI 编程 IDE（如 VS Code、Cursor 等）在配置阶段，通过 MCP 协议�
 
 **Why this priority**: 这是核心场景，没有 MCP 连接就无法实现任何 AI 增强功能。
 
-**Independent Test**: 可以通过任何 MCP 客户端（如 Cody、Cursor）连接 `localhost:8081` 并验证工具检索功能是否正常。
+**Independent Test**: 可以通过任何 MCP 客户端（如 Cody、Cursor）连接 `localhost:8082` 并验证工具检索功能是否正常。
 
 **Acceptance Scenarios**:
 
-1. **Given** AI IDE 已配置 MCP Server 地址为 `http://localhost:8081`，**When** 开发者打开 AI 辅助面板，**Then** IDE 能成功建立 MCP 连接并获取可用工具列表
+1. **Given** AI IDE 已配置 MCP Server 地址为 `http://localhost:8082`，**When** 开发者打开 AI 辅助面板，**Then** IDE 能成功建立 MCP 连接并获取可用工具列表
 2. **Given** MCP 连接已建立，**When** 开发者在 IDE 中输入 "搜索图片处理工具"，**Then** 系统返回工具名称、描述和分类信息
 3. **Given** MCP 连接已建立，**When** 开发者选中某个工具并请求详情，**Then** 系统返回工具的完整 Markdown 文档内容
 
@@ -102,12 +102,12 @@ AI IDE 能够通过 MCP 接口搜索社区帖子，获取问题解答和使用�
 - **SC-003**: MCP Server 能稳定支持至少 5 个并发连接
 - **SC-004**: 帖子检索功能能在 1 秒内返回前 20 条匹配结果
 - **SC-005**: 所有 MCP 接口返回的数据格式符合 MCP 协议规范
-- **SC-006**: MCP Server 启动失败不影响主应用（8081 端口）的正常服务
+- **SC-006**: MCP Server 启动失败不影响主应用（8082 端口）的正常服务
 
 ## Assumptions
 
 - AI IDE 通过 HTTP + SSE 协议与 MCP Server 通信，支持服务端推送
-- MCP Server 运行在独立的端口（8081），与主应用分离避免冲突
+- MCP Server 运行在独立的端口（8082），与主应用分离避免冲突
 - 认证机制：无（内嵌服务，内网部署，无需认证）
 - 工具和帖子的数据直接复用现有的数据库表结构（tool, post, category 表）
 - MCP 协议版本使用 2024-11.05 版本，这是目前主流的 MCP 实现版本

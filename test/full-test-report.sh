@@ -5,11 +5,11 @@ echo "║           CodingHub - 全功能测试报告                           
 echo "╚══════════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "测试时间: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "后端服务: http://localhost:8081"
+echo "后端服务: http://localhost:8082"
 echo "前端服务: http://localhost:5174"
 echo ""
 
-BASE_URL="http://localhost:8081/api/v1"
+BASE_URL="http://localhost:8082/api/v1"
 passed=0
 failed=0
 total=0

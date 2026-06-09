@@ -16,7 +16,7 @@
 
 **Purpose**: MCP Server 项目初始化和基础配置
 
-- [x] T001 [P] Create `config/McpServerConfig.java` - MCP Server 自动配置类，在 8081 端口启动
+- [x] T001 [P] Create `config/McpServerConfig.java` - MCP Server 自动配置类，在 8082 端口启动
 - [x] T002 [P] Create `mcp/protocol/McpMessage.java` - MCP 消息模型（JSON-RPC 2.0）
 - [x] T003 [P] Create `mcp/protocol/McpResponse.java` - MCP 响应模型
 - [x] T004 [P] Create `mcp/protocol/McpError.java` - MCP 错误模型
@@ -39,7 +39,7 @@
 - [x] T012 Create `config/McpSecurityConfig.java` - 豁免 MCP 端点的安全配置（允许 /mcp/** 无认证访问）
 - [x] T013 Create `util/McpServerInitializer.java` - MCP Server 初始化器，使用 @PostConstruct 启动
 
-**Checkpoint**: Foundation ready - MCP Server 可在 8081 端口启动并处理请求
+**Checkpoint**: Foundation ready - MCP Server 可在 8082 端口启动并处理请求
 
 ---
 

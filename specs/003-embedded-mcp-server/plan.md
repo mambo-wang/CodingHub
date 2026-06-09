@@ -6,7 +6,7 @@
 
 ## Summary
 
-在 Spring Boot 应用中嵌入 MCP Server，通过 HTTP + SSE 协议为 AI IDE 提供工具广场的检索和查询能力。MCP Server 随应用自动启动，运行在独立端口（8081），无需认证，支持工具检索/内容查询、文件下载、帖子检索/内容查询功能。
+在 Spring Boot 应用中嵌入 MCP Server，通过 HTTP + SSE 协议为 AI IDE 提供工具广场的检索和查询能力。MCP Server 随应用自动启动，运行在独立端口（8082），无需认证，支持工具检索/内容查询、文件下载、帖子检索/内容查询功能。
 
 ## Technical Context
 

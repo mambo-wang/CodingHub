@@ -2,6 +2,7 @@
 backend/build/
 backend/.gradle/
 backend/bin/
+tools/
 *.class
 *.jar
 *.war

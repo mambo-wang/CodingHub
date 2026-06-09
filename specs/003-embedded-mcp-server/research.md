@@ -40,7 +40,7 @@ public class McpServerInitializer {
 
     @PostConstruct
     public void init() {
-        mcpServer.start(); // 在独立端口 8081 启动
+        mcpServer.start(); // 在独立端口 8082 启动
     }
 }
 ```

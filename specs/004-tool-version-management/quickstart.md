@@ -181,7 +181,7 @@ const validateVersion = () => {
 
 ```bash
 # 1. 创建带版本号的工具
-curl -X POST http://localhost:8081/api/v1/tools \
+curl -X POST http://localhost:8082/api/v1/tools \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{
@@ -192,14 +192,14 @@ curl -X POST http://localhost:8081/api/v1/tools \
   }'
 
 # 2. 验证版本号显示
-curl http://localhost:8081/api/v1/tools/1
+curl http://localhost:8082/api/v1/tools/1
 # 响应应包含 "version": "1.0.0"
 
 # 3. 测试版本号唯一性
 # 同一用户+分类下创建同名工具应返回 409
 
 # 4. 测试文件上传同名替换
-curl -X POST http://localhost:8081/api/v1/tools/1/files \
+curl -X POST http://localhost:8082/api/v1/tools/1/files \
   -F "files=@new_file.pdf"
 # 应替换同名文件
 ```

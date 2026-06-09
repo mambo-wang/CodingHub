@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
 const BASE_URL = 'http://localhost:5174';
-const BACKEND_URL = 'http://localhost:8081';
+const BACKEND_URL = 'http://localhost:8082';
 
 async function runTests() {
     console.log('==========================================');
