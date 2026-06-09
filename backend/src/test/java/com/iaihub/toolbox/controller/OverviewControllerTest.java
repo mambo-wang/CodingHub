@@ -46,7 +46,7 @@ class OverviewControllerTest {
     @WithMockUser
     void getToolRanks_returnsGroupedToolList() throws Exception {
         when(overviewService.getToolRanks()).thenReturn(List.of(
-            new ToolRankDto("AI对话", "ChatGPT", 999L)
+            new ToolRankDto(1L, "AI对话", "ChatGPT", new java.math.BigDecimal("999"))
         ));
 
         mockMvc.perform(get("/api/overview/tool-ranks"))
@@ -58,7 +58,7 @@ class OverviewControllerTest {
     @WithMockUser
     void getPostRanks_returnsGroupedPostList() throws Exception {
         when(overviewService.getPostRanks()).thenReturn(List.of(
-            new PostRankDto("交流讨论", "AI时代产品经理该何去何从", 50L)
+            new PostRankDto(1L, "交流讨论", "AI时代产品经理该何去何从", new java.math.BigDecimal("50"))
         ));
 
         mockMvc.perform(get("/api/overview/post-ranks"))

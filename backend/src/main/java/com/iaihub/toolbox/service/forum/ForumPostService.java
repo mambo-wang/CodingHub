@@ -110,12 +110,18 @@ public class ForumPostService {
         String categoryName = categoryRepository.findById(post.getCategoryId())
             .map(ForumCategory::getName).orElse("未分类");
 
+        String authorName = userRepository.findById(post.getAuthorId())
+            .map(u -> u.getUsername())
+            .orElse("用户" + post.getAuthorId());
+
+        String authorNickname = userRepository.findById(post.getAuthorId())
+            .map(u -> u.getNickname())
+            .orElse(null);
+
         return new ForumPostDTO(
             post.getId(), post.getTitle(), post.getContent(),
-            post.getAuthorId(), "用户" + post.getAuthorId(),
-            userRepository.findById(post.getAuthorId())
-                .map(u -> u.getNickname())
-                .orElse(null),
+            post.getAuthorId(), authorName,
+            authorNickname,
             post.getCategoryId(), categoryName,
             post.getViewCount(), post.getLikeCount(), post.getCommentCount(),
             post.getCreatedAt(), post.getUpdatedAt()

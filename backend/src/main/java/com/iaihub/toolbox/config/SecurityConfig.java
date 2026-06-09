@@ -43,6 +43,7 @@ public class SecurityConfig {
                 // File endpoints (must be before /api/v1/tools/**)
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files/{fileId}/download").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/tools/{toolId}/files").permitAll()
                 // MCP endpoints (无认证)
                 .requestMatchers("/mcp/**").permitAll()
                 .requestMatchers("/sse").permitAll()
@@ -59,7 +60,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:8081"));
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

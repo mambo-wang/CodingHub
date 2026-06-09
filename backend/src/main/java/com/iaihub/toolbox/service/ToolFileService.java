@@ -46,8 +46,8 @@ public class ToolFileService {
         Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
 
-        // Verify ownership
-        if (!tool.getUploader().getId().equals(userId)) {
+        // Verify ownership (skip if userId is null, e.g. anonymous upload via MCP client)
+        if (userId != null && !tool.getUploader().getId().equals(userId)) {
             throw new ForbiddenException("您只能上传文件到自己的工具");
         }
 

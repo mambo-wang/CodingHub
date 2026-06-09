@@ -7,6 +7,15 @@ import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.service.McpSearchService;
+import com.iaihub.toolbox.service.ToolService;
+import com.iaihub.toolbox.service.forum.ForumPostService;
+import com.iaihub.toolbox.service.UserService;
+import com.iaihub.toolbox.dto.CreateToolRequest;
+import com.iaihub.toolbox.dto.LoginRequest;
+import com.iaihub.toolbox.dto.LoginResponse;
+import com.iaihub.toolbox.dto.ToolSummaryDTO;
+import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
+import com.iaihub.toolbox.dto.forum.ForumPostDTO;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +34,10 @@ import java.util.List;
  *   <li>h3_coding_hub_tool_files - 获取工具文件</li>
  *   <li>h3_coding_hub_post_search - 搜索帖子</li>
  *   <li>h3_coding_hub_post_get - 获取帖子详情</li>
+ *   <li>h3_coding_hub_tool_download - 获取文件下载链接</li>
+ *   <li>h3_coding_hub_tool_create - 创建工具（需要认证）</li>
+ *   <li>h3_coding_hub_post_create - 创建帖子（需要认证）</li>
+ *   <li>h3_coding_hub_tool_file_upload - 获取文件上传接口信息</li>
  * </ul>
  */
 @Component
@@ -33,10 +46,20 @@ public class IaihubToolHandler {
     private static final Logger logger = LoggerFactory.getLogger(IaihubToolHandler.class);
 
     private final McpSearchService searchService;
+    private final ToolService toolService;
+    private final ForumPostService postService;
+    private final UserService userService;
     private final ObjectMapper objectMapper;
 
-    public IaihubToolHandler(McpSearchService searchService, ObjectMapper objectMapper) {
+    public IaihubToolHandler(McpSearchService searchService,
+                             ToolService toolService,
+                             ForumPostService postService,
+                             UserService userService,
+                             ObjectMapper objectMapper) {
         this.searchService = searchService;
+        this.toolService = toolService;
+        this.postService = postService;
+        this.userService = userService;
         this.objectMapper = objectMapper;
     }
 
@@ -48,7 +71,7 @@ public class IaihubToolHandler {
         try {
             List<ToolSearchResult> results = searchService.searchTools(query, category, limit);
             String json = toJson(new ToolSearchResponse(results));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error searching tools", e);
             return errorResult("搜索工具失败: " + e.getMessage());
@@ -72,7 +95,7 @@ public class IaihubToolHandler {
                     tool.getContent() != null ? tool.getContent() : "",
                     tool.getCategory() != null ? tool.getCategory().getName() : ""
             ));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error getting tool", e);
             return errorResult("获取工具详情失败: " + e.getMessage());
@@ -96,7 +119,7 @@ public class IaihubToolHandler {
                 ));
             }
             String json = toJson(new ToolFilesResponse(fileList, toolId));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error getting tool files", e);
             return errorResult("获取工具文件失败: " + e.getMessage());
@@ -111,7 +134,7 @@ public class IaihubToolHandler {
         try {
             List<PostSearchResult> results = searchService.searchPosts(query, limit);
             String json = toJson(new PostSearchResponse(results));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error searching posts", e);
             return errorResult("搜索帖子失败: " + e.getMessage());
@@ -135,7 +158,7 @@ public class IaihubToolHandler {
                     post.getAuthorId() != null ? post.getAuthorId() : 0,
                     post.getCreatedAt() != null ? post.getCreatedAt().toString() : ""
             ));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error getting post", e);
             return errorResult("获取帖子详情失败: " + e.getMessage());
@@ -162,17 +185,108 @@ public class IaihubToolHandler {
                     downloadUrl,
                     file.getCreatedAt() != null ? file.getCreatedAt().toString() : ""
             ));
-            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(json)), false);
+            return successResult(json);
         } catch (Exception e) {
             logger.error("Error downloading file", e);
             return errorResult("获取下载链接失败: " + e.getMessage());
         }
     }
 
+    /**
+     * 处理创建工具（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handleToolCreate(String name, Long categoryId, String content, String version,
+                                                      String username, String password) {
+        logger.info("MCP create tool: name={}, categoryId={}, version={}, username={}", name, categoryId, version, username);
+        try {
+            // 使用 MCP 客户端传入的账号密码登录
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            Long userId = loginResult.getUser().getId();
+
+            // 调用创建工具
+            CreateToolRequest request = CreateToolRequest.builder()
+                    .name(name)
+                    .categoryId(categoryId)
+                    .content(content)
+                    .version(version)
+                    .build();
+
+            ToolSummaryDTO created = toolService.createTool(request, userId);
+            String json = toJson(created);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error creating tool via MCP", e);
+            return errorResult("创建工具失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理创建帖子（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handlePostCreate(String title, String content, Long categoryId,
+                                                      String username, String password) {
+        logger.info("MCP create post: title={}, categoryId={}, username={}", title, categoryId, username);
+        try {
+            // 使用 MCP 客户端传入的账号密码登录
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            Long userId = loginResult.getUser().getId();
+
+            // 调用创建帖子
+            ForumPostCreateRequest request = new ForumPostCreateRequest(title, content, categoryId, null);
+            ForumPostDTO created = postService.createPost(userId, request);
+            String json = toJson(created);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error creating post via MCP", e);
+            return errorResult("创建帖子失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理获取文件上传信息（告知客户端 REST API 详情）
+     */
+    public McpSchema.CallToolResult handleToolFileUploadInfo(Long toolId) {
+        logger.info("MCP file upload info: toolId={}", toolId);
+        try {
+            Tool tool = searchService.getToolById(toolId);
+            if (tool == null) {
+                return errorResult("工具不存在: " + toolId);
+            }
+            String json = toJson(new FileUploadInfoResponse(
+                    toolId,
+                    tool.getName(),
+                    "/api/v1/tools/" + toolId + "/files",
+                    "POST",
+                    "multipart/form-data",
+                    "files (必填, 文件列表), readme (可选, markdown文本)",
+                    "50MB per file, 200MB total"
+            ));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error getting file upload info", e);
+            return errorResult("获取上传信息失败: " + e.getMessage());
+        }
+    }
+
+    private McpSchema.CallToolResult successResult(String json) {
+        return McpSchema.CallToolResult.builder(List.of(new McpSchema.TextContent(json)))
+                .isError(false)
+                .build();
+    }
+
     private McpSchema.CallToolResult errorResult(String message) {
-        return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(
-                toJson(new ErrorResponse(message))
-        )), true);
+        return McpSchema.CallToolResult.builder(List.of(new McpSchema.TextContent(
+                        toJson(new ErrorResponse(message)))))
+                .isError(true)
+                .build();
     }
 
     private String toJson(Object obj) {
@@ -278,6 +392,30 @@ public class IaihubToolHandler {
             this.contentType = contentType;
             this.downloadUrl = downloadUrl;
             this.createdAt = createdAt;
+        }
+    }
+
+    private static class FileUploadInfoResponse {
+        public Long toolId;
+        public String toolName;
+        public String uploadUrl;
+        public String httpMethod;
+        public String contentType;
+        public String formFields;
+        public String limits;
+        public String instruction;
+        public FileUploadInfoResponse(Long toolId, String toolName, String uploadUrl, String httpMethod,
+                                       String contentType, String formFields, String limits) {
+            this.toolId = toolId;
+            this.toolName = toolName;
+            this.uploadUrl = uploadUrl;
+            this.httpMethod = httpMethod;
+            this.contentType = contentType;
+            this.formFields = formFields;
+            this.limits = limits;
+            this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
+                    + "，Content-Type 设为 " + contentType
+                    + "，表单字段: " + formFields;
         }
     }
 }

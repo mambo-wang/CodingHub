@@ -32,11 +32,13 @@ public class ToolFileController {
             @PathVariable Long toolId,
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "readme", required = false) String readme,
-            @AuthenticationPrincipal User currentUser) {
+            @AuthenticationPrincipal(expression = "null") User currentUser) {
 
-        log.info("Received file upload request for tool {}, files count: {}", toolId, files.size());
+        log.info("Received file upload request for tool {}, files count: {}, user={}",
+                toolId, files.size(), currentUser != null ? currentUser.getId() : "anonymous");
 
-        FileUploadResponse response = toolFileService.uploadFiles(toolId, files, readme, currentUser.getId());
+        Long userId = currentUser != null ? currentUser.getId() : null;
+        FileUploadResponse response = toolFileService.uploadFiles(toolId, files, readme, userId);
 
         return ApiResponse.success("文件上传成功", response);
     }
