@@ -1,25 +1,40 @@
 package com.iaihub.toolbox.service;
 
+import com.iaihub.toolbox.config.UploadConfig;
 import com.iaihub.toolbox.dto.*;
+import com.iaihub.toolbox.exception.AvatarValidationException;
 import com.iaihub.toolbox.exception.DuplicateResourceException;
 import com.iaihub.toolbox.exception.UnauthorizedException;
+import com.iaihub.toolbox.exception.UserNotFoundException;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.util.AvatarUtil;
 import com.iaihub.toolbox.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
+
+    private static final Pattern SIZE_PATTERN = Pattern.compile("(\\d+)\\s*(B|KB|MB|GB)?", Pattern.CASE_INSENSITIVE);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UploadConfig uploadConfig;
 
     @Transactional
     public LoginResponse register(RegisterRequest request) {
@@ -48,6 +63,7 @@ public class UserService {
                         .id(user.getId())
                         .username(user.getUsername())
                         .nickname(user.getNickname())
+                        .avatarUrl(user.getAvatarUrl())
                         .build())
                 .build();
     }
@@ -75,6 +91,7 @@ public class UserService {
                         .id(user.getId())
                         .username(user.getUsername())
                         .nickname(user.getNickname())
+                        .avatarUrl(user.getAvatarUrl())
                         .build())
                 .build();
     }
@@ -103,8 +120,113 @@ public class UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();
+    }
+
+    @Transactional
+    public AvatarUploadResponse uploadAvatar(Long userId, MultipartFile file) {
+        // 1. 校验
+        String ext = AvatarUtil.validateAndGetExtension(file);
+        long maxBytes = parseSizeToBytes(uploadConfig.getAvatarMaxFileSize());
+        if (file.getSize() > maxBytes) {
+            throw new AvatarValidationException("头像文件不能超过 " + uploadConfig.getAvatarMaxFileSize());
+        }
+
+        // 2. 找 user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        // 3. 准备目录
+        Path avatarDir = Paths.get(uploadConfig.getBaseDir(), uploadConfig.getAvatarSubdir());
+        try {
+            Files.createDirectories(avatarDir);
+        } catch (IOException e) {
+            log.error("无法创建头像目录: {}", avatarDir, e);
+            throw new RuntimeException("无法创建头像目录", e);
+        }
+
+        // 4. 删旧
+        deleteExistingAvatars(avatarDir, userId);
+
+        // 5. 写新
+        String normalizedExt = AvatarUtil.normalizeExt(ext);
+        Path target = avatarDir.resolve(userId + "." + normalizedExt);
+        try {
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("写入头像失败: {}", target, e);
+            throw new RuntimeException("写入头像失败", e);
+        }
+
+        // 6. 更新 user
+        user.setAvatarUrl("/api/v1/static/avatars/" + userId + "." + normalizedExt);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        // 7. 构造响应
+        long timestamp = user.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return AvatarUploadResponse.builder()
+                .avatarUrl(user.getAvatarUrl() + "?v=" + timestamp)
+                .fileSize(file.getSize())
+                .uploadedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public void deleteAvatar(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (user.getAvatarUrl() != null) {
+            Path avatarDir = Paths.get(uploadConfig.getBaseDir(), uploadConfig.getAvatarSubdir());
+            deleteExistingAvatars(avatarDir, userId);
+        }
+
+        user.setAvatarUrl(null);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    public PublicUserDTO getPublicProfile(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        return PublicUserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    private void deleteExistingAvatars(Path dir, Long userId) {
+        if (!Files.exists(dir)) return;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, userId + ".*")) {
+            for (Path p : stream) {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException e) {
+                    log.warn("无法删除旧头像 {}: {}", p, e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            log.warn("无法列举头像目录 {}: {}", dir, e.getMessage());
+        }
+    }
+
+    private long parseSizeToBytes(String sizeStr) {
+        if (sizeStr == null || sizeStr.isBlank()) return 2L * 1024 * 1024;
+        var matcher = SIZE_PATTERN.matcher(sizeStr.trim().toUpperCase());
+        if (!matcher.matches()) return 2L * 1024 * 1024;
+        long n = Long.parseLong(matcher.group(1));
+        String unit = matcher.group(2);
+        if (unit == null || "B".equals(unit)) return n;
+        if ("KB".equals(unit)) return n * 1024L;
+        if ("MB".equals(unit)) return n * 1024L * 1024L;
+        if ("GB".equals(unit)) return n * 1024L * 1024L * 1024L;
+        return n;
     }
 }

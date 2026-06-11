@@ -26,6 +26,13 @@ public class UploadConfig {
 
     private List<String> allowedExtensions;
 
+    // 头像专属配置
+    private String avatarSubdir = "avatars";
+
+    private String avatarMaxFileSize = "2MB";
+
+    private List<String> avatarAllowedExtensions = List.of("jpg", "jpeg", "png", "webp", "gif");
+
     @PostConstruct
     public void init() {
         if (baseDir == null || baseDir.isBlank()) {
@@ -42,6 +49,20 @@ public class UploadConfig {
             } catch (IOException e) {
                 log.error("无法创建上传目录: {}", basePath, e);
                 throw new RuntimeException("无法创建上传目录: " + baseDir, e);
+            }
+        }
+
+        // 确保头像子目录存在
+        if (avatarSubdir != null && !avatarSubdir.isBlank()) {
+            Path avatarPath = Paths.get(baseDir, avatarSubdir);
+            if (!Files.exists(avatarPath)) {
+                try {
+                    Files.createDirectories(avatarPath);
+                    log.info("创建头像目录: {}", avatarPath.toAbsolutePath());
+                } catch (IOException e) {
+                    log.error("无法创建头像目录: {}", avatarPath, e);
+                    throw new RuntimeException("无法创建头像目录: " + avatarPath, e);
+                }
             }
         }
     }

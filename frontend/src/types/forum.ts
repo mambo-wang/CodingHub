@@ -5,6 +5,7 @@ export interface ForumPost {
   authorId: number;
   authorName: string;
   authorNickname?: string;
+  authorAvatarUrl?: string | null;
   categoryId: number;
   categoryName: string;
   viewCount: number;
