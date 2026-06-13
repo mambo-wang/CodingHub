@@ -3,12 +3,15 @@ import { ref } from 'vue'
 
 const copySuccess = ref(false)
 
+// 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
+const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
 const mcpConfig = {
   "mcpServers": {
     "CodingHub-mcp": {
       "type": "sse",
-      "url": `${window.location.origin}/sse`,
-      "description": "CodingHub MCP Server"
+      "url": `http://${window.location.hostname}:${mcpBackendPort}/sse`,
+      "description": "CodingHub MCP Server",
+      "disabled": false
     }
   }
 }
@@ -95,29 +98,29 @@ const mcpTools = [
       <section class="section glass-card">
         <div class="section-header">
           <div class="section-badge">03</div>
-          <h2 class="section-title">使用示例</h2>
+          <h2 class="section-title">提示词示例</h2>
         </div>
 
         <div class="tips-grid">
           <div class="tip-card">
             <div class="tip-icon">🔍</div>
             <h3>搜索工具</h3>
-            <p>通过关键词搜索工具列表，快速找到所需工具</p>
+            <p>使用CodingHub MCP查询工具列表, 并根据现有skill的tools.version版本号排查有无需要升级的工具</p>
           </div>
           <div class="tip-card">
             <div class="tip-icon">📦</div>
             <h3>获取详情</h3>
-            <p>获取工具的完整信息和文件列表</p>
+            <p>使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。</p>
           </div>
           <div class="tip-card">
             <div class="tip-icon">💬</div>
             <h3>社区交流</h3>
-            <p>搜索和浏览论坛帖子，参与社区讨论</p>
+            <p>使用CodingHub MCP新建帖子，把XXX.md 把这个文档发布到论坛</p>
           </div>
           <div class="tip-card">
             <div class="tip-icon">⬇️</div>
-            <h3>下载资源</h3>
-            <p>获取工具文件下载链接，快速获取资源</p>
+            <h3>分享工具</h3>
+            <p>使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件。</p>
           </div>
         </div>
       </section>

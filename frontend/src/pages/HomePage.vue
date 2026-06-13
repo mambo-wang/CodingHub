@@ -29,7 +29,8 @@ const mcpConfig = {
   "CodingHub-mcp": {
     type: "sse",
     url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-    description: "CodingHub MCP Server"
+    description: "CodingHub MCP Server",
+    disabled: false
   }
 }
 
