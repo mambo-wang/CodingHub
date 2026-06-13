@@ -2,6 +2,24 @@
 import { ref } from 'vue'
 
 const copySuccess = ref(false)
+const copiedTip = ref<number | null>(null)
+
+const tips = [
+  '使用CodingHub MCP查询工具列表, 并根据现有skill的tools.version版本号排查有无需要升级的工具',
+  '使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。',
+  '使用CodingHub MCP新建帖子，把XXX.md 把这个文档发布到论坛',
+  '使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件。'
+]
+
+const copyTip = async (index: number) => {
+  try {
+    await navigator.clipboard.writeText(tips[index])
+    copiedTip.value = index
+    setTimeout(() => { copiedTip.value = null }, 2000)
+  } catch (e) {
+    console.error(e)
+  }
+}
 
 // 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
@@ -102,25 +120,24 @@ const mcpTools = [
         </div>
 
         <div class="tips-grid">
-          <div class="tip-card">
-            <div class="tip-icon">🔍</div>
-            <h3>搜索工具</h3>
-            <p>使用CodingHub MCP查询工具列表, 并根据现有skill的tools.version版本号排查有无需要升级的工具</p>
-          </div>
-          <div class="tip-card">
-            <div class="tip-icon">📦</div>
-            <h3>获取详情</h3>
-            <p>使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。</p>
-          </div>
-          <div class="tip-card">
-            <div class="tip-icon">💬</div>
-            <h3>社区交流</h3>
-            <p>使用CodingHub MCP新建帖子，把XXX.md 把这个文档发布到论坛</p>
-          </div>
-          <div class="tip-card">
-            <div class="tip-icon">⬇️</div>
-            <h3>分享工具</h3>
-            <p>使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件。</p>
+          <div v-for="(tip, index) in tips" :key="index" class="tip-card">
+            <div class="tip-icon">{{ ['🔍', '📦', '💬', '⬇️'][index] }}</div>
+            <h3>{{ ['搜索工具', '安装工具', '社区交流', '分享工具'][index] }}</h3>
+            <p>{{ tip }}</p>
+            <button
+              class="tip-copy-btn"
+              :class="{ success: copiedTip === index }"
+              @click.stop="copyTip(index)"
+            >
+              <svg v-if="copiedTip !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              {{ copiedTip === index ? '已复制' : '复制' }}
+            </button>
           </div>
         </div>
       </section>
@@ -337,6 +354,33 @@ const mcpTools = [
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.tip-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 6px;
+  color: #8b5cf6;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tip-copy-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.tip-copy-btn.success {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
 }
 
 @media (max-width: 768px) {
