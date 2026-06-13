@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
-import { Sun, Moon } from '@lucide/vue'
+import { Sun, Moon, User, LogOut } from '@lucide/vue'
+import UserAvatar from './UserAvatar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -14,15 +15,39 @@ const username = computed(() => authStore.user?.username)
 const displayName = computed(() => authStore.user?.nickname || authStore.user?.username)
 const isDark = computed(() => themeStore.theme === 'dark')
 
+const menuOpen = ref(false)
+
+const toggleMenu = () => {
+  menuOpen.value = !menuOpen.value
+}
+
+const closeMenu = () => {
+  menuOpen.value = false
+}
+
+const handleDocClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement | null
+  if (target && target.closest('.user-menu-wrapper')) return
+  menuOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocClick)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocClick)
+})
+
 const handleLogout = () => {
   authStore.logout()
   router.push('/')
+  closeMenu()
 }
 
 const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 const goToMyTools = () => router.push('/me/tools')
-const goToUpload = () => router.push('/tools/upload')
+const goToProfile = () => { router.push('/me/profile'); closeMenu() }
 const goToForum = () => router.push('/forum')
 const goToOverview = () => router.push('/overview')
 const goHome = () => router.push('/')
@@ -65,16 +90,44 @@ const goToAbout = () => router.push('/about')
             <Moon v-if="isDark" :size="18" />
             <Sun v-else :size="18" />
           </button>
-          <div class="user-menu">
-            <div class="user-avatar">
-              <span>{{ username?.charAt(0).toUpperCase() }}</span>
-            </div>
-            <span class="user-name">{{ displayName }}</span>
-            <button class="logout-btn" @click="handleLogout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          <div class="user-menu-wrapper" @click.stop>
+            <button class="user-menu-trigger" @click="toggleMenu" :aria-expanded="menuOpen" aria-haspopup="true">
+              <UserAvatar v-if="authStore.user" :user="authStore.user" size="md" />
+              <span class="user-name">{{ displayName }}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'caret-open': menuOpen }">
+                <polyline points="6 9 12 15 18 9"/>
               </svg>
             </button>
+            <Transition name="dropdown">
+              <div v-if="menuOpen" class="user-dropdown" role="menu">
+                <div class="user-dropdown-header">
+                  <div class="user-dropdown-name">{{ displayName }}</div>
+                  <div class="user-dropdown-username">@{{ username }}</div>
+                </div>
+                <hr class="user-dropdown-divider" />
+                <button class="user-dropdown-item" role="menuitem" @click="goToProfile">
+                  <User :size="16" aria-hidden="true" />
+                  <span>个人资料</span>
+                </button>
+                <button class="user-dropdown-item" role="menuitem" @click="goToMyTools">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+                  </svg>
+                  <span>我的工具</span>
+                </button>
+                <button class="user-dropdown-item" role="menuitem" @click="goToForum">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                  </svg>
+                  <span>论坛</span>
+                </button>
+                <hr class="user-dropdown-divider" />
+                <button class="user-dropdown-item user-dropdown-item--danger" role="menuitem" @click="handleLogout">
+                  <LogOut :size="16" aria-hidden="true" />
+                  <span>退出登录</span>
+                </button>
+              </div>
+            </Transition>
           </div>
         </template>
         <template v-else>
@@ -242,7 +295,10 @@ const goToAbout = () => router.push('/about')
 }
 
 /* User menu */
-.user-menu {
+.user-menu-wrapper {
+  position: relative;
+}
+.user-menu-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -250,7 +306,53 @@ const goToAbout = () => router.push('/about')
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: 24px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-display);
+  font-size: 14px;
 }
+.user-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-glow);
+}
+.user-menu-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline-offset: 2px;
+}
+.caret-open { transform: rotate(180deg); transition: transform 0.2s ease; }
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.user-dropdown-header { padding: 10px 12px 8px; }
+.user-dropdown-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.user-dropdown-username { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+.user-dropdown-divider { border: none; height: 1px; background: var(--border-color); margin: 6px 0; }
+.user-dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 12px;
+  background: transparent; border: none; border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px; font-family: var(--font-display);
+  cursor: pointer; transition: all 0.15s ease; text-align: left;
+}
+.user-dropdown-item:hover { background: rgba(139, 92, 246, 0.15); color: var(--text-primary); }
+.user-dropdown-item--danger { color: #ef4444; }
+.user-dropdown-item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.dropdown-enter-active, .dropdown-leave-active { transition: all 0.15s ease; }
+.dropdown-enter-from { opacity: 0; transform: translateY(-4px); }
+.dropdown-leave-to { opacity: 0; transform: translateY(-4px); }
 
 .user-avatar {
   width: 32px;
@@ -336,7 +438,7 @@ const goToAbout = () => router.push('/about')
   color: var(--accent-1);
 }
 
-[data-theme="light"] .user-menu {
+[data-theme="light"] .user-menu-wrapper .user-menu-trigger {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.08);
 }

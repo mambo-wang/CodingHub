@@ -11,12 +11,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDTO {
-
-    private Long id;
-    private String username;
-    private String nickname;
+public class AvatarUploadResponse {
     private String avatarUrl;
-    private LocalDateTime createdAt;
-    private LocalDateTime lastLoginAt;
+    private Long fileSize;
+    private LocalDateTime uploadedAt;
 }

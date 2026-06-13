@@ -2,6 +2,7 @@ export interface User {
   id: number
   username: string
   nickname?: string
+  avatarUrl?: string | null
   createdAt?: string
   lastLoginAt?: string
 }
@@ -20,6 +21,8 @@ export interface ToolSummary {
   categoryName: string
   categoryIcon: string
   uploaderUsername: string
+  uploaderNickname?: string
+  uploaderAvatarUrl?: string | null
   createdAt: string
 }
 
@@ -33,6 +36,7 @@ export interface ToolDetail {
   uploaderId: number
   uploaderUsername: string
   uploaderNickname?: string
+  uploaderAvatarUrl?: string | null
   createdAt: string
   updatedAt: string
 }

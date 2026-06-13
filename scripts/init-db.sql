@@ -257,6 +257,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `last_login_at` datetime DEFAULT NULL,
   `nickname` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `avatar_url` VARCHAR(255) NULL COMMENT '头像URL, 格式: /api/v1/static/avatars/{userId}.{ext}',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_user_username` (`username`),
   UNIQUE KEY `idx_user_nickname` (`nickname`)
