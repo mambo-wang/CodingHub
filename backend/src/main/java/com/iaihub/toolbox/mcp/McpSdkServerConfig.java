@@ -33,6 +33,8 @@ import java.util.function.BiFunction;
  *   <li>h3_coding_hub_tool_create - 创建工具（需要认证）</li>
  *   <li>h3_coding_hub_post_create - 创建帖子（需要认证）</li>
  *   <li>h3_coding_hub_tool_file_upload - 获取文件上传接口信息</li>
+ *   <li>h3_coding_hub_tool_modify - 修改工具（需要认证）</li>
+ *   <li>h3_coding_hub_tool_file_delete - 删除工具文件（需要认证）</li>
  * </ul>
  */
 @Configuration
@@ -268,7 +270,66 @@ public class McpSdkServerConfig {
                     return toolHandler.handleToolFileUploadInfo(toolId);
                 });
 
-        logger.info("MCP Server initialized with 9 tools");
+        // 注册 h3_coding_hub_tool_modify 工具（需要认证）
+        registerTool(mcpSyncServer, "h3_coding_hub_tool_modify", """
+                修改已创建的工具。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
+                版本号（version）可以不传，系统会自动在当前版本号最后一位+1（如1.0.0→1.0.1）。
+                只会更新传入的字段，未传入的字段保持不变。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer","description":"要修改的工具ID"},
+                        "name":{"type":"string","description":"新的工具名称"},
+                        "categoryId":{"type":"integer","description":"新的分类ID"},
+                        "content":{"type":"string","description":"新的工具描述/文档"},
+                        "version":{"type":"string","description":"版本号，不传则自动递增最后一位"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["toolId","username","password"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long toolId = ((Number) args.get("toolId")).longValue();
+                    String name = args.containsKey("name") ? String.valueOf(args.get("name")) : null;
+                    Long categoryId = args.containsKey("categoryId") ? ((Number) args.get("categoryId")).longValue() : null;
+                    String content = args.containsKey("content") ? String.valueOf(args.get("content")) : null;
+                    String version = args.containsKey("version") ? String.valueOf(args.get("version")) : null;
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleToolModify(toolId, name, categoryId, content, version, username, password);
+                });
+
+        // 注册 h3_coding_hub_tool_file_delete 工具（需要认证）
+        registerTool(mcpSyncServer, "h3_coding_hub_tool_file_delete", """
+                删除指定工具下的指定文件。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
+                只能删除自己创建的工具下的文件。删除时会同时移除物理文件和数据库记录。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer","description":"工具ID"},
+                        "fileId":{"type":"integer","description":"要删除的文件ID"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["toolId","fileId","username","password"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long toolId = ((Number) args.get("toolId")).longValue();
+                    Long fileId = ((Number) args.get("fileId")).longValue();
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleToolFileDelete(toolId, fileId, username, password);
+                });
+
+        logger.info("MCP Server initialized with 11 tools");
         return mcpSyncServer;
     }
 

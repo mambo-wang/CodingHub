@@ -7,13 +7,16 @@ import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.service.McpSearchService;
+import com.iaihub.toolbox.service.ToolFileService;
 import com.iaihub.toolbox.service.ToolService;
 import com.iaihub.toolbox.service.forum.ForumPostService;
 import com.iaihub.toolbox.service.UserService;
 import com.iaihub.toolbox.dto.CreateToolRequest;
 import com.iaihub.toolbox.dto.LoginRequest;
 import com.iaihub.toolbox.dto.LoginResponse;
+import com.iaihub.toolbox.dto.ToolDetailDTO;
 import com.iaihub.toolbox.dto.ToolSummaryDTO;
+import com.iaihub.toolbox.dto.UpdateToolRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostDTO;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -38,6 +41,8 @@ import java.util.List;
  *   <li>h3_coding_hub_tool_create - 创建工具（需要认证）</li>
  *   <li>h3_coding_hub_post_create - 创建帖子（需要认证）</li>
  *   <li>h3_coding_hub_tool_file_upload - 获取文件上传接口信息</li>
+ *   <li>h3_coding_hub_tool_modify - 修改工具（需要认证）</li>
+ *   <li>h3_coding_hub_tool_file_delete - 删除工具文件（需要认证）</li>
  * </ul>
  */
 @Component
@@ -47,17 +52,20 @@ public class IaihubToolHandler {
 
     private final McpSearchService searchService;
     private final ToolService toolService;
+    private final ToolFileService toolFileService;
     private final ForumPostService postService;
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
     public IaihubToolHandler(McpSearchService searchService,
                              ToolService toolService,
+                             ToolFileService toolFileService,
                              ForumPostService postService,
                              UserService userService,
                              ObjectMapper objectMapper) {
         this.searchService = searchService;
         this.toolService = toolService;
+        this.toolFileService = toolFileService;
         this.postService = postService;
         this.userService = userService;
         this.objectMapper = objectMapper;
@@ -276,6 +284,106 @@ public class IaihubToolHandler {
         }
     }
 
+    /**
+     * 处理修改工具（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handleToolModify(Long toolId, String name, Long categoryId,
+                                                      String content, String version,
+                                                      String username, String password) {
+        logger.info("MCP modify tool: toolId={}, name={}, categoryId={}, version={}, username={}",
+                toolId, name, categoryId, version, username);
+        try {
+            // 使用 MCP 客户端传入的账号密码登录
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            Long userId = loginResult.getUser().getId();
+
+            // 如果未传版本号，自动递增
+            if (version == null || version.isBlank()) {
+                Tool tool = searchService.getToolById(toolId);
+                if (tool == null) {
+                    return errorResult("工具不存在: " + toolId);
+                }
+                String currentVersion = tool.getVersion() != null ? tool.getVersion() : "1.0.0";
+                version = incrementVersion(currentVersion);
+                logger.info("Auto-incremented version: {} -> {}", currentVersion, version);
+            }
+
+            // 调用更新工具
+            UpdateToolRequest request = UpdateToolRequest.builder()
+                    .name(name != null && !name.isBlank() ? name : null)
+                    .categoryId(categoryId)
+                    .content(content != null && !content.isBlank() ? content : null)
+                    .version(version)
+                    .build();
+
+            ToolDetailDTO updated = toolService.updateTool(toolId, request, userId);
+            String json = toJson(updated);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error modifying tool via MCP", e);
+            return errorResult("修改工具失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理删除工具文件（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handleToolFileDelete(Long toolId, Long fileId,
+                                                          String username, String password) {
+        logger.info("MCP delete file: toolId={}, fileId={}", toolId, fileId);
+        try {
+            // 使用 MCP 客户端传入的账号密码登录
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            Long userId = loginResult.getUser().getId();
+
+            // 调用删除文件
+            toolFileService.deleteToolFile(toolId, fileId, userId);
+            String json = toJson(new FileDeleteResponse(toolId, fileId, true));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error deleting file via MCP", e);
+            return errorResult("删除文件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 版本号最后一位自动递增
+     * "1.0.0" → "1.0.1", "1.0.0-beta" → "1.0.1-beta", "1.0.alpha" → "1.0.alpha.1"
+     */
+    private String incrementVersion(String currentVersion) {
+        if (currentVersion == null || currentVersion.isBlank()) {
+            return "1.0.1";
+        }
+        int lastDot = currentVersion.lastIndexOf('.');
+        if (lastDot < 0) {
+            return currentVersion + ".1";
+        }
+        String prefix = currentVersion.substring(0, lastDot + 1);
+        String lastSegment = currentVersion.substring(lastDot + 1);
+
+        // 提取最后一段开头的数字部分
+        int digitEnd = 0;
+        while (digitEnd < lastSegment.length() && Character.isDigit(lastSegment.charAt(digitEnd))) {
+            digitEnd++;
+        }
+        if (digitEnd == 0) {
+            // 最后一段不以数字开头（如 "alpha"）
+            return currentVersion + ".1";
+        }
+        String numPart = lastSegment.substring(0, digitEnd);
+        String suffixPart = lastSegment.substring(digitEnd);
+        int num = Integer.parseInt(numPart);
+        return prefix + (num + 1) + suffixPart;
+    }
+
     private McpSchema.CallToolResult successResult(String json) {
         return McpSchema.CallToolResult.builder(List.of(new McpSchema.TextContent(json)))
                 .isError(false)
@@ -416,6 +524,17 @@ public class IaihubToolHandler {
             this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
                     + "，Content-Type 设为 " + contentType
                     + "，表单字段: " + formFields;
+        }
+    }
+
+    private static class FileDeleteResponse {
+        public Long toolId;
+        public Long fileId;
+        public boolean deleted;
+        public FileDeleteResponse(Long toolId, Long fileId, boolean deleted) {
+            this.toolId = toolId;
+            this.fileId = fileId;
+            this.deleted = deleted;
         }
     }
 }

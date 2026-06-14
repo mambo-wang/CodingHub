@@ -8,7 +8,8 @@ const tips = [
   '使用CodingHub MCP查询工具列表, 并根据现有skill的tools.version版本号排查有无需要升级的工具',
   '使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。',
   '使用CodingHub MCP新建帖子，把XXX.md 把这个文档发布到论坛',
-  '使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件。'
+  '使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。',
+  '使用CodingHub MCP把xxx这个skill更新到CodingHub工具广场，工具描述不变，版本号改为2.0.0，把原有文件删除(保留readme)，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。'
 ]
 
 const copyTip = async (index: number) => {
@@ -121,8 +122,8 @@ const mcpTools = [
 
         <div class="tips-grid">
           <div v-for="(tip, index) in tips" :key="index" class="tip-card">
-            <div class="tip-icon">{{ ['🔍', '📦', '💬', '⬇️'][index] }}</div>
-            <h3>{{ ['搜索工具', '安装工具', '社区交流', '分享工具'][index] }}</h3>
+            <div class="tip-icon">{{ ['🔍', '📦', '💬', '📤', '🔄'][index] }}</div>
+            <h3>{{ ['搜索工具', '安装工具', '社区交流', '分享工具', '更新工具'][index] }}</h3>
             <p>{{ tip }}</p>
             <button
               class="tip-copy-btn"

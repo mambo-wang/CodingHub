@@ -80,12 +80,11 @@ CodingHub 内置 MCP (Model Context Protocol) Server，允许任意支持 MCP �
 ```json
 {
   "mcpServers": {
-    "codinghub": {
-      "command": "java",
-      "args": ["-jar", "codinghub-mcp-server.jar"],
-      "env": {
-        "CODINGHUB_API_URL": "http://your-server:8082"
-      }
+    "CodingHub-mcp": {
+      "type": "sse",
+      "url": "http://127.0.0.1:8082/sse",
+      "description": "CodingHub MCP Server",
+      "disabled": false
     }
   }
 }
