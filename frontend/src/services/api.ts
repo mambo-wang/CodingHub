@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig, type AxiosProgressEvent } from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 import type { FileUploadResponse, FileListResponse } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
@@ -27,40 +28,61 @@ api.interceptors.request.use(
   }
 )
 
+// Redirect to login page on auth errors
+const redirectToLogin = () => {
+  const authStore = useAuthStore()
+  authStore.logout()
+  const currentPath = router.currentRoute.value.fullPath
+  router.push({
+    name: 'Login',
+    query: currentPath !== '/login' ? { redirect: currentPath } : undefined
+  })
+}
+
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
   (response) => {
     return response
   },
   async (error: AxiosError) => {
+    const status = error.response?.status
     const authStore = useAuthStore()
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && authStore.refreshToken && originalRequest) {
-      try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
-          headers: {
-            Authorization: `Bearer ${authStore.refreshToken}`
+    // 401: try token refresh, then redirect to login
+    if (status === 401) {
+      if (authStore.refreshToken && originalRequest) {
+        try {
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
+            headers: {
+              Authorization: `Bearer ${authStore.refreshToken}`
+            }
+          })
+
+          if (response.data.code === 200) {
+            const newAccessToken = response.data.data.accessToken
+            authStore.setTokens(newAccessToken, authStore.refreshToken!)
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+            return api(originalRequest)
           }
-        })
-
-        if (response.data.code === 200) {
-          const newAccessToken = response.data.data.accessToken
-          authStore.setTokens(newAccessToken, authStore.refreshToken!)
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-          return api(originalRequest)
+        } catch {
+          // Token refresh failed, redirect to login
         }
-      } catch {
-        authStore.logout()
-        window.location.href = '/login'
       }
+      redirectToLogin()
+      return Promise.reject(error)
     }
 
-    if (error.response?.status !== 401) {
-      const message = (error.response?.data as any)?.message || '请求失败'
-      ElMessage.error(message)
+    // 403: no permission / session expired, redirect to login
+    if (status === 403) {
+      ElMessage.warning('登录已过期，请重新登录')
+      redirectToLogin()
+      return Promise.reject(error)
     }
 
+    // Other errors
+    const message = (error.response?.data as any)?.message || '请求失败'
+    ElMessage.error(message)
     return Promise.reject(error)
   }
 )
