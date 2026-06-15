@@ -33,22 +33,9 @@ app:
     base-dir: ${AIHUB_FILE_BASE_DIR:}
     max-file-size: 50MB
     max-request-size: 200MB
-    allowed-extensions:
-      - zip
-      - tar
-      - gz
-      - py
-      - js
-      - ts
-      - md
-      - txt
-      - json
-      - yaml
-      - yml
-      - toml
-      - xml
-      - html
-      - css
+    # 工具附件已放开格式限制：allowedExtensions 留空时不做后缀校验
+    # 紧急回滚：在下方加回 allowed-extensions: [zip, tar, gz, py, js, ts, md, txt, json, yaml, yml, toml, xml, html, css] 即可恢复白名单
+    allowed-extensions: []
 
 logging:
   level:

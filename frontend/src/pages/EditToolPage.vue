@@ -21,7 +21,7 @@ const previewContent = ref('')
 const existingFiles = ref<ToolFile[]>([])
 const newFiles = ref<File[]>([])
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const allowedExtensions = ['zip', 'tar', 'gz', 'py', 'js', 'ts', 'md', 'txt', 'json', 'yaml', 'yml', 'toml', 'xml', 'html', 'css']
+// 工具附件已放开格式限制：不再维护 allowedExtensions 白名单，仅按大小预检
 const maxFileSize = 50 * 1024 * 1024
 
 const form = ref<UpdateToolRequest>({ name: '', categoryId: 0, content: '', version: '' })
@@ -97,12 +97,6 @@ const handleFileSelect = (event: Event) => {
 
   for (let i = 0; i < input.files.length; i++) {
     const file = input.files[i]
-    const ext = file.name.split('.').pop()?.toLowerCase() || ''
-
-    if (!allowedExtensions.includes(ext)) {
-      ElMessage.warning(`不支持的文件类型: .${ext}`)
-      continue
-    }
 
     if (file.size > maxFileSize) {
       ElMessage.warning(`文件 ${file.name} 超过50MB限制`)

@@ -3,7 +3,6 @@ package com.iaihub.toolbox.controller;
 import com.iaihub.toolbox.dto.FileListResponse;
 import com.iaihub.toolbox.dto.FileUploadResponse;
 import com.iaihub.toolbox.dto.ToolFileDTO;
-import com.iaihub.toolbox.exception.FileValidationException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.service.ToolFileService;
 import org.junit.jupiter.api.Test;
@@ -83,25 +82,40 @@ class ToolFileControllerTest {
 
     @Test
     @WithMockUser
-    void uploadFiles_returnsBadRequestForInvalidFileType() throws Exception {
+    void uploadFiles_acceptsPreviouslyRejectedExtension() throws Exception {
+        // 工具附件放开格式限制：默认配置下任意扩展名（含 .exe）均通过校验
         // Given
         Long toolId = 1L;
         MockMultipartFile file = new MockMultipartFile(
                 "files",
                 "test.exe",
                 "application/octet-stream",
-                "malicious".getBytes()
+                "any-binary".getBytes()
         );
 
-        when(toolFileService.uploadFiles(eq(toolId), anyList(), isNull(), any()))
-                .thenThrow(new FileValidationException("不支持的文件类型: .exe"));
+        ToolFileDTO fileDto = ToolFileDTO.builder()
+                .id(1L)
+                .toolId(toolId)
+                .originalName("test.exe")
+                .storedPath("tools/1/test.exe")
+                .fileSize(11L)
+                .build();
 
-        // When & Then
+        FileUploadResponse response = FileUploadResponse.builder()
+                .toolId(toolId)
+                .files(List.of(fileDto))
+                .readmeSaved(false)
+                .build();
+
+        when(toolFileService.uploadFiles(eq(toolId), anyList(), isNull(), any())).thenReturn(response);
+
+        // When & Then: 200 OK，不再 400
         mockMvc.perform(multipart("/api/v1/tools/{toolId}/files", toolId)
                         .file(file)
                         .with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.files[0].originalName").value("test.exe"));
     }
 
     @Test

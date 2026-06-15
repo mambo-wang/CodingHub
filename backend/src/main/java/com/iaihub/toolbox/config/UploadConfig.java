@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -24,7 +25,11 @@ public class UploadConfig {
 
     private String maxRequestSize = "200MB";
 
-    private List<String> allowedExtensions;
+    /**
+     * 工具附件允许的扩展名白名单。空列表或 null 时不进行扩展名校验（默认）。
+     * 如需恢复白名单：在 application.yml 的 app.upload.allowed-extensions 下写具体后缀列表。
+     */
+    private List<String> allowedExtensions = new ArrayList<>();
 
     // 头像专属配置
     private String avatarSubdir = "avatars";

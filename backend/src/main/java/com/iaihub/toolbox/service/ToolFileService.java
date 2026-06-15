@@ -262,10 +262,13 @@ public class ToolFileService {
             throw new FileValidationException("文件名无效");
         }
 
-        String extension = getFileExtension(originalName).toLowerCase();
+        // 工具附件已放开格式限制：仅当 allowedExtensions 显式配置非空时才做扩展名校验
         List<String> allowedExtensions = uploadConfig.getAllowedExtensions();
-        if (allowedExtensions != null && !allowedExtensions.isEmpty() && !allowedExtensions.contains(extension)) {
-            throw new FileValidationException("不支持的文件类型: ." + extension);
+        if (allowedExtensions != null && !allowedExtensions.isEmpty()) {
+            String extension = getFileExtension(originalName).toLowerCase();
+            if (!allowedExtensions.contains(extension)) {
+                throw new FileValidationException("不支持的文件类型: ." + extension);
+            }
         }
     }
 

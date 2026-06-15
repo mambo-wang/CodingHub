@@ -20,8 +20,7 @@ const previewContent = ref('')
 const selectedFiles = ref<File[]>([])
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-// Allowed file extensions
-const allowedExtensions = ['zip', 'tar', 'gz', 'py', 'js', 'ts', 'md', 'txt', 'json', 'yaml', 'yml', 'toml', 'xml', 'html', 'css']
+// 工具附件已放开格式限制：不再维护 allowedExtensions 白名单，仅按大小预检
 const maxFileSize = 50 * 1024 * 1024 // 50MB
 const maxTotalSize = 200 * 1024 * 1024 // 200MB
 
@@ -67,12 +66,6 @@ const handleFileSelect = (event: Event) => {
   const newFiles: File[] = []
   for (let i = 0; i < input.files.length; i++) {
     const file = input.files[i]
-    const ext = file.name.split('.').pop()?.toLowerCase() || ''
-
-    if (!allowedExtensions.includes(ext)) {
-      ElMessage.warning(`不支持的文件类型: .${ext}`)
-      continue
-    }
 
     if (file.size > maxFileSize) {
       ElMessage.warning(`文件 ${file.name} 超过50MB限制`)
@@ -295,7 +288,7 @@ onMounted(() => {
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                 </svg>
                 <span>点击选择文件或将文件拖拽到此处</span>
-                <span class="upload-hint-ext">支持 .zip, .tar, .gz, .py, .js, .ts, .md 等格式</span>
+                <span class="upload-hint-ext">支持任意格式文件（单文件 ≤ 50MB，单次请求 ≤ 200MB）</span>
               </div>
             </div>
 

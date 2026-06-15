@@ -47,7 +47,8 @@ class ToolFileServiceTest {
     void setUp() {
         UploadConfig uploadConfig = new UploadConfig();
         uploadConfig.setBaseDir(tempDir.toString());
-        uploadConfig.setAllowedExtensions(List.of("zip", "py", "js", "md", "txt", "json"));
+        // 默认配置：allowedExtensions 为空，跳过扩展名校验
+        uploadConfig.setAllowedExtensions(List.of());
 
         testUser = User.builder().id(99L).username("tester").build();
         toolFileService = new ToolFileService(
@@ -87,6 +88,80 @@ class ToolFileServiceTest {
         verify(toolFileRepository).save(any(ToolFile.class));
     }
 
+    // ========================================
+    // T3.2 / T3.3: 任意扩展名放行（allowed-extensions 为空）
+    // ========================================
+
+    @Test
+    void uploadFiles_acceptsAnyExtensionWhenWhitelistIsEmpty() {
+        // Given: 模型权重、Notebook、Office、无扩展名 等
+        Long toolId = 1L;
+        MockMultipartFile safetensors = new MockMultipartFile(
+                "files", "weights.safetensors", "application/octet-stream", "fake-weights".getBytes()
+        );
+        MockMultipartFile ipynb = new MockMultipartFile(
+                "files", "analysis.ipynb", "application/x-ipynb+json", "{\"cells\":[]}".getBytes()
+        );
+        MockMultipartFile bin = new MockMultipartFile(
+                "files", "model.v2.final.bin", "application/octet-stream", "bin".getBytes()
+        );
+        MockMultipartFile noExt = new MockMultipartFile(
+                "files", "Dockerfile", "text/plain", "FROM alpine".getBytes()
+        );
+
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
+        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(eq(toolId), anyString(), any()))
+                .thenReturn(Optional.empty());
+        when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
+            ToolFile tf = invocation.getArgument(0);
+            tf.setId(System.currentTimeMillis());
+            return tf;
+        });
+
+        // When
+        FileUploadResponse response = toolFileService.uploadFiles(
+                toolId, List.of(safetensors, ipynb, bin, noExt), null, 99L);
+
+        // Then: 全部接受
+        assertNotNull(response);
+        assertEquals(4, response.getFiles().size());
+        assertEquals("weights.safetensors", response.getFiles().get(0).getOriginalName());
+        assertEquals("analysis.ipynb", response.getFiles().get(1).getOriginalName());
+        assertEquals("model.v2.final.bin", response.getFiles().get(2).getOriginalName());
+        assertEquals("Dockerfile", response.getFiles().get(3).getOriginalName());
+        verify(toolFileRepository, times(4)).save(any(ToolFile.class));
+    }
+
+    @Test
+    void uploadFiles_skipsExtensionCheckWhenAllowedExtensionsIsNull() {
+        // Given: null 也视为空，跳过白名单
+        UploadConfig cfg = new UploadConfig();
+        cfg.setBaseDir(tempDir.toString());
+        cfg.setAllowedExtensions(null);
+        ToolFileService svc = new ToolFileService(toolFileRepository, toolRepository, cfg);
+
+        Long toolId = 2L;
+        MockMultipartFile file = new MockMultipartFile(
+                "files", "evil.exe", "application/octet-stream", "x".getBytes()
+        );
+
+        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
+        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
+        when(toolFileRepository.findByToolIdAndOriginalNameAndStatus(eq(toolId), anyString(), any()))
+                .thenReturn(Optional.empty());
+        when(toolFileRepository.save(any(ToolFile.class))).thenAnswer(invocation -> {
+            ToolFile tf = invocation.getArgument(0);
+            tf.setId(1L);
+            return tf;
+        });
+
+        // When & Then: 不抛异常
+        FileUploadResponse response = svc.uploadFiles(toolId, List.of(file), null, 99L);
+        assertEquals(1, response.getFiles().size());
+        assertEquals("evil.exe", response.getFiles().get(0).getOriginalName());
+    }
+
     @Test
     void uploadFiles_savesReadmeContent() {
         // Given
@@ -112,26 +187,6 @@ class ToolFileServiceTest {
 
         // Then
         assertTrue(response.isReadmeSaved());
-    }
-
-    @Test
-    void uploadFiles_throwsExceptionForInvalidFileType() {
-        // Given
-        Long toolId = 1L;
-        MockMultipartFile file = new MockMultipartFile(
-                "files",
-                "test.exe",
-                "application/octet-stream",
-                "malicious".getBytes()
-        );
-
-        Tool tool = Tool.builder().uploader(testUser).id(toolId).name("TestTool").build();
-        when(toolRepository.findByIdAndStatusNormal(toolId)).thenReturn(Optional.of(tool));
-
-        // When & Then
-        assertThrows(FileValidationException.class, () ->
-                toolFileService.uploadFiles(toolId, List.of(file), null, 99L)
-        );
     }
 
     @Test
