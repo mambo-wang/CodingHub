@@ -63,3 +63,7 @@ coverage/
 # Build artifacts
 *.tgz
 *.tar.gz
+
+# Codegraph daemon runtime artifacts
+.codegraph/daemon.pid
+.codegraph/socket
