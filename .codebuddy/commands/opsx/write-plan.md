@@ -8,7 +8,7 @@ argument-hint: "[command arguments]"
 
 Generate a detailed Superpowers implementation plan from an OpenSpec change's artifacts.
 
-**Input**: Optionally specify a change name. Supports `--max-tasks N` (default 20) to control plan splitting.
+**Input**: Optionally specify a change name. Supports `--max-tasks N` (default 10) to control plan splitting.
 
 **Steps**
 
@@ -46,7 +46,7 @@ Generate a detailed Superpowers implementation plan from an OpenSpec change's ar
    - Try to keep tasks sharing the same top-level label number (e.g., all `1.x` tasks) together (soft constraint)
    - Present the splitting plan to the user for confirmation:
      ```
-     Total tasks: 21, max-tasks: 20 → 2 plans
+     Total tasks: 21, max-tasks: 10 → 3 plans
      Plan 1: Tasks 1.1–2.3 (7 tasks)
      Plan 2: Tasks 2.4–4.1 (7 tasks)
      Plan 3: Tasks 4.2–5.3 (7 tasks)
