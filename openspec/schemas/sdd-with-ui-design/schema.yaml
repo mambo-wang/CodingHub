@@ -1,0 +1,276 @@
+name: spec-driven
+version: 1
+description: Default OpenSpec workflow - proposal → specs → design → tasks
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Initial proposal document outlining the change
+    template: proposal.md
+    instruction: |
+      Create the proposal document that establishes WHY this change is needed.
+
+      Sections:
+      - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
+      - **What Changes**: Bullet list of changes. Be specific about new capabilities, modifications, or removals. Mark breaking changes with **BREAKING**.
+      - **Capabilities**: Identify which specs will be created or modified:
+        - **New Capabilities**: List capabilities being introduced. Each becomes a new `specs/<name>/spec.md`. Use kebab-case names (e.g., `user-auth`, `data-export`).
+        - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Only include if spec-level behavior changes (not just implementation details). Each needs a delta spec file. Check `openspec/specs/` for existing spec names. Leave empty if no requirement changes.
+      - **Impact**: Affected code, APIs, dependencies, or systems.
+
+      IMPORTANT: The Capabilities section is critical. It creates the contract between
+      proposal and specs phases. Research existing specs before filling this in.
+      Each capability listed here will need a corresponding spec file.
+
+      Keep it concise (1-2 pages). Focus on the "why" not the "how" -
+      implementation details belong in design.md.
+
+      This is the foundation - specs, design, and tasks all build on this.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Detailed specifications for the change
+    template: spec.md
+    instruction: |
+      Create specification files that define WHAT the system should do.
+
+      Create one spec file per capability listed in the proposal's Capabilities section.
+      - New capabilities: use the exact kebab-case name from the proposal (specs/<capability>/spec.md).
+      - Modified capabilities: use the existing spec folder name from openspec/specs/<capability>/ when creating the delta spec at specs/<capability>/spec.md.
+
+      Delta operations (use ## headers):
+      - **ADDED Requirements**: New capabilities
+      - **MODIFIED Requirements**: Changed behavior - MUST include full updated content
+      - **REMOVED Requirements**: Deprecated features - MUST include **Reason** and **Migration**
+      - **RENAMED Requirements**: Name changes only - use FROM:/TO: format
+
+      Format requirements:
+      - Each requirement: `### Requirement: <name>` followed by description
+      - Use SHALL/MUST for normative requirements (avoid should/may)
+      - Each scenario: `#### Scenario: <name>` with WHEN/THEN format
+      - **CRITICAL**: Scenarios MUST use exactly 4 hashtags (`####`). Using 3 hashtags or bullets will fail silently.
+      - Every requirement MUST have at least one scenario.
+
+      MODIFIED requirements workflow:
+      1. Locate the existing requirement in openspec/specs/<capability>/spec.md
+      2. Copy the ENTIRE requirement block (from `### Requirement:` through all scenarios)
+      3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
+      4. Ensure header text matches exactly (whitespace-insensitive)
+
+      Common pitfall: Using MODIFIED with partial content loses detail at archive time.
+      If adding new concerns without changing existing behavior, use ADDED instead.
+
+      Example:
+      ```
+      ## ADDED Requirements
+
+      ### Requirement: User can export data
+      The system SHALL allow users to export their data in CSV format.
+
+      #### Scenario: Successful export
+      - **WHEN** user clicks "Export" button
+      - **THEN** system downloads a CSV file with all user data
+
+      ## REMOVED Requirements
+
+      ### Requirement: Legacy export
+      **Reason**: Replaced by new export system
+      **Migration**: Use new export endpoint at /api/v2/export
+      ```
+
+      Specs should be testable - each scenario is a potential test case.
+    requires:
+      - proposal
+      - design
+
+  - id: design
+    generates: design.md
+    description: Technical design document with implementation details
+    template: design.md
+    instruction: |
+      Create the design document that explains HOW to implement the change.
+
+      When to include design.md (create only if any apply):
+      - Cross-cutting change (multiple services/modules) or new architectural pattern
+      - New external dependency or significant data model changes
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y?). Include alternatives considered for each decision.
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation
+      - **Migration Plan**: Steps to deploy, rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns to resolve
+
+      Focus on architecture and approach, not line-by-line implementation.
+      Reference the proposal for motivation and specs for requirements.
+
+      Good design docs explain the "why" behind technical decisions.
+    requires:
+      - proposal
+
+
+  - id: design-system
+    generates: design-system.md
+    description: |
+      本次变更的 UI 约束摘要——引用全局设计系统，列出本次涉及的组件/样式/交互规范
+      【可选 artifact】仅当改动涉及前端 UI 时生成；纯后端/逻辑变更可跳过
+      【双主题固定配置】项目始终使用暗色 (dark) + 亮色 (light) 双主题，
+      token 映射表必须并列两列（暗色 | 亮色 | CSS 变量），
+      交互状态按组件分子节，每个组件下按暗色/亮色分两个子节
+    template: design-system.md
+    instruction: |
+      【可选 artifact】仅当改动涉及前端界面修改时执行。
+
+      ## 第一步：读取全局设计系统
+      读取项目全局设计系统文件 `design-system/CodingHub/MASTER.md`，
+      提取与本次变更相关的组件、样式、配色、字体、交互规范。
+
+      ## 第二步：按需补充 ui-ux-pro-max 检索
+      如全局设计系统未覆盖本次需要的 UI 模式，调用 ui-ux-pro-max 补充：
+      ```bash
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
+      ```
+
+      ## 第三步：生成本次 UI 约束摘要
+      基于 MASTER.md + 补充检索结果，生成本次变更的 UI 约束摘要（design-system.md）。
+
+      必须包含的章节：
+      1. **全局样式引用** — 字体、圆角、阴影（阴影表需暗色/亮色两列）
+      2. **双主题 Tokens 映射** — 暗色主题 | 亮色主题 | CSS 变量 三列表，涵盖页面背景、面板、卡片、毛玻璃、主色、辅助色、文字色、边框色等全部角色
+      3. **涉及组件清单** — 组件/页面、用途、状态覆盖
+      4. **交互状态（双主题）** — 每个组件按暗色/亮色分别列出所有状态的完整样式（normal/hover/focus/disabled/loading/active）
+      5. **响应式策略** — 断点与布局行为
+      6. **可访问性要求** — checkbox 清单（暗色/亮色焦点环分别列出）
+      7. **图标清单** — Lucide 图标及 aria 属性
+      8. **Antipatterns 检查** — 合规/不合规项
+
+      每个组件的暗色/亮色交互状态必须分别列出完整样式，确保每个主题可独立验证。
+
+      如不需要生成 UI，此 artifact 可跳过。
+    requires:
+      - proposal
+
+  - id: impact-analysis
+    generates: impact-analysis.md
+    description: |
+      代码影响范围分析——基于 design.md 中的文件/类清单执行 codegraph 扫描
+      【条件必选】仅当 design 涉及修改现有代码时执行；纯新增模块/页面可跳过
+    template: impact-analysis.md
+    instruction: |
+      【条件必选 artifact】执行规则：
+      1. 读取 design.md 中的文件列表、类列表、源码文件与测试文件对应关系
+      2. 判定改动类型：
+         - design.md 中所有源码文件均为新增 → 跳过此 artifact
+         - design.md 中存在任意现有源码文件 → 必须执行
+      3. 若需执行，使用 Task(code-explorer) 子代理扫描代码库：
+         - 以 design.md 中列出的现有类/函数/组件/API 作为 codegraph 入口
+         - 追踪直接调用方与传递调用方（深度 2-3 层）
+         - 列出依赖的上游服务（repository、config、util）
+         - 找出受影响的测试文件
+         - 检查 design.md 的源码文件与测试文件对应关系是否完整
+         - 评估改动风险等级（L0 纯新增 / L1 修改公共 API / L2 修改 schema 或业务规则）
+         - 生成回归测试建议清单
+      4. 校验后端层级依赖仍合法：
+         ```bash
+         bash scripts/lint-arch.sh
+         ```
+         若 FAIL 必须修复 design 后再继续
+      5. 若发现 design.md 漏掉受影响文件/测试，必须在报告中列出“设计修正建议”
+      6. 报告保存到 impact-analysis.md
+    requires:
+      - design
+
+  - id: ui-preview
+    generates: ui-preview.html
+    description: |
+      HTML 界面预览——基于 design-system 与 ui-ux-pro-max 设计规范生成可交互的 UI 原型
+      【仅当改动涉及前端 UI 时生成】
+      【双主题固定配置】在同一 HTML 文件中使用 CSS 变量 + [data-theme] 属性实现暗色/亮色双主题切换预览，
+    template: ui-preview.md
+    instruction: |
+      【可选 artifact】仅当改动涉及前端界面修改时执行。
+
+      使用 ui-ux-pro-max skill 获取设计规范与样式决策，然后生成 HTML 预览页面。
+      目的：让用户直观预览最终效果，作为视觉验收标准。
+
+      ## 第一步：确认设计依据
+      优先读取本次变更生成的 design-system.md；如未生成，则读取全局 `design-system/CodingHub/MASTER.md`。
+      如设计依据仍不足，可调用 ui-ux-pro-max 检索样式、配色、字体、UX 规则：
+      ```bash
+      python3 ~/.agents/skills/ui-ux-pro-max/scripts/search.py "<产品类型> <行业> <风格关键词>" --design-system -p "<项目名>" -f markdown
+      ```
+
+      ## 第二步：生成 HTML 预览
+      基于 design.md 和 design-system.md 生成代码。参考 `openspec/changes/add-post-delete/ui-preview.html` 的结构。
+
+      双主题 CSS 变量方案：
+      - 在 `:root` 中定义暗色主题（默认）的全部 CSS 变量
+      - 使用 `[data-theme="light"]` 选择器覆盖亮色主题的变量值
+      - 页面 `<html>` 初始设置 `data-theme="dark"`
+      - 提供主题切换按钮（月亮/太阳图标），通过 JS 切换 `data-theme` 属性
+      - 暗色/亮色分别定义背景渐变效果和网格 overlay
+      - 使用 `var(--xxx)` 引用变量实现组件样式自动跟随主题
+
+      内容结构要求：
+      1. 页面头部：渐变标题 + 副标题 + 主题切换按钮
+      2. 每个组件的状态行按暗色/亮色分组，用 `<h3>` + 主题徽章标注（如 `theme-badge-dk` / `theme-badge-lt`）
+      3. 对话框等复合组件使用 `.dialog-demo > .dialog-overlay > .dialog-panel` 结构
+      4. 响应式网格使用 CSS Grid，三断点自适应
+
+      生成要求：
+      1. 必须生成可独立运行的 HTML 文件（内联 CSS + JS，无外部依赖）
+      2. 包含页面主要状态的预览：正常态、悬停态、聚焦态、加载态、空状态、错误态
+      3. 覆盖桌面/平板/移动端响应式布局
+      4. 所有图标使用内联 SVG（Lucide），禁止 emoji
+      5. 包含基础可访问性标记（语义标签、aria-label、focus-visible、aria-busy）
+      6. 文件保存到 ui-preview.html
+      7. 生成后使用 preview_url 工具打开预览
+
+      如不需要生成 UI，此 artifact 可跳过。
+    requires:
+      - design
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create the task list that breaks down the implementation work.
+
+      **IMPORTANT: Follow the template below exactly.** The apply phase parses
+      checkbox format to track progress. Tasks not using `- [ ]` won't be tracked.
+
+      Guidelines:
+      - Group related tasks under ## numbered headings
+      - Each task MUST be a checkbox: `- [ ] X.Y Task description`
+      - Tasks should be small enough to complete in one session
+      - Order tasks by dependency (what must be done first?)
+
+      Example:
+      ```
+      ## 1. Setup
+
+      - [ ] 1.1 Create new module structure
+      - [ ] 1.2 Add dependencies to package.json
+
+      ## 2. Core Implementation
+
+      - [ ] 2.1 Implement data export function
+      - [ ] 2.2 Add CSV formatting utilities
+      ```
+
+      Reference specs for what needs to be built, design for how to build it.
+      Each task should be verifiable - you know when it's done.
+    requires:
+      - specs
+      - design
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Read context files, work through pending tasks, mark complete as you go.
+    Pause if you hit blockers or need clarification.
