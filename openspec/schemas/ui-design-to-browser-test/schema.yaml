@@ -1,6 +1,6 @@
 name: ui-design-to-browser-test
-version: 4
-description: 原子化TDD工作流 + 条件式UI/UX设计系统 + 浏览器预览验证
+version: 5
+description: 后端原子化TDD + 前端直接实现 + 条件式UI/UX设计系统 + 浏览器预览验证
 
 artifacts:
   - id: proposal
@@ -69,15 +69,15 @@ artifacts:
 
   - id: design
     generates: design.md
-    description: 技术设计——怎么实现、测试策略
+    description: 技术设计——怎么实现、后端测试策略
     template: design.md
     instruction: |
       编写技术设计方案，说明如何实现。
       必须包含：
-      - 要创建的文件列表（测试文件+源码文件，给出完整路径）
-      - 每个测试文件的测试策略（单元测试/集成测试）
-      - 源码文件与测试文件的对应关系
-      - 测试运行命令
+      - 要创建的文件列表（源码文件，给出完整路径）
+      - 【仅后端】测试文件清单：测试文件与源码文件的对应关系、测试策略（单元测试/集成测试）
+      - 【仅后端】测试运行命令
+      - 前端文件清单：Vue 组件/页面/服务文件路径（前端不做 TDD，无需测试文件）
 
       【如有 UI 改动，增加以下内容】
       - UI 组件清单：优先基于本次变更的 design-system.md；如未生成，则引用全局 `design-system/CodingHub/MASTER.md`
@@ -169,16 +169,18 @@ artifacts:
 
   - id: tasks
     generates: tasks.md
-    description: 原子化TDD任务列表 + UI实现任务 + 浏览器测试任务
+    description: 后端原子化TDD任务列表 + 前端直接实现任务 + 浏览器测试任务
     template: tasks.md
     instruction: |
-      关键要求：将工作拆分为原子化 TDD 任务 + UI 实现任务 + 浏览器测试任务。
+      关键要求：将工作拆分为后端 TDD 任务 + 前端直接实现任务 + 浏览器测试任务。
+      核心原则：后端走 TDD（RED/GREEN/REFACTOR），前端直接实现不做 TDD。
 
       【前置参考】
       - 如 design.md 涉及修改现有源码，则必须先生成 impact-analysis.md，并参考其调用图、受影响测试、回归测试建议和设计修正建议。
       - 如 impact-analysis.md 已跳过，必须在 tasks.md 中记录跳过原因（例如：全部源码文件为新增），再按 design.md 拆分。
 
-      ## A. TDD 任务（后端/业务逻辑）
+      ## A. 后端 TDD 任务
+      仅针对后端 Java/Spring Boot 代码（controller、service、repository、model、dto、util 等）。
       每个任务必须是且仅是一个 TDD 阶段（RED / GREEN / REFACTOR）。
       必须使用checkbox格式书写每个任务：
       ### Feature: [功能名称]
@@ -192,17 +194,19 @@ artifacts:
       4. 任务严格交替：RED→GREEN→（可选REFACTOR）
       5. 每个任务应在2-5分钟内可完成
 
-      ## B. UI 实现任务（前端）【如有 UI 改动】
+      ## B. 前端实现任务（不做 TDD）【如有 UI 改动】
+      前端 Vue/TypeScript 代码不做 TDD，直接实现。
       基于 design.md、设计系统和 ui-preview.html（如已生成）创建 UI 任务：
       ### UI: [组件/页面名称]
       - [ ] 实现 [组件名]——基于设计系统规范，参考 ui-preview.html（如已生成），使用 CSS 变量支持双主题
       - [ ] 验证 [组件名]——视觉检查是否符合设计规范、交互状态、响应式和可访问性要求
       - [ ] 双主题验证——验证暗色/亮色主题下组件显示正确，焦点环、阴影、背景效果均随主题切换
       规则：
-      1. UI 任务在 TDD 任务完成后执行
+      1. UI 任务在后端 TDD 任务完成后执行
       2. 每个组件独立一个任务块
       3. 如已生成 design-system.md / ui-preview.html，必须引用它们作为验收参考；否则引用全局设计系统和 design.md
       4. 双主题固定规则：每个组件必须使用 CSS 变量实现暗色/亮色适配，验证时需切换两种主题分别检查
+      5. 前端不编写单元测试，通过浏览器测试验证功能正确性
     requires:
       - specs
       - design

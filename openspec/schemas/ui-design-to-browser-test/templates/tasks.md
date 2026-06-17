@@ -8,8 +8,9 @@
 
 ---
 
-## A. Atomic TDD Task List
+## A. 后端 TDD Task List
 
+<!-- 仅后端 Java/Spring Boot 代码走 TDD -->
 <!-- 每个 task 只能是一个 TDD 阶段 -->
 <!-- 必须使用 checkbox 格式 -->
 
@@ -21,14 +22,16 @@
 
 ---
 
-## B. UI Implementation Tasks【如有 UI 改动】
+## B. 前端实现任务（不做 TDD）【如有 UI 改动】
 
+<!-- 前端 Vue/TypeScript 直接实现，不编写单元测试 -->
 <!-- 基于 design-system.md（如有）、全局设计系统和 ui-preview.html（如有） -->
 
 ### UI: [Component/Page Name]
 
 - [ ] 实现 [组件名]——基于设计系统规范，参考 ui-preview.html（如有）
 - [ ] 验证 [组件名]——检查视觉、交互状态、响应式和可访问性是否符合设计规范
+- [ ] 双主题验证——暗色/亮色主题下组件显示正确
 
 ---
 
