@@ -1,0 +1,41 @@
+{
+    "generation_info": {
+        "timestamp": "2026-06-18T12:46:20.657729",
+        "main_model": "GLM-5.2",
+        "generator_version": "1.0.1",
+        "repo_path": "/Users/kirito/repos/CodingHub",
+        "commit_id": null
+    },
+    "statistics": {
+        "total_components": 686,
+        "leaf_nodes": 168,
+        "max_depth": 2
+    },
+    "files_generated": [
+        "overview.md",
+        "module_tree.json",
+        "first_module_tree.json",
+        "Forum Module.md",
+        "\u5de5\u5177\u6587\u4ef6\u5b50\u6a21\u5757.md",
+        "MCP\u670d\u52a1\u5668\u914d\u7f6e\u5b50\u6a21\u5757.md",
+        "MCP\u641c\u7d22\u670d\u52a1\u5b50\u6a21\u5757.md",
+        "MCP\u5de5\u5177\u5904\u7406\u5b50\u6a21\u5757.md",
+        "Overview & Common Module.md",
+        "\u8bc4\u8bba\u4e92\u52a8.md",
+        "\u8ba4\u8bc1\u5b50\u6a21\u5757.md",
+        "\u89c6\u9891\u6838\u5fc3\u5b50\u6a21\u5757.md",
+        "\u901a\u7528\u57fa\u7840\u8bbe\u65bd\u5b50\u6a21\u5757.md",
+        "Tool Module.md",
+        "\u89c6\u9891\u4e92\u52a8\u5b50\u6a21\u5757.md",
+        "Video Module.md",
+        "\u5e16\u5b50\u6838\u5fc3.md",
+        "\u5de5\u5177\u6838\u5fc3\u5b50\u6a21\u5757.md",
+        "Auth & User Module.md",
+        "\u7528\u6237\u7ba1\u7406\u5b50\u6a21\u5757.md",
+        "MCP Module.md",
+        "Category Module.md",
+        "\u6982\u89c8\u7edf\u8ba1\u5b50\u6a21\u5757.md",
+        "\u5934\u50cf\u7ba1\u7406\u5b50\u6a21\u5757.md",
+        "\u5206\u7c7b\u4e0e\u6807\u7b7e.md"
+    ]
+}
