@@ -3,7 +3,7 @@
 > 本预览基于 design-system.md 与 ui-ux-pro-max 设计规范生成，作为视觉验收标准。
 > 参考 `openspec/changes/add-post-delete/ui-preview.html` 的双主题实现模式。
 
-## Preview File
+## 预览文件
 
 **路径:** `ui-preview.html`
 
@@ -47,7 +47,7 @@
 }
 ```
 
-## Page Structure
+## 页面结构
 
 ```
 <html data-theme="dark">
@@ -84,7 +84,7 @@
 </html>
 ```
 
-## Screenshots
+## 截图
 
 ### Desktop (≥1024px) — 暗色主题
 
@@ -94,20 +94,20 @@
 
 ### Mobile (<768px)
 
-## Key Components
+## 关键组件
 
 | 组件 | 状态 | 暗色效果 | 亮色效果 |
 |------|------|----------|----------|
 | `<component>` | normal / hover / loading / empty | `<描述>` | `<描述>` |
 
-## Interactive Verification
+## 交互验证
 
 | 元素 | 交互 | 暗色预期 | 亮色预期 |
 |------|------|----------|----------|
 | 主题切换按钮 | click | 切换到亮色 | 切换到暗色 |
 | `<element>` | hover / focus | `<暗色行为>` | `<亮色行为>` |
 
-## Compliance Check
+## 合规性检查
 
 - [ ] 配色方案符合 design-system.md 双主题 token 映射
 - [ ] 字体系统一致（Sora + Space Mono）
