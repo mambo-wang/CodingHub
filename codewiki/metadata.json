@@ -1,0 +1,25 @@
+{
+    "generation_info": {
+        "timestamp": "2026-06-18T11:10:18.714703",
+        "main_model": "GLM-5.2",
+        "generator_version": "1.0.1",
+        "repo_path": "/Users/kirito/repos/CodingHub",
+        "commit_id": null
+    },
+    "statistics": {
+        "total_components": 598,
+        "leaf_nodes": 141,
+        "max_depth": 2
+    },
+    "files_generated": [
+        "overview.md",
+        "module_tree.json",
+        "first_module_tree.json",
+        "authentication.md",
+        "forum.md",
+        "ai-skills.md",
+        "mcp-server.md",
+        "tool-management.md",
+        "frontend.md"
+    ]
+}
