@@ -50,7 +50,13 @@ public class SecurityConfig {
                 // MCP endpoints (无认证)
                 .requestMatchers("/mcp/**").permitAll()
                 .requestMatchers("/sse").permitAll()
+                // Video public endpoints
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/stream").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/comments").permitAll()
                 // Protected endpoints
+                .requestMatchers("/api/v1/videos/**").authenticated()
                 .requestMatchers("/api/v1/tools/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().permitAll()

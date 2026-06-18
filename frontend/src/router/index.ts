@@ -91,6 +91,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/AboutPage.vue')
   },
   {
+    path: '/videos',
+    name: 'VideoList',
+    component: () => import('@/pages/video/VideoListPage.vue')
+  },
+  {
+    path: '/videos/upload',
+    name: 'VideoUpload',
+    component: () => import('@/pages/video/VideoUploadPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/videos/:id',
+    name: 'VideoDetail',
+    component: () => import('@/pages/video/VideoDetailPage.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')

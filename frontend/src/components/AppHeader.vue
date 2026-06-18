@@ -54,6 +54,7 @@ const goHome = () => router.push('/')
 const toggleTheme = () => themeStore.toggleTheme()
 const goToQuickStart = () => router.push('/quickstart')
 const goToAbout = () => router.push('/about')
+const goToVideos = () => router.push('/videos')
 </script>
 
 <template>
@@ -80,6 +81,7 @@ const goToAbout = () => router.push('/about')
       <nav class="nav-links">
         <button class="nav-btn" @click="goHome">工具广场</button>
         <button class="nav-btn" @click="goToForum">论坛</button>
+        <button class="nav-btn" @click="goToVideos">微课</button>
         <button class="nav-btn" @click="goToOverview">热榜</button>
         <button class="nav-btn" @click="goToQuickStart">快速开始</button>
         <button class="nav-btn" @click="goToAbout">关于</button>
