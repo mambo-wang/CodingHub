@@ -183,7 +183,22 @@ public class VideoService {
     }
 
     /**
-     * 5.6 获取视频流资源
+     * 5.6 获取视频文件的绝对路径（供 Controller 流式播放使用）
+     */
+    public java.nio.file.Path getVideoFilePath(Long id) {
+        Video video = videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
+                .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+
+        java.nio.file.Path filePath = Paths.get(videoStorageConfig.getUploadBaseDir())
+                .resolve(video.getFilePath());
+        if (!java.nio.file.Files.exists(filePath)) {
+            throw new ResourceNotFoundException("视频文件不存在");
+        }
+        return filePath;
+    }
+
+    /**
+     * 5.6b 获取视频流资源（保留兼容）
      */
     public Resource streamVideo(Long id) {
         Video video = videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)

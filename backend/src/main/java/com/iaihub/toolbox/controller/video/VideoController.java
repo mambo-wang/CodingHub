@@ -9,9 +9,11 @@ import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.service.video.VideoService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.InputStreamResource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,7 +23,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.file.Path;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/videos")
 @RequiredArgsConstructor
@@ -108,47 +114,74 @@ public class VideoController {
     }
 
     /**
-     * 视频流播放（支持 HTTP Range）
+     * 视频流播放（支持 HTTP Range，使用 RandomAccessFile 精确 seek）
      */
     @GetMapping("/{id}/stream")
-    public ResponseEntity<InputStreamResource> streamVideo(
+    public void streamVideo(
             @PathVariable Long id,
-            HttpServletRequest request) throws IOException {
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
 
-        Resource resource = videoService.streamVideo(id);
+        Path filePath = videoService.getVideoFilePath(id);
+        long fileLength = filePath.toFile().length();
         String contentType = "video/mp4";
+
+        response.setContentType(contentType);
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
         String rangeHeader = request.getHeader("Range");
 
         if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-            long fileLength = resource.contentLength();
             String[] ranges = rangeHeader.substring(6).split("-");
             long rangeStart = Long.parseLong(ranges[0]);
             long rangeEnd = ranges.length > 1 && !ranges[1].isEmpty()
                     ? Long.parseLong(ranges[1])
-                    : fileLength - 1;
+                    : Math.min(rangeStart + 1024 * 1024 - 1, fileLength - 1); // 默认每次最多 1MB
 
             if (rangeStart >= fileLength) {
-                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
-                        .header("Content-Range", "bytes */" + fileLength)
-                        .build();
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileLength);
+                return;
+            }
+
+            if (rangeEnd >= fileLength) {
+                rangeEnd = fileLength - 1;
             }
 
             long contentLength = rangeEnd - rangeStart + 1;
-            InputStreamResource inputStreamResource = new InputStreamResource(resource.getInputStream());
 
-            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                    .contentType(MediaType.parseMediaType(contentType))
-                    .contentLength(contentLength)
-                    .header("Content-Range", "bytes " + rangeStart + "-" + rangeEnd + "/" + fileLength)
-                    .header("Accept-Ranges", "bytes")
-                    .body(inputStreamResource);
+            response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+            response.setHeader("Content-Range", "bytes " + rangeStart + "-" + rangeEnd + "/" + fileLength);
+            response.setContentLengthLong(contentLength);
+
+            try (RandomAccessFile raf = new RandomAccessFile(filePath.toFile(), "r");
+                 OutputStream os = response.getOutputStream()) {
+                raf.seek(rangeStart);
+                byte[] buffer = new byte[8192];
+                long remaining = contentLength;
+                int read;
+                while (remaining > 0 && (read = raf.read(buffer, 0, (int) Math.min(buffer.length, remaining))) != -1) {
+                    os.write(buffer, 0, read);
+                    remaining -= read;
+                }
+                os.flush();
+            }
+        } else {
+            // Full file response
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentLengthLong(fileLength);
+
+            try (RandomAccessFile raf = new RandomAccessFile(filePath.toFile(), "r");
+                 OutputStream os = response.getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = raf.read(buffer)) != -1) {
+                    os.write(buffer, 0, read);
+                }
+                os.flush();
+            }
         }
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .contentLength(resource.contentLength())
-                .header("Accept-Ranges", "bytes")
-                .body(new InputStreamResource(resource.getInputStream()));
     }
 
     /**
