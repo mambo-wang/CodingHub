@@ -1,19 +1,19 @@
-## Context
+## 背景（Context）
 
-<!-- Background and current state -->
+<!-- 背景与现状 -->
 
-## Goals / Non-Goals
+## 目标 / 非目标（Goals / Non-Goals）
 
-**Goals:**
-<!-- What this design aims to achieve -->
+**目标：**
+<!-- 本设计要达成的目标 -->
 
-**Non-Goals:**
-<!-- What is explicitly out of scope -->
+**非目标：**
+<!-- 明确排除的范围 -->
 
-## Decisions
+## 决策（Decisions）
 
-<!-- Key design decisions and rationale -->
+<!-- 关键设计决策及理由 -->
 
-## Risks / Trade-offs
+## 风险 / 权衡（Risks / Trade-offs）
 
-<!-- Known risks and trade-offs -->
+<!-- 已知风险和权衡 -->

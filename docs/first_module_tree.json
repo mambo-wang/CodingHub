@@ -1,0 +1,219 @@
+{
+    "application_bootstrap": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/ToolSquareApplication.java::ToolSquareApplication",
+            "backend/src/main/java/com/iaihub/toolbox/config/DataInitializer.java::DataInitializer"
+        ],
+        "children": {}
+    },
+    "security_config": {
+        "path": "backend/src/main/java/com/iaihub/toolbox/config",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/config/JwtAuthenticationFilter.java::JwtAuthenticationFilter",
+            "backend/src/main/java/com/iaihub/toolbox/config/SecurityConfig.java::SecurityConfig",
+            "backend/src/main/java/com/iaihub/toolbox/config/UploadConfig.java::UploadConfig",
+            "backend/src/main/java/com/iaihub/toolbox/util/JwtUtil.java::JwtUtil",
+            "backend/src/main/java/com/iaihub/toolbox/util/XssSanitizer.java::XssSanitizer"
+        ],
+        "children": {}
+    },
+    "authentication": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/AuthController.java::AuthController",
+            "backend/src/main/java/com/iaihub/toolbox/dto/LoginRequest.java::LoginRequest",
+            "backend/src/main/java/com/iaihub/toolbox/dto/LoginResponse.java::LoginResponse",
+            "backend/src/main/java/com/iaihub/toolbox/dto/LoginResponse.java::UserDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/RegisterRequest.java::RegisterRequest",
+            "backend/src/main/java/com/iaihub/toolbox/dto/RefreshResponse.java::RefreshResponse"
+        ],
+        "children": {}
+    },
+    "user_management": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/UserController.java::UserController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/AvatarStaticController.java::AvatarStaticController",
+            "backend/src/main/java/com/iaihub/toolbox/service/UserService.java::UserService",
+            "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java::UserRepository",
+            "backend/src/main/java/com/iaihub/toolbox/model/User.java::User",
+            "backend/src/main/java/com/iaihub/toolbox/dto/UserDTO.java::UserDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/PublicUserDTO.java::PublicUserDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/AvatarUploadResponse.java::AvatarUploadResponse",
+            "backend/src/main/java/com/iaihub/toolbox/util/AvatarUtil.java::AvatarUtil"
+        ],
+        "children": {}
+    },
+    "common_dto": {
+        "path": "backend/src/main/java/com/iaihub/toolbox/dto",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse",
+            "backend/src/main/java/com/iaihub/toolbox/dto/PageResponse.java::PageResponse"
+        ],
+        "children": {}
+    },
+    "category_management": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/CategoryController.java::CategoryController",
+            "backend/src/main/java/com/iaihub/toolbox/service/CategoryService.java::CategoryService",
+            "backend/src/main/java/com/iaihub/toolbox/repository/CategoryRepository.java::CategoryRepository",
+            "backend/src/main/java/com/iaihub/toolbox/model/Category.java::Category",
+            "backend/src/main/java/com/iaihub/toolbox/dto/CategoryDTO.java::CategoryDTO"
+        ],
+        "children": {}
+    },
+    "tool_management": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/ToolController.java::ToolController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/StaticController.java::StaticController",
+            "backend/src/main/java/com/iaihub/toolbox/service/ToolService.java::ToolService",
+            "backend/src/main/java/com/iaihub/toolbox/repository/ToolRepository.java::ToolRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/ToolCommentRepository.java::ToolCommentRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/ToolLikeRepository.java::ToolLikeRepository",
+            "backend/src/main/java/com/iaihub/toolbox/model/Tool.java::Tool",
+            "backend/src/main/java/com/iaihub/toolbox/model/ToolComment.java::ToolComment",
+            "backend/src/main/java/com/iaihub/toolbox/model/ToolLike.java::ToolLike",
+            "backend/src/main/java/com/iaihub/toolbox/dto/CreateToolRequest.java::CreateToolRequest",
+            "backend/src/main/java/com/iaihub/toolbox/dto/UpdateToolRequest.java::UpdateToolRequest",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolDetailDTO.java::ToolDetailDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolSummaryDTO.java::ToolSummaryDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolCommentDto.java::ToolCommentDto",
+            "backend/src/main/java/com/iaihub/toolbox/dto/CreateCommentRequest.java::CreateCommentRequest"
+        ],
+        "children": {}
+    },
+    "tool_files": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/ToolFileController.java::ToolFileController",
+            "backend/src/main/java/com/iaihub/toolbox/service/ToolFileService.java::ToolFileService",
+            "backend/src/main/java/com/iaihub/toolbox/repository/ToolFileRepository.java::ToolFileRepository",
+            "backend/src/main/java/com/iaihub/toolbox/model/ToolFile.java::ToolFile",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolFileDTO.java::ToolFileDTO",
+            "backend/src/main/java/com/iaihub/toolbox/dto/FileListResponse.java::FileListResponse",
+            "backend/src/main/java/com/iaihub/toolbox/dto/FileUploadResponse.java::FileUploadResponse"
+        ],
+        "children": {}
+    },
+    "forum_module": {
+        "path": "backend/src/main/java/com/iaihub/toolbox/controller/forum",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumCategoryController.java::ForumCategoryController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumCommentController.java::ForumCommentController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumLikeController.java::ForumLikeController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumTagController.java::ForumTagController",
+            "backend/src/main/java/com/iaihub/toolbox/controller/PostFavoriteController.java::PostFavoriteController",
+            "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumCategoryService.java::ForumCategoryService",
+            "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumCommentService.java::ForumCommentService",
+            "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumLikeService.java::ForumLikeService",
+            "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+            "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumTagService.java::ForumTagService",
+            "backend/src/main/java/com/iaihub/toolbox/service/PostFavoriteService.java::PostFavoriteService",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumCategoryRepository.java::ForumCategoryRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumCommentRepository.java::ForumCommentRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumLikeRepository.java::ForumLikeRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumTagRepository.java::ForumTagRepository",
+            "backend/src/main/java/com/iaihub/toolbox/repository/PostFavoriteRepository.java::PostFavoriteRepository",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumCategory.java::ForumCategory",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumComment.java::ForumComment",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumLike.java::ForumLike",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPost.java::ForumPost",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTag",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTagId",
+            "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumTag.java::ForumTag",
+            "backend/src/main/java/com/iaihub/toolbox/model/PostFavorite.java::PostFavorite"
+        ],
+        "children": {}
+    },
+    "mcp_server": {
+        "path": "backend/src/main/java/com/iaihub/toolbox/mcp",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/config/McpServerConfig.java::McpServerConfig",
+            "backend/src/main/java/com/iaihub/toolbox/controller/McpController.java::McpController",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::ToolSearchResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::ToolDetailResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::ToolFilesResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::PostSearchResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::PostDetailResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::FileDownloadResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::FileUploadInfoResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::FileDeleteResponse",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::FileInfo",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::McpConnectionManager",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitter",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/McpResourceHandler.java::McpResourceHandler",
+            "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig",
+            "backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java::McpSearchService",
+            "backend/src/main/java/com/iaihub/toolbox/dto/McpSearchRequest.java::McpSearchRequest",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolSearchResult.java::ToolSearchResult",
+            "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult"
+        ],
+        "children": {}
+    },
+    "overview_stats": {
+        "path": "backend/src/main/java/com/iaihub/toolbox",
+        "components": [
+            "backend/src/main/java/com/iaihub/toolbox/controller/OverviewController.java::OverviewController",
+            "backend/src/main/java/com/iaihub/toolbox/service/OverviewService.java::OverviewService",
+            "backend/src/main/java/com/iaihub/toolbox/service/OverviewServiceImpl.java::OverviewServiceImpl",
+            "backend/src/main/java/com/iaihub/toolbox/dto/StatsDto.java::StatsDto",
+            "backend/src/main/java/com/iaihub/toolbox/dto/ToolRankDto.java::ToolRankDto",
+            "backend/src/main/java/com/iaihub/toolbox/dto/PostRankDto.java::PostRankDto"
+        ],
+        "children": {}
+    },
+    "frontend_types": {
+        "path": "frontend/src",
+        "components": [
+            "frontend/src/services/tool.ts::Comment",
+            "frontend/src/services/tool.ts::ToolDetailVO",
+            "frontend/src/types/forum.ts::ForumPost",
+            "frontend/src/types/forum.ts::PageResponse",
+            "frontend/src/types/forum.ts::ForumLikeRequest",
+            "frontend/src/types/forum.ts::ForumPostCreateRequest",
+            "frontend/src/types/forum.ts::ForumComment",
+            "frontend/src/types/forum.ts::ForumCommentCreateRequest",
+            "frontend/src/types/forum.ts::ForumCategory",
+            "frontend/src/types/forum.ts::ForumTag",
+            "frontend/src/types/index.ts::ToolFile",
+            "frontend/src/types/index.ts::User",
+            "frontend/src/types/index.ts::Category",
+            "frontend/src/types/index.ts::CreateToolRequest",
+            "frontend/src/types/index.ts::FileUploadResponse",
+            "frontend/src/types/index.ts::FileListResponse",
+            "frontend/src/types/index.ts::ToolDetail",
+            "frontend/src/types/index.ts::LoginRequest",
+            "frontend/src/types/index.ts::UpdateToolRequest",
+            "frontend/src/types/index.ts::ApiResponse",
+            "frontend/src/types/index.ts::ToolSummary",
+            "frontend/src/types/index.ts::PageResponse",
+            "frontend/src/types/index.ts::RegisterRequest",
+            "frontend/src/types/overview.ts::StatsDto",
+            "frontend/src/types/overview.ts::ToolRankDto",
+            "frontend/src/types/overview.ts::PostRankDto",
+            "frontend/src/types/tool.ts::ToolDetailDTO",
+            "frontend/src/types/tool.ts::ToolSummary",
+            "frontend/src/vite-env.d.ts::ImportMeta",
+            "frontend/src/vite-env.d.ts::ImportMetaEnv"
+        ],
+        "children": {}
+    },
+    "ui_ux_skills_scripts": {
+        "path": ".codebuddy/skills/ui-ux-pro-max/scripts",
+        "components": [
+            ".codebuddy/skills/ui-ux-pro-max/scripts/core.py::BM25",
+            ".codebuddy/skills/ui-ux-pro-max/scripts/design_system.py::DesignSystemGenerator",
+            ".windsurf/skills/ui-ux-pro-max/scripts/core.py::BM25",
+            ".windsurf/skills/ui-ux-pro-max/scripts/design_system.py::DesignSystemGenerator"
+        ],
+        "children": {}
+    }
+}
