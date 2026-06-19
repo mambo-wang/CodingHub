@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user", indexes = {
+@Table(name = "`user`", indexes = {
     @Index(name = "idx_user_username", columnList = "username", unique = true),
     @Index(name = "idx_user_nickname", columnList = "nickname", unique = true)
 })
@@ -43,6 +43,16 @@ public class User {
 
     @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private Role role = Role.USER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private AccountStatus status = AccountStatus.ACTIVE;
 
     @PrePersist
     protected void onCreate() {

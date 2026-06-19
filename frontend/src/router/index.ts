@@ -107,6 +107,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/video/VideoDetailPage.vue')
   },
   {
+    path: '/admin/approvals',
+    name: 'AdminApprovals',
+    component: () => import('@/pages/admin/ApprovalPage.vue'),
+    meta: { requiresAuth: true, roles: ['SUPER_ADMIN'] }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('@/pages/admin/UserListPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'SUPER_ADMIN'] }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')
@@ -124,9 +136,20 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else {
-    next()
+    return
   }
+
+  // Role-based access control
+  const requiredRoles = to.meta.roles as string[] | undefined
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRole = authStore.user?.role
+    if (!userRole || !requiredRoles.includes(userRole)) {
+      next({ name: 'Home' })
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

@@ -3,6 +3,8 @@ export interface User {
   username: string
   nickname?: string
   avatarUrl?: string | null
+  role?: string
+  status?: string
   createdAt?: string
   lastLoginAt?: string
 }
@@ -64,6 +66,7 @@ export interface RegisterRequest {
   username: string
   nickname: string
   password: string
+  role?: string
 }
 
 export interface CreateToolRequest {
@@ -101,4 +104,28 @@ export interface FileListResponse {
   folderPath: string
   files: ToolFile[]
   readmeExists: boolean
+}
+
+export interface PendingUser {
+  id: number
+  username: string
+  nickname?: string
+  role: string
+  createdAt: string
+}
+
+export interface AdminUser {
+  id: number
+  username: string
+  nickname?: string
+  role: string
+  status: string
+  createdAt: string
+  lastLoginAt?: string
+}
+
+export interface ApprovalResponse {
+  userId: number
+  status: string
+  message: string
 }

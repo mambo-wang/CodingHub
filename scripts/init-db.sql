@@ -258,14 +258,16 @@ CREATE TABLE IF NOT EXISTS `user` (
   `last_login_at` datetime DEFAULT NULL,
   `nickname` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` VARCHAR(255) NULL COMMENT '头像URL, 格式: /api/v1/static/avatars/{userId}.{ext}',
+  `role` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'USER',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_user_username` (`username`),
   UNIQUE KEY `idx_user_nickname` (`nickname`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 正在导出表  ai_tool_square.user 的数据：~0 rows (大约)
-INSERT IGNORE INTO `user` (`id`, `password`, `username`, `created_at`, `updated_at`, `last_login_at`, `nickname`) VALUES
-	(1, '$2a$10$NdXbmbUsauz1wst9aPxfpO8WwIKYnv0DxZQBd5wDoIWUFSOGcRj6u', 'wangbao', '2026-06-09 17:06:46', '2026-06-09 17:10:20', '2026-06-09 17:10:20', '王宝');
+INSERT IGNORE INTO `user` (`id`, `password`, `username`, `created_at`, `updated_at`, `last_login_at`, `nickname`, `role`, `status`) VALUES
+	(1, '$2a$10$NdXbmbUsauz1wst9aPxfpO8WwIKYnv0DxZQBd5wDoIWUFSOGcRj6u', 'wangbao', '2026-06-09 17:06:46', '2026-06-09 17:10:20', '2026-06-09 17:10:20', '王宝', 'USER', 'ACTIVE');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

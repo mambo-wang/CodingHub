@@ -8,6 +8,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
 
   const isLoggedIn = computed(() => !!accessToken.value)
+  const isAdmin = computed(() => user.value?.role === 'ADMIN' || user.value?.role === 'SUPER_ADMIN')
+  const isSuperAdmin = computed(() => user.value?.role === 'SUPER_ADMIN')
 
   const setTokens = (access: string, refresh: string) => {
     accessToken.value = access
@@ -50,6 +52,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     user,
     isLoggedIn,
+    isAdmin,
+    isSuperAdmin,
     setTokens,
     setUser,
     logout,

@@ -13,6 +13,8 @@ const themeStore = useThemeStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const username = computed(() => authStore.user?.username)
 const displayName = computed(() => authStore.user?.nickname || authStore.user?.username)
+const isAdmin = computed(() => authStore.isAdmin)
+const isSuperAdmin = computed(() => authStore.isSuperAdmin)
 const isDark = computed(() => themeStore.theme === 'dark')
 
 const menuOpen = ref(false)
@@ -55,6 +57,8 @@ const toggleTheme = () => themeStore.toggleTheme()
 const goToQuickStart = () => router.push('/quickstart')
 const goToAbout = () => router.push('/about')
 const goToVideos = () => router.push('/videos')
+const goToApprovals = () => router.push('/admin/approvals')
+const goToUserList = () => router.push('/admin/users')
 </script>
 
 <template>
@@ -88,6 +92,8 @@ const goToVideos = () => router.push('/videos')
 
         <template v-if="isLoggedIn">
           <button class="nav-btn" @click="goToMyTools">我的工具</button>
+          <button v-if="isSuperAdmin" class="nav-btn" @click="goToApprovals">审批管理</button>
+          <button v-if="isAdmin" class="nav-btn" @click="goToUserList">用户管理</button>
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
             <Moon v-if="isDark" :size="18" />
             <Sun v-else :size="18" />

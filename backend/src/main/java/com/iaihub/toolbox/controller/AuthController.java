@@ -18,6 +18,14 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<LoginResponse>> register(@Valid @RequestBody RegisterRequest request) {
         LoginResponse response = userService.register(request);
+
+        if (response.getAccessToken() == null) {
+            // ADMIN registration - pending approval
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(ApiResponse.created("注册成功，等待超级管理员审批", response));
+        }
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.created("注册成功", response));

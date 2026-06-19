@@ -41,6 +41,9 @@ app:
     # 工具附件已放开格式限制：allowedExtensions 留空时不做后缀校验
     # 紧急回滚：在下方加回 allowed-extensions: [zip, tar, gz, py, js, ts, md, txt, json, yaml, yml, toml, xml, html, css] 即可恢复白名单
     allowed-extensions: []
+  super-admin:
+    username: admin
+    password: Cloud@1234
 
 logging:
   level:

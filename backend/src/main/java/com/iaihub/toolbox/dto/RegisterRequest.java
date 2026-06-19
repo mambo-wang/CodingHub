@@ -27,4 +27,6 @@ public class RegisterRequest {
     @NotBlank(message = "密码不能为空")
     @Size(min = 6, message = "密码长度至少6位")
     private String password;
+
+    private String role;
 }

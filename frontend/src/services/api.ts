@@ -73,10 +73,13 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // 403: no permission / session expired, redirect to login
+    // 403: no permission - don't redirect to login
+    // Skip generic message for auth endpoints (login handles its own error display)
     if (status === 403) {
-      ElMessage.warning('登录已过期，请重新登录')
-      redirectToLogin()
+      const requestUrl = originalRequest?.url || ''
+      if (!requestUrl.includes('/auth/')) {
+        ElMessage.warning('没有权限执行此操作')
+      }
       return Promise.reject(error)
     }
 

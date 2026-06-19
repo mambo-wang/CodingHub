@@ -4,14 +4,19 @@ import com.iaihub.toolbox.config.UploadConfig;
 import com.iaihub.toolbox.dto.*;
 import com.iaihub.toolbox.exception.AvatarValidationException;
 import com.iaihub.toolbox.exception.DuplicateResourceException;
+import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.UnauthorizedException;
 import com.iaihub.toolbox.exception.UserNotFoundException;
+import com.iaihub.toolbox.model.AccountStatus;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.util.AvatarUtil;
 import com.iaihub.toolbox.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,14 +50,47 @@ public class UserService {
             throw new DuplicateResourceException("该昵称已被使用");
         }
 
+        // Parse and validate role
+        Role role = Role.USER;
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            try {
+                role = Role.valueOf(request.getRole().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("无效的角色类型");
+            }
+            if (role == Role.SUPER_ADMIN) {
+                throw new IllegalArgumentException("不允许注册超级管理员");
+            }
+        }
+
+        // Set status based on role
+        AccountStatus status = (role == Role.ADMIN) ? AccountStatus.PENDING : AccountStatus.ACTIVE;
+
         User user = User.builder()
                 .username(request.getUsername())
                 .nickname(request.getNickname())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .role(role)
+                .status(status)
                 .build();
 
         user = userRepository.save(user);
 
+        // ADMIN registration: no token, return pending message
+        if (role == Role.ADMIN) {
+            return LoginResponse.builder()
+                    .user(LoginResponse.UserDTO.builder()
+                            .id(user.getId())
+                            .username(user.getUsername())
+                            .nickname(user.getNickname())
+                            .avatarUrl(user.getAvatarUrl())
+                            .role(user.getRole().name())
+                            .status(user.getStatus().name())
+                            .build())
+                    .build();
+        }
+
+        // USER registration: return tokens
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
 
@@ -64,6 +102,8 @@ public class UserService {
                         .username(user.getUsername())
                         .nickname(user.getNickname())
                         .avatarUrl(user.getAvatarUrl())
+                        .role(user.getRole().name())
+                        .status(user.getStatus().name())
                         .build())
                 .build();
     }
@@ -76,13 +116,25 @@ public class UserService {
             throw new UnauthorizedException("用户名或密码错误");
         }
 
+        // Check account status
+        switch (user.getStatus()) {
+            case PENDING:
+                throw new ForbiddenException("账号等待审批中");
+            case REJECTED:
+                throw new ForbiddenException("注册申请已被拒绝");
+            case DISABLED:
+                throw new ForbiddenException("账号已被禁用");
+            case ACTIVE:
+            default:
+                break;
+        }
+
         // Update last login time
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
         String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId(), user.getUsername());
-
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -92,6 +144,8 @@ public class UserService {
                         .username(user.getUsername())
                         .nickname(user.getNickname())
                         .avatarUrl(user.getAvatarUrl())
+                        .role(user.getRole().name())
+                        .status(user.getStatus().name())
                         .build())
                 .build();
     }
@@ -121,6 +175,8 @@ public class UserService {
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();
@@ -228,5 +284,95 @@ public class UserService {
         if ("MB".equals(unit)) return n * 1024L * 1024L;
         if ("GB".equals(unit)) return n * 1024L * 1024L * 1024L;
         return n;
+    }
+
+    // ===== Admin Methods =====
+
+    public List<PendingUserDTO> getPendingUsers() {
+        return userRepository.findByStatusAndRole(AccountStatus.PENDING, Role.ADMIN).stream()
+                .map(u -> PendingUserDTO.builder()
+                        .id(u.getId())
+                        .username(u.getUsername())
+                        .nickname(u.getNickname())
+                        .role(u.getRole().name())
+                        .createdAt(u.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public ApprovalResponse approveUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (user.getStatus() != AccountStatus.PENDING) {
+            throw new IllegalArgumentException("该用户不在待审批状态");
+        }
+
+        user.setStatus(AccountStatus.ACTIVE);
+        userRepository.save(user);
+
+        return ApprovalResponse.builder()
+                .userId(user.getId())
+                .status(AccountStatus.ACTIVE.name())
+                .message("审批通过")
+                .build();
+    }
+
+    @Transactional
+    public ApprovalResponse rejectUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (user.getStatus() != AccountStatus.PENDING) {
+            throw new IllegalArgumentException("该用户不在待审批状态");
+        }
+
+        user.setStatus(AccountStatus.REJECTED);
+        userRepository.save(user);
+
+        return ApprovalResponse.builder()
+                .userId(user.getId())
+                .status(AccountStatus.REJECTED.name())
+                .message("已拒绝")
+                .build();
+    }
+
+    public Page<AdminUserDTO> getUsers(Role role, AccountStatus status, String keyword, Pageable pageable) {
+        return userRepository.findAllFiltered(role, status, keyword, pageable)
+                .map(u -> AdminUserDTO.builder()
+                        .id(u.getId())
+                        .username(u.getUsername())
+                        .nickname(u.getNickname())
+                        .role(u.getRole().name())
+                        .status(u.getStatus().name())
+                        .createdAt(u.getCreatedAt())
+                        .lastLoginAt(u.getLastLoginAt())
+                        .build());
+    }
+
+    @Transactional
+    public void updateUserStatus(Long userId, AccountStatus newStatus) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("不可操作超级管理员");
+        }
+
+        user.setStatus(newStatus);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("不可删除超级管理员");
+        }
+
+        userRepository.delete(user);
     }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import type { RegisterRequest } from '@/types'
@@ -14,7 +15,8 @@ const errorMessage = ref('')
 const form = ref<RegisterRequest>({
   username: '',
   nickname: '',
-  password: ''
+  password: '',
+  role: 'USER'
 })
 
 const handleSubmit = async () => {
@@ -43,10 +45,18 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const response = await api.post('/auth/register', form.value)
-    const { accessToken, refreshToken, user } = response.data.data
+    const data = response.data.data
 
-    authStore.setTokens(accessToken, refreshToken)
-    authStore.setUser(user)
+    // ADMIN registration: pending approval
+    if (!data.accessToken) {
+      ElMessage.success('注册成功，等待超级管理员审批')
+      router.push('/login')
+      return
+    }
+
+    // USER registration: normal flow
+    authStore.setTokens(data.accessToken, data.refreshToken)
+    authStore.setUser(data.user)
 
     router.push('/')
   } catch (error: any) {
@@ -145,6 +155,45 @@ const goToLogin = () => router.push('/login')
                 placeholder="至少6个字符"
                 autocomplete="new-password"
               />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">注册身份</label>
+            <div class="role-selector" role="radiogroup" aria-label="选择注册身份">
+              <label
+                class="role-card"
+                :class="{ 'role-card--active': form.role === 'USER' }"
+                @click="form.role = 'USER'"
+              >
+                <input type="radio" name="role" value="USER" :checked="form.role === 'USER'" class="sr-only" />
+                <div class="role-card-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div class="role-card-text">
+                  <span class="role-card-title">普通用户</span>
+                  <span class="role-card-desc">注册后即可使用</span>
+                </div>
+              </label>
+              <label
+                class="role-card"
+                :class="{ 'role-card--active': form.role === 'ADMIN' }"
+                @click="form.role = 'ADMIN'"
+              >
+                <input type="radio" name="role" value="ADMIN" :checked="form.role === 'ADMIN'" class="sr-only" />
+                <div class="role-card-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <div class="role-card-text">
+                  <span class="role-card-title">管理员</span>
+                  <span class="role-card-desc">需要超管审批</span>
+                </div>
+              </label>
             </div>
           </div>
 
@@ -398,5 +447,72 @@ const goToLogin = () => router.push('/login')
 
 .link-btn:hover {
   color: var(--accent-3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.role-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.role-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.role-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.role-card--active {
+  border-color: rgba(236, 72, 153, 0.5);
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.role-card-icon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.role-card--active .role-card-icon {
+  color: var(--accent-3);
+}
+
+.role-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.role-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.role-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 </style>
