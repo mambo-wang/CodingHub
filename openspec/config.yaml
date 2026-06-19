@@ -1,4 +1,4 @@
-schema: sdd-with-ui-design
+schema: sdd-with-ui-design-unittest
 context: |
   Project: CodingHub
   Tech Stack: Java 17, Spring Boot 3.2.5, Gradle, Vue 3.4.21, TypeScript, Vite
