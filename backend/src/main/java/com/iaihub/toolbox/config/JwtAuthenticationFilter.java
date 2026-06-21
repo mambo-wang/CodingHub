@@ -38,31 +38,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
-                Claims claims = jwtUtil.parseToken(jwt);
-                String tokenType = (String) claims.get("type");
+            if (StringUtils.hasText(jwt)) {
+                // Distinguish expired token from invalid token
+                if (!jwtUtil.validateToken(jwt)) {
+                    if (jwtUtil.isTokenExpired(jwt)) {
+                        // Mark as 401 so authenticationEntryPoint returns correct status
+                        log.warn("Expired JWT token for request: {} {}", request.getMethod(), request.getRequestURI());
+                        request.setAttribute("jwt.expired", true);
+                    }
+                    // Expired or invalid — continue without authentication
+                } else {
+                    Claims claims = jwtUtil.parseToken(jwt);
+                    String tokenType = (String) claims.get("type");
 
-                if (!"access".equals(tokenType)) {
-                    log.warn("Invalid token type: {}", tokenType);
-                    filterChain.doFilter(request, response);
-                    return;
-                }
+                    if (!"access".equals(tokenType)) {
+                        log.warn("Invalid token type: {}", tokenType);
+                    } else {
+                        Long userId = Long.parseLong(claims.getSubject());
+                        Optional<User> userOpt = userRepository.findById(userId);
 
-                Long userId = Long.parseLong(claims.getSubject());
-                Optional<User> userOpt = userRepository.findById(userId);
+                        if (userOpt.isPresent()) {
+                            User user = userOpt.get();
 
-                if (userOpt.isPresent()) {
-                    User user = userOpt.get();
-
-                    // Only set authentication for ACTIVE users
-                    if (user.getStatus() == AccountStatus.ACTIVE) {
-                        List<SimpleGrantedAuthority> authorities = List.of(
-                                new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
-                        );
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(user, null, authorities);
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                            // Only set authentication for ACTIVE users
+                            if (user.getStatus() == AccountStatus.ACTIVE) {
+                                List<SimpleGrantedAuthority> authorities = List.of(
+                                        new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
+                                );
+                                UsernamePasswordAuthenticationToken authentication =
+                                        new UsernamePasswordAuthenticationToken(user, null, authorities);
+                                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                                SecurityContextHolder.getContext().setAuthentication(authentication);
+                            }
+                        }
                     }
                 }
             }

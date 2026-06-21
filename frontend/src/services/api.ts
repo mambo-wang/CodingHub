@@ -39,6 +39,19 @@ const redirectToLogin = () => {
   })
 }
 
+// Token refresh state — prevents concurrent refresh requests
+let isRefreshing = false
+let refreshSubscribers: Array<(success: boolean) => void> = []
+
+const subscribeTokenRefresh = (callback: (success: boolean) => void) => {
+  refreshSubscribers.push(callback)
+}
+
+const onTokenRefreshed = (success: boolean) => {
+  refreshSubscribers.forEach(cb => cb(success))
+  refreshSubscribers = []
+}
+
 // Response interceptor for error handling and token refresh
 api.interceptors.response.use(
   (response) => {
@@ -47,11 +60,28 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const status = error.response?.status
     const authStore = useAuthStore()
-    const originalRequest = error.config
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    // 401: try token refresh, then redirect to login
-    if (status === 401) {
-      if (authStore.refreshToken && originalRequest) {
+    // 401: token expired or invalid — try refresh, then redirect
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      // If another request is already refreshing, queue this one
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((success) => {
+            if (success && originalRequest) {
+              originalRequest.headers.Authorization = `Bearer ${authStore.accessToken}`
+              resolve(api(originalRequest))
+            } else {
+              reject(error)
+            }
+          })
+        })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      if (authStore.refreshToken) {
         try {
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
             headers: {
@@ -63,18 +93,23 @@ api.interceptors.response.use(
             const newAccessToken = response.data.data.accessToken
             authStore.setTokens(newAccessToken, authStore.refreshToken!)
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+            isRefreshing = false
+            onTokenRefreshed(true)
             return api(originalRequest)
           }
         } catch {
-          // Token refresh failed, redirect to login
+          // Refresh token also invalid — fall through to logout
         }
       }
+
+      // Refresh failed — notify all queued requests and redirect
+      isRefreshing = false
+      onTokenRefreshed(false)
       redirectToLogin()
       return Promise.reject(error)
     }
 
-    // 403: no permission - don't redirect to login
-    // Skip generic message for auth endpoints (login handles its own error display)
+    // 403: genuine permission denied (user lacks required role)
     if (status === 403) {
       const requestUrl = originalRequest?.url || ''
       if (!requestUrl.includes('/auth/')) {

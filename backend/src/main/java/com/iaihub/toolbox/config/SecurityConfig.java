@@ -1,5 +1,6 @@
 package com.iaihub.toolbox.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,6 +56,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/stream").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/comments").permitAll()
+                // Unified interactions - likes and comments (public, supports anonymous)
+                .requestMatchers(HttpMethod.GET, "/api/v1/interactions/likes/status").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/interactions/likes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/interactions/comments").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/interactions/comments").permitAll()
+                // Unified interactions - comments delete and favorites (require auth)
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/interactions/comments/**").authenticated()
+                .requestMatchers("/api/v1/interactions/favorites/**").authenticated()
+                .requestMatchers("/api/v1/interactions/favorites").authenticated()
                 // Admin approval endpoints (SUPER_ADMIN only)
                 .requestMatchers("/api/v1/admin/approve/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/v1/admin/reject/**").hasRole("SUPER_ADMIN")
@@ -68,6 +78,18 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/tools/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().permitAll()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    Boolean expired = (Boolean) request.getAttribute("jwt.expired");
+                    if (Boolean.TRUE.equals(expired)) {
+                        response.getWriter().write("{\"error\":\"TOKEN_EXPIRED\",\"message\":\"Token has expired\"}");
+                    } else {
+                        response.getWriter().write("{\"error\":\"TOKEN_REQUIRED\",\"message\":\"Authentication required\"}");
+                    }
+                })
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
