@@ -139,13 +139,13 @@ erDiagram
     VIDEO ||--o{ VIDEO_LIKE : likes
     VIDEO ||--o{ VIDEO_FAVORITE : favorites
 
-    USER { bigint id PK, string email UK, string password, string username, string role, string accountStatus, string avatar }
-    TOOL { bigint id PK, string name, bigint categoryId FK, text content, bigint uploaderId FK, string version, string status, int viewCount, decimal score }
-    CATEGORY { bigint id PK, string name UK, string icon, int sortOrder }
-    TOOL_FILE { bigint id PK, bigint toolId FK, string filePath, string originalName, long fileSize, string contentType }
-    FORUM_POST { bigint id PK, string title, text content, bigint authorId FK, bigint categoryId FK, string status, int viewCount, decimal score }
-    FORUM_COMMENT { bigint id PK, bigint postId FK, bigint authorId, bigint parentId, bigint rootId, text content }
-    VIDEO { bigint id PK, string title, bigint uploaderId FK, string videoPath, string coverPath, string status, int viewCount }
+    USER { int id PK, string email UK, string password, string username, string role, string accountStatus, string avatar }
+    TOOL { int id PK, string name, int categoryId FK, string content, int uploaderId FK, string version, string status, int viewCount, float score }
+    CATEGORY { int id PK, string name UK, string icon, int sortOrder }
+    TOOL_FILE { int id PK, int toolId FK, string filePath, string originalName, int fileSize, string contentType }
+    FORUM_POST { int id PK, string title, string content, int authorId FK, int categoryId FK, string status, int viewCount, float score }
+    FORUM_COMMENT { int id PK, int postId FK, int authorId, int parentId, int rootId, string content }
+    VIDEO { int id PK, string title, int uploaderId FK, string videoPath, string coverPath, string status, int viewCount }
 ```
 
 ## 5. API 设计
