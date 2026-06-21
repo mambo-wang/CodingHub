@@ -5,6 +5,7 @@ import com.iaihub.toolbox.exception.DuplicateResourceException;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Category;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolComment;
 import com.iaihub.toolbox.model.ToolLike;
@@ -100,23 +101,25 @@ public class ToolService {
     }
 
     @Transactional
-    public ToolDetailDTO updateTool(Long id, UpdateToolRequest request, Long userId) {
+    public ToolDetailDTO updateTool(Long id, UpdateToolRequest request, User user) {
         Tool tool = toolRepository.findByIdAndStatusNormal(id)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
 
-        if (!tool.getUploader().getId().equals(userId)) {
-            throw new ForbiddenException("您只能编辑自己的工具");
+        boolean isOwner = tool.getUploader().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
         String newName = request.getName() != null ? request.getName() : tool.getName();
         Long newCategoryId = request.getCategoryId() != null ? request.getCategoryId() : tool.getCategory().getId();
 
-        // Check for duplicate name (excluding current tool, same category)
+        // Check for duplicate name (excluding current tool, same category) - use original uploader's ID
         boolean nameChanged = !tool.getName().equals(newName);
         boolean categoryChanged = !tool.getCategory().getId().equals(newCategoryId);
         if (nameChanged || categoryChanged) {
             if (toolRepository.existsByNameAndUploaderIdAndCategoryIdAndStatusAndIdNot(
-                    newName, userId, newCategoryId, Tool.Status.NORMAL, id)) {
+                    newName, tool.getUploader().getId(), newCategoryId, Tool.Status.NORMAL, id)) {
                 throw new DuplicateResourceException("您已在该分类下上传过同名工具");
             }
         }
@@ -127,7 +130,6 @@ public class ToolService {
             tool.setCategory(category);
         }
 
-        // Sanitize content for XSS
         if (request.getContent() != null) {
             String sanitizedContent = XssSanitizer.sanitize(request.getContent());
             tool.setContent(sanitizedContent);
@@ -141,22 +143,21 @@ public class ToolService {
         }
 
         tool = toolRepository.save(tool);
-
         return toDetailDTO(tool);
     }
 
     @Transactional
-    public void deleteTool(Long id, Long userId) {
+    public void deleteTool(Long id, User user) {
         Tool tool = toolRepository.findByIdAndStatusNormal(id)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
 
-        if (!tool.getUploader().getId().equals(userId)) {
-            throw new ForbiddenException("您只能删除自己的工具");
+        boolean isOwner = tool.getUploader().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
-        // Cleanup tool files before marking tool as deleted
         toolFileService.cleanupToolFiles(id);
-
         tool.setStatus(Tool.Status.DELETED);
         toolRepository.save(tool);
     }
@@ -279,6 +280,7 @@ public class ToolService {
                 .version(tool.getVersion())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
+                .uploaderId(tool.getUploader().getId())
                 .uploaderUsername(tool.getUploader().getUsername())
                 .uploaderNickname(tool.getUploader().getNickname())
                 .createdAt(tool.getCreatedAt())

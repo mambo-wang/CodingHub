@@ -18,6 +18,7 @@ public class ToolSummaryDTO {
     private String version;
     private String categoryName;
     private String categoryIcon;
+    private Long uploaderId;
     private String uploaderUsername;
     private String uploaderNickname;
     private LocalDateTime createdAt;

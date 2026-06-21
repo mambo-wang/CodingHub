@@ -7,6 +7,7 @@ import com.iaihub.toolbox.dto.video.VideoResponse;
 import com.iaihub.toolbox.dto.video.VideoUpdateRequest;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
@@ -76,6 +77,7 @@ class VideoServiceTest {
                 .username("testuser")
                 .nickname("Test User")
                 .password("password")
+                .role(Role.USER)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -364,7 +366,7 @@ class VideoServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
         // When
-        VideoResponse result = videoService.updateVideo(1L, request, 1L);
+        VideoResponse result = videoService.updateVideo(1L, request, testUser);
 
         // Then
         assertNotNull(result);
@@ -389,11 +391,13 @@ class VideoServiceTest {
                 .description("Hacked description")
                 .build();
 
+        User nonOwnerUser = User.builder().id(2L).username("other").role(Role.USER).build();
+
         when(videoRepository.findByIdAndStatus(1L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
 
-        // When & Then — user 2 tries to update
+        // When & Then — non-owner tries to update
         assertThrows(ForbiddenException.class, () ->
-                videoService.updateVideo(1L, request, 2L)
+                videoService.updateVideo(1L, request, nonOwnerUser)
         );
 
         // Verify save was NOT called
@@ -411,7 +415,7 @@ class VideoServiceTest {
 
         // When & Then
         assertThrows(ResourceNotFoundException.class, () ->
-                videoService.updateVideo(999L, request, 1L)
+                videoService.updateVideo(999L, request, testUser)
         );
     }
 
@@ -432,7 +436,7 @@ class VideoServiceTest {
         when(videoRepository.findByIdAndStatus(1L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
 
         // When
-        videoService.deleteVideo(1L, 1L);
+        videoService.deleteVideo(1L, testUser);
 
         // Then
         assertEquals(VideoStatus.DELETED, video.getStatus());
@@ -449,11 +453,13 @@ class VideoServiceTest {
                 .status(VideoStatus.NORMAL)
                 .build();
 
+        User nonOwnerUser = User.builder().id(2L).username("other").role(Role.USER).build();
+
         when(videoRepository.findByIdAndStatus(1L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
 
-        // When & Then — user 2 tries to delete
+        // When & Then — non-owner tries to delete
         assertThrows(ForbiddenException.class, () ->
-                videoService.deleteVideo(1L, 2L)
+                videoService.deleteVideo(1L, nonOwnerUser)
         );
 
         // Verify status was NOT changed
@@ -467,7 +473,56 @@ class VideoServiceTest {
 
         // When & Then
         assertThrows(ResourceNotFoundException.class, () ->
-                videoService.deleteVideo(999L, 1L)
+                videoService.deleteVideo(999L, testUser)
         );
+    }
+
+    @Test
+    void deleteVideo_adminCanDelete() {
+        Video video = Video.builder()
+                .id(1L)
+                .title("别人的视频")
+                .uploaderId(1L)
+                .status(VideoStatus.NORMAL)
+                .build();
+
+        User adminUser = User.builder().id(99L).username("admin").role(Role.ADMIN).build();
+
+        when(videoRepository.findByIdAndStatus(1L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
+
+        assertDoesNotThrow(() -> videoService.deleteVideo(1L, adminUser));
+        assertEquals(VideoStatus.DELETED, video.getStatus());
+    }
+
+    @Test
+    void updateVideo_adminCanUpdate() {
+        Video video = Video.builder()
+                .id(1L)
+                .title("别人的视频")
+                .description("旧描述")
+                .uploaderId(1L)
+                .status(VideoStatus.NORMAL)
+                .viewCount(0)
+                .likeCount(0)
+                .commentCount(0)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        User adminUser = User.builder().id(99L).username("admin").role(Role.ADMIN).build();
+
+        VideoUpdateRequest request = VideoUpdateRequest.builder()
+                .title("管理员更新")
+                .description("管理员更新的描述")
+                .build();
+
+        when(videoRepository.findByIdAndStatus(1L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
+        when(videoRepository.save(any(Video.class))).thenReturn(video);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        VideoResponse result = assertDoesNotThrow(() ->
+                videoService.updateVideo(1L, request, adminUser));
+        assertNotNull(result);
+        assertEquals("管理员更新", video.getTitle());
     }
 }

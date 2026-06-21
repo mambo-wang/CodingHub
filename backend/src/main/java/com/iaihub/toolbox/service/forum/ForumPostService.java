@@ -5,6 +5,7 @@ import com.iaihub.toolbox.dto.forum.ForumPostDTO;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.forum.*;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.forum.*;
 import com.iaihub.toolbox.repository.UserRepository;
@@ -77,12 +78,14 @@ public class ForumPostService {
     }
 
     @Transactional
-    public ForumPostDTO updatePost(Long postId, Long userId, ForumPostCreateRequest request) {
+    public ForumPostDTO updatePost(Long postId, User user, ForumPostCreateRequest request) {
         ForumPost post = postRepository.findById(postId)
             .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + postId));
 
-        if (!post.getAuthorId().equals(userId)) {
-            throw new ForbiddenException("无权修改此帖子");
+        boolean isOwner = post.getAuthorId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
         post.setTitle(request.title());
@@ -94,12 +97,14 @@ public class ForumPostService {
     }
 
     @Transactional
-    public void deletePost(Long postId, Long userId) {
+    public void deletePost(Long postId, User user) {
         ForumPost post = postRepository.findById(postId)
             .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + postId));
 
-        if (!post.getAuthorId().equals(userId)) {
-            throw new ForbiddenException("无权删除此帖子");
+        boolean isOwner = post.getAuthorId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
         post.setStatus(ForumPostStatus.DELETED);

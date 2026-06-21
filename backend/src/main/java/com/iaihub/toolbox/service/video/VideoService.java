@@ -7,6 +7,7 @@ import com.iaihub.toolbox.dto.video.VideoResponse;
 import com.iaihub.toolbox.dto.video.VideoUpdateRequest;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
@@ -147,12 +148,14 @@ public class VideoService {
      * 5.4 更新视频信息
      */
     @Transactional
-    public VideoResponse updateVideo(Long id, VideoUpdateRequest request, Long userId) {
+    public VideoResponse updateVideo(Long id, VideoUpdateRequest request, User user) {
         Video video = videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
                 .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
 
-        if (!video.getUploaderId().equals(userId)) {
-            throw new ForbiddenException("您只能编辑自己的视频");
+        boolean isOwner = video.getUploaderId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
         if (request.getTitle() != null) {
@@ -170,12 +173,14 @@ public class VideoService {
      * 5.5 删除视频（软删除）
      */
     @Transactional
-    public void deleteVideo(Long id, Long userId) {
+    public void deleteVideo(Long id, User user) {
         Video video = videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
                 .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
 
-        if (!video.getUploaderId().equals(userId)) {
-            throw new ForbiddenException("您只能删除自己的视频");
+        boolean isOwner = video.getUploaderId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
         }
 
         video.setStatus(VideoStatus.DELETED);

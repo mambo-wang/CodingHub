@@ -8,6 +8,7 @@ import com.iaihub.toolbox.exception.DuplicateResourceException;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Category;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.CategoryRepository;
@@ -71,6 +72,7 @@ class ToolServiceTest {
                 .username("testuser")
                 .nickname("Test User")
                 .password("password")
+                .role(Role.USER)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -355,11 +357,10 @@ class ToolServiceTest {
                 .build();
 
         when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(existingTool));
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(testCategory));
         when(toolRepository.save(any(Tool.class))).thenReturn(existingTool);
 
         // When
-        ToolDetailDTO result = toolService.updateTool(1L, request, 1L);
+        ToolDetailDTO result = toolService.updateTool(1L, request, testUser);
 
         // Then
         assertNotNull(result);
@@ -394,11 +395,10 @@ class ToolServiceTest {
                 .build();
 
         when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(existingTool));
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(testCategory));
         when(toolRepository.save(any(Tool.class))).thenReturn(existingTool);
 
         // When
-        ToolDetailDTO result = toolService.updateTool(1L, request, 1L);
+        ToolDetailDTO result = toolService.updateTool(1L, request, testUser);
 
         // Then
         assertNotNull(result);
@@ -432,11 +432,10 @@ class ToolServiceTest {
                 .build();
 
         when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(existingTool));
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(testCategory));
         when(toolRepository.save(any(Tool.class))).thenReturn(existingTool);
 
         // When
-        ToolDetailDTO result = toolService.updateTool(1L, request, 1L);
+        ToolDetailDTO result = toolService.updateTool(1L, request, testUser);
 
         // Then
         assertEquals("1.0.0", result.getVersion());
@@ -459,6 +458,8 @@ class ToolServiceTest {
                 .status(Tool.Status.NORMAL)
                 .build();
 
+        User nonOwnerUser = User.builder().id(1L).username("testuser").role(Role.USER).build();
+
         UpdateToolRequest request = UpdateToolRequest.builder()
                 .name("别人的工具")
                 .categoryId(1L)
@@ -470,7 +471,7 @@ class ToolServiceTest {
 
         // When & Then
         assertThrows(ForbiddenException.class, () ->
-                toolService.updateTool(1L, request, 1L)
+                toolService.updateTool(1L, request, nonOwnerUser)
         );
     }
 
@@ -500,7 +501,7 @@ class ToolServiceTest {
 
         // When & Then
         assertThrows(DuplicateResourceException.class, () ->
-                toolService.updateTool(1L, request, 1L)
+                toolService.updateTool(1L, request, testUser)
         );
     }
 
@@ -518,7 +519,7 @@ class ToolServiceTest {
 
         // When & Then
         assertThrows(ResourceNotFoundException.class, () ->
-                toolService.updateTool(999L, request, 1L)
+                toolService.updateTool(999L, request, testUser)
         );
     }
 
@@ -588,7 +589,7 @@ class ToolServiceTest {
         when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(tool));
 
         // When
-        toolService.deleteTool(1L, 1L);
+        toolService.deleteTool(1L, testUser);
 
         // Then
         verify(toolFileService).cleanupToolFiles(1L);
@@ -609,11 +610,96 @@ class ToolServiceTest {
                 .status(Tool.Status.NORMAL)
                 .build();
 
+        User nonOwnerUser = User.builder().id(1L).username("testuser").role(Role.USER).build();
+
         when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(tool));
 
         // When & Then
         assertThrows(ForbiddenException.class, () ->
-                toolService.deleteTool(1L, 1L)
+                toolService.deleteTool(1L, nonOwnerUser)
+        );
+    }
+
+    @Test
+    void deleteTool_shouldAllowAdminToDeleteOthersTool() {
+        Tool tool = Tool.builder()
+                .id(1L)
+                .name("别人的工具")
+                .category(testCategory)
+                .content("内容")
+                .version("1.0.0")
+                .uploader(User.builder().id(2L).username("other").role(Role.USER).build())
+                .status(Tool.Status.NORMAL)
+                .build();
+
+        User adminUser = User.builder()
+                .id(99L)
+                .username("admin")
+                .role(Role.ADMIN)
+                .build();
+
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(tool));
+
+        // Should NOT throw - admin can delete anyone's tool
+        assertDoesNotThrow(() -> toolService.deleteTool(1L, adminUser));
+        assertEquals(Tool.Status.DELETED, tool.getStatus());
+    }
+
+    @Test
+    void updateTool_shouldAllowAdminToUpdateOthersTool() {
+        Tool existingTool = Tool.builder()
+                .id(1L)
+                .name("别人的工具")
+                .category(testCategory)
+                .content("旧内容")
+                .version("1.0.0")
+                .uploader(User.builder().id(2L).username("other").role(Role.USER).build())
+                .status(Tool.Status.NORMAL)
+                .build();
+
+        User adminUser = User.builder()
+                .id(99L)
+                .username("admin")
+                .role(Role.ADMIN)
+                .build();
+
+        UpdateToolRequest request = UpdateToolRequest.builder()
+                .name("别人的工具")
+                .categoryId(1L)
+                .content("管理员更新的内容")
+                .version("2.0.0")
+                .build();
+
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(existingTool));
+        when(toolRepository.save(any(Tool.class))).thenReturn(existingTool);
+
+        // Should NOT throw - admin can update anyone's tool
+        ToolDetailDTO result = assertDoesNotThrow(() -> toolService.updateTool(1L, request, adminUser));
+        assertNotNull(result);
+    }
+
+    @Test
+    void deleteTool_shouldThrowForbiddenWhenNotOwnerAndNotAdmin() {
+        Tool tool = Tool.builder()
+                .id(1L)
+                .name("别人的工具")
+                .category(testCategory)
+                .content("内容")
+                .version("1.0.0")
+                .uploader(User.builder().id(2L).username("other").role(Role.USER).build())
+                .status(Tool.Status.NORMAL)
+                .build();
+
+        User regularUser = User.builder()
+                .id(3L)
+                .username("regular")
+                .role(Role.USER)
+                .build();
+
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(tool));
+
+        assertThrows(ForbiddenException.class, () ->
+                toolService.deleteTool(1L, regularUser)
         );
     }
 }

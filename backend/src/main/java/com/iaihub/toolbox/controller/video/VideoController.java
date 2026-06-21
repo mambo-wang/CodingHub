@@ -97,7 +97,7 @@ public class VideoController {
             @Valid @RequestBody VideoUpdateRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        VideoResponse response = videoService.updateVideo(id, request, currentUser.getId());
+        VideoResponse response = videoService.updateVideo(id, request, currentUser);
         return ResponseEntity.ok(ApiResponse.success("更新成功", response));
     }
 
@@ -109,7 +109,7 @@ public class VideoController {
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
 
-        videoService.deleteVideo(id, currentUser.getId());
+        videoService.deleteVideo(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
     }
 

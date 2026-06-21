@@ -53,7 +53,7 @@ public class ToolController {
             @Valid @RequestBody UpdateToolRequest request,
             @AuthenticationPrincipal User currentUser) {
 
-        ToolDetailDTO tool = toolService.updateTool(id, request, currentUser.getId());
+        ToolDetailDTO tool = toolService.updateTool(id, request, currentUser);
         return ResponseEntity.ok(ApiResponse.success("更新成功", tool));
     }
 
@@ -62,7 +62,7 @@ public class ToolController {
             @PathVariable Long id,
             @AuthenticationPrincipal User currentUser) {
 
-        toolService.deleteTool(id, currentUser.getId());
+        toolService.deleteTool(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
     }
 

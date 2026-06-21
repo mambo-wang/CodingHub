@@ -3,8 +3,10 @@ package com.iaihub.toolbox.mcp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iaihub.toolbox.dto.PostSearchResult;
 import com.iaihub.toolbox.dto.ToolSearchResult;
+import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.service.McpSearchService;
 import com.iaihub.toolbox.service.ToolFileService;
@@ -299,7 +301,12 @@ public class IaihubToolHandler {
                     .password(password)
                     .build();
             LoginResponse loginResult = userService.login(loginRequest);
-            Long userId = loginResult.getUser().getId();
+            // Build a User object with the necessary fields for permission check
+            User mcpUser = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
 
             // 如果未传版本号，自动递增
             if (version == null || version.isBlank()) {
@@ -320,7 +327,7 @@ public class IaihubToolHandler {
                     .version(version)
                     .build();
 
-            ToolDetailDTO updated = toolService.updateTool(toolId, request, userId);
+            ToolDetailDTO updated = toolService.updateTool(toolId, request, mcpUser);
             String json = toJson(updated);
             return successResult(json);
         } catch (Exception e) {

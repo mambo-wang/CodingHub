@@ -77,8 +77,7 @@ public class ForumPostController {
             @PathVariable Long id,
             @RequestBody @Valid ForumPostCreateRequest request) {
 
-        Long userId = user.getId();
-        ForumPostDTO updated = postService.updatePost(id, userId, request);
+        ForumPostDTO updated = postService.updatePost(id, user, request);
 
         return ResponseEntity.ok(updated);
     }
@@ -88,8 +87,7 @@ public class ForumPostController {
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
 
-        Long userId = user.getId();
-        postService.deletePost(id, userId);
+        postService.deletePost(id, user);
 
         return ResponseEntity.noContent().build();
     }
