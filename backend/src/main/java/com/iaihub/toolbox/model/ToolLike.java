@@ -9,13 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tool_like", uniqueConstraints = {
+@Table(name = "tool_like_deprecated", uniqueConstraints = {
     @UniqueConstraint(name = "uk_tool_like_tool_user", columnNames = {"tool_id", "user_id"})
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Deprecated
 public class ToolLike {
 
     @Id

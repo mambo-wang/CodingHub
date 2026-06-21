@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
+@Deprecated
 public interface ToolCommentRepository extends JpaRepository<ToolComment, Long> {
     List<ToolComment> findByToolIdOrderByCreatedAtDesc(Long toolId);
 }

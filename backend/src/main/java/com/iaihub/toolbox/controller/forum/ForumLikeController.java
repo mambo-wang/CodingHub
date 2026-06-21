@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 
+@Deprecated
 @RestController
 @RequestMapping("/api/forum/likes")
 @RequiredArgsConstructor

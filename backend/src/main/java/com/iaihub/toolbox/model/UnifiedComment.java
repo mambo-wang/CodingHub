@@ -1,4 +1,4 @@
-package com.iaihub.toolbox.model.forum;
+package com.iaihub.toolbox.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,29 +9,31 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "forum_comment_deprecated", indexes = {
-    @Index(name = "idx_forum_comment_post", columnList = "post_id"),
-    @Index(name = "idx_forum_comment_root", columnList = "root_id")
+@Table(name = "unified_comment", indexes = {
+    @Index(name = "idx_comment_target", columnList = "target_type, target_id, created_at"),
+    @Index(name = "idx_comment_root", columnList = "root_id")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Deprecated
-public class ForumComment {
+public class UnifiedComment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "post_id", nullable = false)
-    private Long postId;
+    @Column(name = "target_type", nullable = false, length = 20)
+    private String targetType;
 
-    @Column(name = "author_id")
-    private Long authorId;
+    @Column(name = "target_id", nullable = false)
+    private Long targetId;
 
-    @Column(name = "author_name", length = 50)
-    private String authorName;
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Column(name = "user_name", length = 50)
+    private String userName;
 
     @Column(name = "parent_id")
     private Long parentId;

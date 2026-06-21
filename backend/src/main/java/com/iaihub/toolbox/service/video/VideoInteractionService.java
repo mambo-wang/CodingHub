@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
+@Deprecated
 @Service
 @RequiredArgsConstructor
 public class VideoInteractionService {

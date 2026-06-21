@@ -9,13 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "video_like", uniqueConstraints = {
+@Table(name = "video_like_deprecated", uniqueConstraints = {
     @UniqueConstraint(name = "uk_video_like", columnNames = {"video_id", "user_id"})
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Deprecated
 public class VideoLike {
 
     @Id

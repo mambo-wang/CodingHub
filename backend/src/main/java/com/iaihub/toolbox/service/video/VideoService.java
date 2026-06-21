@@ -12,8 +12,8 @@ import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UserRepository;
-import com.iaihub.toolbox.repository.video.VideoFavoriteRepository;
-import com.iaihub.toolbox.repository.video.VideoLikeRepository;
+import com.iaihub.toolbox.repository.UnifiedLikeRepository;
+import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,8 +40,8 @@ public class VideoService {
 
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
-    private final VideoLikeRepository videoLikeRepository;
-    private final VideoFavoriteRepository videoFavoriteRepository;
+    private final UnifiedLikeRepository unifiedLikeRepository;
+    private final UnifiedFavoriteRepository unifiedFavoriteRepository;
     private final VideoStorageConfig videoStorageConfig;
 
     /**
@@ -137,8 +137,8 @@ public class VideoService {
         boolean userLiked = false;
         boolean userFavorited = false;
         if (currentUserId != null) {
-            userLiked = videoLikeRepository.existsByVideoIdAndUserId(id, currentUserId);
-            userFavorited = videoFavoriteRepository.existsByVideoIdAndUserId(id, currentUserId);
+            userLiked = unifiedLikeRepository.existsByTargetTypeAndTargetIdAndUserId("VIDEO", id, currentUserId);
+            userFavorited = unifiedFavoriteRepository.existsByUserIdAndTargetTypeAndTargetId(currentUserId, "VIDEO", id);
         }
 
         return toVideoResponse(video, userLiked, userFavorited);

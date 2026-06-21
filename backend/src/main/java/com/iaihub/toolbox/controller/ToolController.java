@@ -3,7 +3,6 @@ package com.iaihub.toolbox.controller;
 import com.iaihub.toolbox.dto.*;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.service.ToolService;
-import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -64,52 +63,5 @@ public class ToolController {
 
         toolService.deleteTool(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
-    }
-
-    @PostMapping("/{id}/like")
-    public ResponseEntity<ApiResponse<Void>> likeTool(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User currentUser) {
-
-        toolService.likeTool(id, currentUser.getId());
-        return ResponseEntity.ok(ApiResponse.success("点赞成功", null));
-    }
-
-    @DeleteMapping("/{id}/like")
-    public ResponseEntity<ApiResponse<Void>> unlikeTool(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User currentUser) {
-
-        toolService.unlikeTool(id, currentUser.getId());
-        return ResponseEntity.ok(ApiResponse.success("取消点赞成功", null));
-    }
-
-    @GetMapping("/{id}/like-status")
-    public ResponseEntity<ApiResponse<Boolean>> getLikeStatus(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User currentUser) {
-        
-        if (currentUser == null) {
-            return ResponseEntity.ok(ApiResponse.success(false));
-        }
-        boolean isLiked = toolService.isLikedByUser(id, currentUser.getId());
-        return ResponseEntity.ok(ApiResponse.success(isLiked));
-    }
-
-    @PostMapping("/{id}/comments")
-    public ResponseEntity<ApiResponse<ToolCommentDto>> addComment(
-            @PathVariable Long id,
-            @Valid @RequestBody CreateCommentRequest request,
-            @AuthenticationPrincipal User currentUser) {
-
-        ToolCommentDto comment = toolService.addComment(id, currentUser.getId(), request.getContent());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created("评论成功", comment));
-    }
-
-    @GetMapping("/{id}/comments")
-    public ResponseEntity<ApiResponse<List<ToolCommentDto>>> getComments(@PathVariable Long id) {
-        List<ToolCommentDto> comments = toolService.getComments(id);
-        return ResponseEntity.ok(ApiResponse.success(comments));
     }
 }

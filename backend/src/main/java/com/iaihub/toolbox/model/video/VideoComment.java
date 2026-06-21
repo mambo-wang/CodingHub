@@ -9,13 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "video_comment", indexes = {
+@Table(name = "video_comment_deprecated", indexes = {
     @Index(name = "idx_video_comment_video", columnList = "video_id, created_at DESC")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Deprecated
 public class VideoComment {
 
     @Id

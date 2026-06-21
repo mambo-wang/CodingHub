@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+@Deprecated
 public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Long> {
 
     Optional<PostFavorite> findByUserIdAndPostId(Long userId, Long postId);

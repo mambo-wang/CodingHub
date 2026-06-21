@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+@Deprecated
 public interface VideoLikeRepository extends JpaRepository<VideoLike, Long> {
 
     Optional<VideoLike> findByVideoIdAndUserId(Long videoId, Long userId);

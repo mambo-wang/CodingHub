@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+@Deprecated
 public interface ForumLikeRepository extends JpaRepository<ForumLike, Long> {
 
     Optional<ForumLike> findByUserIdAndPostId(Long userId, Long postId);

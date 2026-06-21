@@ -9,13 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tool_comment", indexes = {
+@Table(name = "tool_comment_deprecated", indexes = {
     @Index(name = "idx_tool_comment_tool", columnList = "tool_id")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Deprecated
 public class ToolComment {
 
     @Id

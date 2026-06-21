@@ -7,12 +7,8 @@ import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Category;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
-import com.iaihub.toolbox.model.ToolComment;
-import com.iaihub.toolbox.model.ToolLike;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.CategoryRepository;
-import com.iaihub.toolbox.repository.ToolCommentRepository;
-import com.iaihub.toolbox.repository.ToolLikeRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.util.XssSanitizer;
@@ -22,8 +18,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.hibernate.Hibernate;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -31,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class ToolService {
 
     private final ToolRepository toolRepository;
-    private final ToolCommentRepository toolCommentRepository;
-    private final ToolLikeRepository toolLikeRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ToolFileService toolFileService;
@@ -163,96 +155,12 @@ public class ToolService {
     }
 
     @Transactional
-    public void likeTool(Long toolId, Long userId) {
-        Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
-                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
-
-        // 检查是否已点赞
-        if (toolLikeRepository.existsByToolIdAndUserId(toolId, userId)) {
-            return; // 已点赞，直接返回
-        }
-
-        // 保存点赞记录
-        ToolLike like = ToolLike.builder()
-                .toolId(toolId)
-                .userId(userId)
-                .build();
-        toolLikeRepository.save(like);
-
-        // 更新工具统计
-        tool.incrementLikeCount();
-        toolRepository.save(tool);
-    }
-
-    @Transactional
-    public void unlikeTool(Long toolId, Long userId) {
-        Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
-                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
-
-        if (toolLikeRepository.findByToolIdAndUserId(toolId, userId).isPresent()) {
-            toolLikeRepository.deleteByToolIdAndUserId(toolId, userId);
-            tool.decrementLikeCount();
-            toolRepository.save(tool);
-        }
-    }
-
-    @Transactional
-    public boolean isLikedByUser(Long toolId, Long userId) {
-        return toolLikeRepository.existsByToolIdAndUserId(toolId, userId);
-    }
-
-    @Transactional
     public void incrementViewCount(Long toolId) {
         Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
 
         tool.incrementViewCount();
         toolRepository.save(tool);
-    }
-
-    @Transactional
-    public ToolCommentDto addComment(Long toolId, Long userId, String content) {
-        Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
-                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-
-        // 保存评论
-        ToolComment comment = ToolComment.builder()
-                .toolId(toolId)
-                .userId(userId)
-                .content(XssSanitizer.sanitize(content))
-                .build();
-        comment = toolCommentRepository.save(comment);
-
-        // 更新工具评论数
-        tool.incrementCommentCount();
-        toolRepository.save(tool);
-
-        return ToolCommentDto.builder()
-                .id(comment.getId())
-                .content(comment.getContent())
-                .username(user.getUsername())
-                .createdAt(comment.getCreatedAt())
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ToolCommentDto> getComments(Long toolId) {
-        return toolCommentRepository.findByToolIdOrderByCreatedAtDesc(toolId).stream()
-                .map(comment -> {
-                    String username = userRepository.findById(comment.getUserId())
-                            .map(User::getUsername)
-                            .orElse("未知用户");
-                    return ToolCommentDto.builder()
-                            .id(comment.getId())
-                            .content(comment.getContent())
-                            .username(username)
-                            .createdAt(comment.getCreatedAt())
-                            .build();
-                })
-                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

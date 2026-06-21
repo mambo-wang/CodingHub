@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+@Deprecated
 public interface VideoFavoriteRepository extends JpaRepository<VideoFavorite, Long> {
 
     Page<VideoFavorite> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);

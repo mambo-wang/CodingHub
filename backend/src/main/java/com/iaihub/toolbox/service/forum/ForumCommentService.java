@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Deprecated
 @Service
 @RequiredArgsConstructor
 public class ForumCommentService {
