@@ -1,4 +1,4 @@
-.PHONY: help backend frontend db init install run stop lint lint-arch lint-quality lint-deps
+.PHONY: help backend frontend db init install run stop build test clean lint lint-arch lint-quality lint-deps
 
 help:
 	@echo "CodingHub - Makefile"
@@ -10,6 +10,11 @@ help:
 	@echo "  make frontend - 启动前端服务 (5173端口)"
 	@echo "  make run      - 同时启动后端和前端"
 	@echo "  make stop     - 停止所有服务"
+	@echo ""
+	@echo "构建命令:"
+	@echo "  make build    - 编译后端（不运行测试）"
+	@echo "  make test     - 运行后端测试"
+	@echo "  make clean    - 清理构建产物"
 	@echo ""
 	@echo "Lint 命令 (Agent 基础设施):"
 	@echo "  make lint         - 运行所有 lint 检查"
@@ -186,6 +191,16 @@ stop:
 	@pkill -f "gradlew bootRun" 2>/dev/null || true
 	@pkill -f "vite" 2>/dev/null || true
 	@echo "所有服务已停止"
+
+build:
+	cd backend && ./gradlew build -x test
+
+test:
+	cd backend && ./gradlew test
+
+clean:
+	cd backend && ./gradlew clean
+	cd frontend && rm -rf node_modules dist
 
 # Lint 命令 (Agent 基础设施)
 lint: lint-arch lint-quality lint-deps

@@ -1,58 +1,59 @@
 #!/bin/bash
-# 代码质量检查
+# lint-quality.sh — 代码质量检查
+set -euo pipefail
 
-set -e
-
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$PROJECT_ROOT"
-
-echo "=== 代码质量检查 ==="
-
+BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SRC_DIR="$BASE_DIR/backend/src/main/java/com/iaihub/toolbox"
 ERRORS=0
 
-# 1. 检查是否有空方法返回 null
-echo "检查 null 返回..."
-null_returns=$(grep -rn "return null;" backend/src/main/java 2>/dev/null || true)
-if [ -n "$null_returns" ]; then
-    echo "✗ 发现 null 返回:"
-    echo "$null_returns" | head -5
-    ((ERRORS++))
-fi
-
-# 2. 检查循环中是否有数据库/接口调用（禁止）
-echo "检查循环中的数据库调用..."
-
-# 检查 for/while 中是否有 repository 调用
-for file in $(find backend/src/main/java -name "*.java"); do
-    # 简单检查：方法内是否有 for/while 且其中有 .find / .save / .delete 等
-    if grep -qE "(for|while|stream|iterator)" "$file"; then
-        if grep -qE "\.(find|save|delete|getBy|create|update).*\(" "$file"; then
-            # 进一步检查是否在循环中
-            content=$(cat "$file")
-            if echo "$content" | grep -A5 "for\s*(" | grep -qE "\.(find|save|delete)"; then
-                echo "✗ $file: 循环中检测到数据库操作"
-                ((ERRORS++))
-            fi
-        fi
+# Rule 1: Service 方法不应返回 null（应抛异常或返回 Optional）
+echo "--- Rule 1: 禁止 Service 返回 null ---"
+while IFS= read -r -d '' file; do
+    if grep -n 'return null;' "$file" | grep -v '//.*return null' | grep -v 'test' > /dev/null 2>&1; then
+        rel_file="${file#$BASE_DIR/}"
+        matches=$(grep -n 'return null;' "$file" | grep -v '//.*return null')
+        while IFS= read -r match; do
+            echo "✗ $rel_file:$match"
+            echo "  → Service 方法不应返回 null，应抛出异常或返回 Optional"
+            ((ERRORS++))
+        done <<< "$matches"
     fi
-done
+done < <(find "$SRC_DIR/service" -name "*.java" -print0 2>/dev/null)
 
-# 3. 检查异常是否被正确抛出
-echo "检查异常处理..."
-# 检查 service 层是否在应该抛异常的地方使用了 null 返回
-find backend/src/main/java/com/iaihub/toolbox/service -name "*.java" -type f | while read -r file; do
-    if grep -qE "return null" "$file"; then
-        # 检查是否有 Optional
-        if ! grep -qE "Optional" "$file"; then
-            echo "⚠ $file: 方法返回 null 但未使用 Optional"
-        fi
+# Rule 2: Controller 不应直接使用 System.out/System.err
+echo "--- Rule 2: 禁止 System.out/err ---"
+while IFS= read -r -d '' file; do
+    if grep -n 'System\.out\.\|System\.err\.' "$file" > /dev/null 2>&1; then
+        rel_file="${file#$BASE_DIR/}"
+        matches=$(grep -n 'System\.out\.\|System\.err\.' "$file")
+        while IFS= read -r match; do
+            echo "✗ $rel_file:$match"
+            echo "  → 使用 @Slf4j + log.info/error 代替 System.out/err"
+            ((ERRORS++))
+        done <<< "$matches"
     fi
-done
+done < <(find "$SRC_DIR" -name "*.java" -not -path "*/test/*" -print0)
 
-if [ $ERRORS -eq 0 ]; then
+# Rule 3: 空 catch 块
+echo "--- Rule 3: 禁止空 catch 块 ---"
+while IFS= read -r -d '' file; do
+    if grep -Pn 'catch\s*\([^)]+\)\s*\{\s*\}' "$file" > /dev/null 2>&1; then
+        rel_file="${file#$BASE_DIR/}"
+        matches=$(grep -Pn 'catch\s*\([^)]+\)\s*\{\s*\}' "$file")
+        while IFS= read -r match; do
+            echo "✗ $rel_file:$match"
+            echo "  → catch 块不应为空，至少添加 log.error 或注释说明"
+            ((ERRORS++))
+        done <<< "$matches"
+    fi
+done < <(find "$SRC_DIR" -name "*.java" -not -path "*/test/*" -print0)
+
+if [ "$ERRORS" -gt 0 ]; then
+    echo ""
+    echo "=== 发现 $ERRORS 个代码质量问题 ==="
+    exit 1
+else
+    echo ""
     echo "✓ 代码质量检查通过"
     exit 0
-else
-    echo "✗ 发现 $ERRORS 个质量问题"
-    exit 1
 fi

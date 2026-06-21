@@ -1,12 +1,14 @@
 {
-  "version": "2.0",
+  "version": "2.1",
   "name": "ai-tool-square",
-  "description": "CodingHub - 全栈 Web 应用",
+  "description": "CodingHub - 全栈 Web 应用 (工具广场 + 论坛 + 视频)",
 
   "runtime": {
     "java": "17",
     "node": "18+",
-    "database": "mysql:8.x"
+    "database": "mysql:8.x",
+    "gradle": "8.x (wrapper included)",
+    "framework": "Spring Boot 3.2.5"
   },
 
   "services": {
@@ -28,7 +30,11 @@
       "MYSQL_PASSWORD=root"
     ],
     "optional": [
-      "AIHUB_FILE_BASE_DIR=/Users/kirito/aifiles  # 文件存储根目录，默认 ~/.aifiles"
+      "AIHUB_FILE_BASE_DIR=/Users/kirito/aifiles  # 文件存储根目录，默认 ~/.aifiles",
+      "VITE_API_BASE_URL=http://localhost:8082     # 前端 API 基础地址",
+      "VITE_BACKEND_PORT=8082                      # 前端 MCP 代理端口",
+      "BACKEND_PORT=8082                           # Vite 开发代理目标端口",
+      "JAVA_HOME=/path/to/jdk-17                   # JDK 17 路径"
     ]
   },
 
@@ -54,11 +60,51 @@
   },
 
   "secrets": [
-    "MYSQL_PASSWORD"
+    "MYSQL_PASSWORD",
+    "JWT_SECRET"
   ],
 
+  "jwt": {
+    "library": "jjwt 0.12.5",
+    "secret_env": "JWT_SECRET",
+    "header": "Authorization",
+    "prefix": "Bearer",
+    "password_encoding": "BCrypt"
+  },
+
+  "file_upload": {
+    "base_dir_env": "AIHUB_FILE_BASE_DIR",
+    "base_dir_default": "~/.aifiles",
+    "api_endpoint": "/api/files/upload",
+    "max_file_size": "10MB"
+  },
+
   "database_schema": {
-    "tables": ["user", "category", "tool", "tool_file"],
+    "tables": {
+      "core": [
+        "user",
+        "category",
+        "tool",
+        "tool_file",
+        "tool_like",
+        "tool_comment"
+      ],
+      "forum": [
+        "forum_category",
+        "forum_tag",
+        "forum_post",
+        "forum_post_tag",
+        "forum_comment",
+        "forum_like",
+        "post_favorite"
+      ],
+      "video": [
+        "video",
+        "video_comment",
+        "video_like",
+        "video_favorite"
+      ]
+    },
     "init_sql_path": "Makefile (make db 命令)"
   },
 
@@ -66,6 +112,8 @@
     "后端使用 Spring Boot 3.2.5 + Spring Security + JPA",
     "前端使用 Vue 3 + TypeScript + Vite + Pinia",
     "认证使用 JWT (jjwt 0.12.5)",
-    "密码使用 BCrypt 加密存储"
+    "密码使用 BCrypt 加密存储",
+    "文件上传存储在 AIHUB_FILE_BASE_DIR 指定的本地目录",
+    "所有用户输入通过 XssSanitizer.sanitize() 过滤"
   ]
 }

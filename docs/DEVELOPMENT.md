@@ -66,9 +66,16 @@ iaihub/
 │       ├── repository/   # 数据访问
 │       ├── model/        # 实体
 │       ├── dto/          # 数据传输对象
-│       ├── config/       # 配置
-│       ├── exception/    # 异常
-│       └── util/         # 工具
+│       ├── config/       # 配置 (Security, JWT, Upload)
+│       ├── exception/    # 异常处理
+│       ├── util/         # 工具类
+│       └── modules/      # 功能模块
+│           ├── tool/        # 工具广场 (核心)
+│           ├── forum/       # 论坛模块
+│           ├── video/       # 视频模块
+│           ├── mcp/         # MCP 协议集成
+│           ├── admin/       # 后台管理
+│           └── overview/    # 概览/统计
 ├── frontend/          # Vue 3 前端
 │   └── src/
 │       ├── components/   # 组件
@@ -79,7 +86,8 @@ iaihub/
 │       └── types/        # 类型定义
 ├── docs/               # 文档
 ├── harness/            # Agent 基础设施
-└── Makefile           # 快速命令
+├── specs/              # 功能规格说明
+└── Makefile            # 快速命令
 ```
 
 ## 4. API 开发
@@ -184,12 +192,124 @@ controller (L4) → service (L3) → repository (L2) → model (L1)
 
 ## 7. 测试
 
+### 7.1 后端测试
+
 ```bash
-# 后端测试
+# 运行全部后端测试
 cd backend && ./gradlew test
 
-# 前端测试 (如果有)
-cd frontend && npm run test
+# 运行指定测试类
+cd backend && ./gradlew test --tests "com.iaihub.toolbox.service.ToolServiceTest"
+
+# 运行指定测试方法
+cd backend && ./gradlew test --tests "com.iaihub.toolbox.service.ToolServiceTest.testCreateTool"
+```
+
+测试报告位于 `backend/build/reports/tests/test/`。
+
+### 7.2 前端类型检查
+
+```bash
+# TypeScript 类型检查（不生成输出文件）
+cd frontend && npx vue-tsc --noEmit
+```
+
+> **注意**：前端目前使用 `vue-tsc` 做静态类型检查，无独立测试框架。如需添加单元测试，可引入 Vitest。
+
+---
+
+## 8. 环境变量
+
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `MYSQL_PASSWORD` | 是 | `root` | MySQL 数据库密码 |
+| `JAVA_HOME` | 是 | — | JDK 17 安装路径，如 `/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home` |
+| `AIHUB_FILE_BASE_DIR` | 否 | `~/.aifiles` | 后端文件上传存储的根目录 |
+| `VITE_API_BASE_URL` | 否 | `http://localhost:8082` | 前端请求后端 API 的基础地址 |
+| `VITE_BACKEND_PORT` | 否 | `8082` | 前端 MCP 代理连接的后端端口 |
+| `BACKEND_PORT` | 否 | `8082` | Vite 开发代理 (proxy) 的目标端口 |
+| `JWT_SECRET` | 否 | 自动生成 | JWT 签名密钥，生产环境必须显式设置 |
+
+环境变量可通过以下方式设置：
+
+```bash
+# 方式一：导出到 shell
+export MYSQL_PASSWORD=root
+export AIHUB_FILE_BASE_DIR=/Users/kirito/aifiles
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+
+# 方式二：通过 .env 文件（前端 Vite 自动加载）
+# frontend/.env.local
+VITE_API_BASE_URL=http://localhost:8082
+VITE_BACKEND_PORT=8082
+```
+
+---
+
+## 9. 常见问题排查
+
+### 9.1 端口冲突
+
+**现象**：启动时报 `Address already in use` 或 `Port 8082/5173 is already in use`。
+
+```bash
+# 查看占用端口的进程
+lsof -i :8082
+lsof -i :5173
+
+# 终止占用进程
+kill -9 <PID>
+
+# 或通过 make 停止所有服务
+make stop
+```
+
+### 9.2 MySQL 连接失败
+
+**现象**：后端启动报 `Communications link failure` 或 `Access denied`。
+
+```bash
+# 确认 MySQL 服务正在运行
+mysqladmin ping -h localhost -u root -proot
+
+# 确认数据库存在
+mysql -u root -proot -e "SHOW DATABASES LIKE 'ai_tool_square'"
+
+# 重新初始化数据库
+make db
+```
+
+> 如果 MySQL 通过 Homebrew 安装，使用 `brew services start mysql` 启动。
+
+### 9.3 Gradle Daemon 问题
+
+**现象**：`./gradlew` 命令卡住、内存溢出或报 `Daemon startup failed`。
+
+```bash
+# 停止所有 Gradle Daemon
+cd backend && ./gradlew --stop
+
+# 强制清理 Daemon 进程
+pkill -f "GradleDaemon"
+
+# 使用 --no-daemon 模式运行（CI 环境推荐）
+cd backend && ./gradlew bootRun --no-daemon
+```
+
+### 9.4 Node.js 版本不兼容
+
+**现象**：前端启动报 `SyntaxError`、`ERR_UNSUPPORTED` 或 Vite 编译失败。
+
+```bash
+# 检查当前 Node.js 版本
+node -v   # 需要 >= 18
+
+# 使用 nvm 切换版本
+nvm install 18
+nvm use 18
+
+# 清理并重新安装依赖
+cd frontend && rm -rf node_modules package-lock.json && npm install
 ```
 
 ---

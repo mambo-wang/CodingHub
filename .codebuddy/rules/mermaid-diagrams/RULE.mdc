@@ -1,0 +1,52 @@
+---
+description: 生成文档时，流程图、架构图、时序图使用 Mermaid 语法
+globs:
+  - "**/*.md"
+alwaysApply: false
+---
+
+# Mermaid 图表规范
+
+当你在 Markdown 文档中需要展示流程、架构、时序、状态机、类关系等图形化内容时，**必须使用 Mermaid 语法**，不要用纯文本、ASCII art 或其他格式。
+
+## 支持的图表类型
+
+根据内容选择合适的 Mermaid 图表类型：
+
+- **流程图** (`flowchart TD` 或 `flowchart LR`)：业务流程、数据流、决策树
+- **时序图** (`sequenceDiagram`)：API 调用链、用户交互流程
+- **状态图** (`stateDiagram-v2`)：状态机、审批流程
+- **类图** (`classDiagram`)：类关系、数据模型
+- **ER 图** (`erDiagram`)：数据库表关系
+- **甘特图** (`gantt`)：项目计划、时间线
+
+## 格式要求
+
+1. 使用 ` ```mermaid ` 代码块包裹
+2. 节点 ID 使用英文，显示文本可以用中文
+3. 保持图表简洁，单个图表节点不超过 20 个
+4. 复杂流程拆分为多个子图
+
+## 示例
+
+```mermaid
+flowchart TD
+    A[用户提交] --> B{审核状态}
+    B -->|通过| C[发布上线]
+    B -->|拒绝| D[退回修改]
+    D --> A
+```
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant B as 后端
+    participant DB as 数据库
+    U->>F: 点击提交
+    F->>B: POST /api/submit
+    B->>DB: INSERT
+    DB-->>B: OK
+    B-->>F: 200
+    F-->>U: 提示成功
+```
