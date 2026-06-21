@@ -48,7 +48,6 @@ const handleLogout = () => {
 
 const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
-const goToMyTools = () => router.push('/me/tools')
 const goToProfile = () => { router.push('/me/profile'); closeMenu() }
 const goToForum = () => router.push('/forum')
 const goToOverview = () => router.push('/overview')
@@ -91,7 +90,6 @@ const goToUserList = () => router.push('/admin/users')
         <button class="nav-btn" @click="goToAbout">关于</button>
 
         <template v-if="isLoggedIn">
-          <button class="nav-btn" @click="goToMyTools">我的工具</button>
           <button v-if="isSuperAdmin" class="nav-btn" @click="goToApprovals">审批管理</button>
           <button v-if="isAdmin" class="nav-btn" @click="goToUserList">用户管理</button>
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
@@ -116,12 +114,6 @@ const goToUserList = () => router.push('/admin/users')
                 <button class="user-dropdown-item" role="menuitem" @click="goToProfile">
                   <User :size="16" aria-hidden="true" />
                   <span>个人资料</span>
-                </button>
-                <button class="user-dropdown-item" role="menuitem" @click="goToMyTools">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
-                  </svg>
-                  <span>我的工具</span>
                 </button>
                 <button class="user-dropdown-item" role="menuitem" @click="goToForum">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

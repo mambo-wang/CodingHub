@@ -52,7 +52,7 @@ const fetchTool = async () => {
     const tool: ToolDetail = response.data.data
 
     if (tool.uploaderId !== authStore.user?.id) {
-      router.push('/me/tools')
+      router.push('/')
       return
     }
 
@@ -65,7 +65,7 @@ const fetchTool = async () => {
 
     previewContent.value = md.render(form.value.content || '')
   } catch {
-    router.push('/me/tools')
+    router.push('/')
   } finally { loading.value = false }
 }
 
@@ -143,7 +143,7 @@ const handleSubmit = async () => {
     }
 
     ElMessage.success('工具更新成功')
-    router.push('/me/tools')
+    router.push('/')
   } catch (error) { console.error('Update failed:', error) }
   finally { submitting.value = false; uploading.value = false }
 }
@@ -152,7 +152,7 @@ onMounted(async () => {
   if (!authStore.isLoggedIn) { router.push('/login'); return }
 
   toolId.value = Number(route.params.id)
-  if (!toolId.value) { router.push('/me/tools'); return }
+  if (!toolId.value) { router.push('/'); return }
 
   await fetchCategories()
   await fetchTool()
@@ -294,7 +294,7 @@ onMounted(async () => {
           </div>
 
           <div class="form-actions">
-            <button type="button" class="cancel-btn" @click="router.push('/me/tools')">取消</button>
+            <button type="button" class="cancel-btn" @click="router.push('/')">取消</button>
             <button type="submit" class="submit-btn" :disabled="submitting || uploading || !form.name || !form.content">
               <span v-if="submitting || uploading" class="loading-spinner"></span>
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
