@@ -1,6 +1,6 @@
 <template>
   <div class="my-posts-page">
-    <SidebarNav />
+    <GeneralizedSidebar :items="sidebarItems" />
     <div class="main-content">
       <div class="page-header">
         <h1>我的帖子</h1>
@@ -38,14 +38,22 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { LayoutGrid, FileText, Bookmark } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import PostCard from '@/components/forum/PostCard.vue';
-import SidebarNav from '@/components/forum/SidebarNav.vue';
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 
 const router = useRouter();
 const forumStore = useForumStore();
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '帖子列表', icon: LayoutGrid, to: '/forum' },
+  { label: '我的帖子', icon: FileText, to: '/forum/my-posts' },
+  { label: '我的收藏', icon: Bookmark, to: '/forum/my-favorites' }
+];
+
 const { posts, loading } = storeToRefs(forumStore);
 
 const dialogVisible = ref(false);

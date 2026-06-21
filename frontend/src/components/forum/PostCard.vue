@@ -65,7 +65,7 @@ import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil } from '@luci
 import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { postFavoriteApi } from '@/services/api';
+import { interactionApi } from '@/services/interaction';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
 const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean; editable?: boolean }>(), {
@@ -119,9 +119,9 @@ const toggleFavorite = async () => {
     return;
   }
   try {
-    await postFavoriteApi.toggleFavorite(props.post.id);
-    props.post.isFavorited = !props.post.isFavorited;
-    props.post.favoriteCount = (props.post.favoriteCount || 0) + (props.post.isFavorited ? 1 : -1);
+    const result = await interactionApi.toggleFavorite('FORUM_POST', props.post.id);
+    props.post.isFavorited = result.favorited;
+    props.post.favoriteCount = (props.post.favoriteCount || 0) + (result.favorited ? 1 : -1);
   } catch (error) {
     console.error('Toggle favorite failed:', error);
   }

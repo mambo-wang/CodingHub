@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Upload, VideoOff, Loader2 } from '@lucide/vue'
+import { Upload, VideoOff, Loader2, LayoutGrid, Video, Bookmark } from '@lucide/vue'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
 import VideoCard from '@/components/video/VideoCard.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue'
 import { ElMessage } from 'element-plus'
 import type { VideoListItem } from '@/types/video'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '微课列表', icon: LayoutGrid, to: '/videos' },
+  { label: '我的微课', icon: Video, to: '/videos/my-videos', requiresAuth: true },
+  { label: '我的收藏', icon: Bookmark, to: '/videos/my-favorites', requiresAuth: true }
+]
 
 const videos = ref<VideoListItem[]>([])
 const loading = ref(true)
@@ -104,6 +111,8 @@ const handleDialogCancel = () => {
       <div class="bg-orb bg-orb-2"></div>
     </div>
 
+    <GeneralizedSidebar :items="sidebarItems" />
+
     <div class="app-container">
       <div class="page-header animate-fade-in-up">
         <div>
@@ -180,7 +189,11 @@ const handleDialogCancel = () => {
 .video-list-page {
   position: relative;
   min-height: calc(100vh - 80px);
-  padding: 32px 0 80px;
+  padding: 32px 24px 80px;
+  display: flex;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-bg {

@@ -1,26 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Eye, Heart, MessageCircle, Bookmark, Loader2, Clock, Pencil, Trash2 } from '@lucide/vue'
+import { ArrowLeft, Eye, Heart, MessageCircle, Loader2, Clock, Pencil, Trash2 } from '@lucide/vue'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
 import VideoPlayer from '@/components/video/VideoPlayer.vue'
-import VideoCommentList from '@/components/video/VideoCommentList.vue'
+import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
+import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
+import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import type { CommentResponse } from '@/services/interaction'
 import type { VideoDetail } from '@/types/video'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const isLoggedIn = computed(() => authStore.isLoggedIn)
-
 const video = ref<VideoDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
-const likeLoading = ref(false)
-const favoriteLoading = ref(false)
 
 const canModify = computed(() => {
   if (!authStore.isLoggedIn || !video.value) return false
@@ -116,34 +115,7 @@ onMounted(async () => {
   }
 })
 
-const handleToggleLike = async () => {
-  if (!video.value || likeLoading.value || !isLoggedIn.value) return
-  likeLoading.value = true
-  try {
-    const result = await videoService.toggleLike(video.value.id)
-    video.value.userLiked = result.liked
-    video.value.likeCount = result.likeCount
-  } catch (e) {
-    console.error('Toggle like failed:', e)
-  } finally {
-    likeLoading.value = false
-  }
-}
-
-const handleToggleFavorite = async () => {
-  if (!video.value || favoriteLoading.value || !isLoggedIn.value) return
-  favoriteLoading.value = true
-  try {
-    const result = await videoService.toggleFavorite(video.value.id)
-    video.value.userFavorited = result.favorited
-  } catch (e) {
-    console.error('Toggle favorite failed:', e)
-  } finally {
-    favoriteLoading.value = false
-  }
-}
-
-const handleCommentAdded = () => {
+const handleCommentAdded = (_comment: CommentResponse) => {
   if (video.value) {
     video.value.commentCount += 1
   }
@@ -220,28 +192,17 @@ const goBack = () => {
           </div>
 
           <div class="video-actions">
-            <button
-              v-if="isLoggedIn"
-              class="action-btn"
-              :class="{ 'liked': video.userLiked }"
-              :disabled="likeLoading"
-              @click="handleToggleLike"
-              :aria-label="video.userLiked ? '取消点赞' : '点赞'"
-            >
-              <Heart :size="18" :fill="video.userLiked ? 'currentColor' : 'none'" aria-hidden="true" />
-              <span>{{ video.userLiked ? '已赞' : '点赞' }}</span>
-            </button>
-            <button
-              v-if="isLoggedIn"
-              class="action-btn"
-              :class="{ 'favorited': video.userFavorited }"
-              :disabled="favoriteLoading"
-              @click="handleToggleFavorite"
-              :aria-label="video.userFavorited ? '取消收藏' : '收藏'"
-            >
-              <Bookmark :size="18" :fill="video.userFavorited ? 'currentColor' : 'none'" aria-hidden="true" />
-              <span>{{ video.userFavorited ? '已收藏' : '收藏' }}</span>
-            </button>
+            <UnifiedLikeButton
+              target-type="VIDEO"
+              :target-id="video.id"
+              :initial-liked="video.userLiked"
+              :initial-count="video.likeCount"
+            />
+            <UnifiedFavoriteButton
+              target-type="VIDEO"
+              :target-id="video.id"
+              :initial-favorited="video.userFavorited"
+            />
             <button v-if="canModify" class="action-btn" @click="handleEdit">
               <Pencil :size="16" />
               编辑
@@ -259,7 +220,11 @@ const goBack = () => {
         </div>
 
         <div class="comment-section glass-card">
-          <VideoCommentList :video-id="video.id" @comment-added="handleCommentAdded" />
+          <UnifiedCommentSection
+            target-type="VIDEO"
+            :target-id="video.id"
+            @comment-added="handleCommentAdded"
+          />
         </div>
       </div>
     </div>

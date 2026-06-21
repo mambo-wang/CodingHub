@@ -3,14 +3,15 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
-import { Eye, ThumbsUp, MessageCircle, Pencil, Trash2 } from '@lucide/vue'
+import { Eye, MessageCircle, Pencil, Trash2 } from '@lucide/vue'
 import api from '@/services/api'
 import { fileUploadApi } from '@/services/api'
-import { getToolDetail, getComments, type Comment } from '@/services/tool'
+import { getToolDetail } from '@/services/tool'
 import type { ToolDetail, ToolFile } from '@/types'
-import ToolLikeButton from '@/components/ToolLikeButton.vue'
-import ToolCommentList from '@/components/ToolCommentList.vue'
-import ToolCommentEditor from '@/components/ToolCommentEditor.vue'
+import type { CommentResponse } from '@/services/interaction'
+import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
+import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue'
+import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -25,9 +26,6 @@ const loading = ref(false)
 const error = ref(false)
 const files = ref<ToolFile[]>([])
 const filesLoading = ref(false)
-const comments = ref<Comment[]>([])
-const commentsLoading = ref(false)
-const showLoginTip = ref(false)
 
 const canModify = computed(() => {
   if (!authStore.isLoggedIn || !tool.value) return false
@@ -124,18 +122,6 @@ const fetchTool = async () => {
   }
 }
 
-const fetchComments = async () => {
-  if (!route.params.id) return
-  commentsLoading.value = true
-  try {
-    comments.value = await getComments(Number(route.params.id))
-  } catch {
-    comments.value = []
-  } finally {
-    commentsLoading.value = false
-  }
-}
-
 const fetchFiles = async () => {
   if (!route.params.id) return
   filesLoading.value = true
@@ -160,21 +146,14 @@ const goBack = () => router.push('/')
 onMounted(() => {
   fetchTool()
   fetchFiles()
-  fetchComments()
 })
 
-const handleLikeUpdate = (data: { isLiked: boolean; likeCount: number }) => {
-  toolStats.value.isLiked = data.isLiked
+const handleLikeUpdate = (data: { liked: boolean; likeCount: number }) => {
+  toolStats.value.isLiked = data.liked
   toolStats.value.likeCount = data.likeCount
 }
 
-const handleRequireLogin = () => {
-  showLoginTip.value = true
-  setTimeout(() => { showLoginTip.value = false }, 3000)
-}
-
-const handleCommentSubmitted = (comment: Comment) => {
-  comments.value.unshift(comment)
+const handleCommentAdded = (_comment: CommentResponse) => {
   toolStats.value.commentCount++
 }
 </script>
@@ -277,12 +256,16 @@ const handleCommentSubmitted = (comment: Comment) => {
 
           <!-- Action Bar -->
           <div class="action-bar">
-            <ToolLikeButton
-              :tool-id="tool.id"
+            <UnifiedLikeButton
+              target-type="TOOL"
+              :target-id="tool.id"
               :initial-liked="toolStats.isLiked"
               :initial-count="toolStats.likeCount"
               @update="handleLikeUpdate"
-              @require-login="handleRequireLogin"
+            />
+            <UnifiedFavoriteButton
+              target-type="TOOL"
+              :target-id="tool.id"
             />
             <div class="tool-actions">
               <button v-if="canModify" class="action-btn edit-btn" @click="handleEdit">
@@ -296,11 +279,6 @@ const handleCommentSubmitted = (comment: Comment) => {
             </div>
           </div>
 
-          <!-- Login Tip -->
-          <div v-if="showLoginTip" class="login-tip">
-            请先登录后再进行操作
-          </div>
-
           <!-- Content -->
           <div class="tool-content">
             <div class="markdown-body" v-html="renderedContent"></div>
@@ -308,11 +286,10 @@ const handleCommentSubmitted = (comment: Comment) => {
 
           <!-- Comments Section -->
           <div class="comments-section">
-            <ToolCommentList :comments="comments" />
-            <ToolCommentEditor
-              :tool-id="tool.id"
-              @submitted="handleCommentSubmitted"
-              @require-login="handleRequireLogin"
+            <UnifiedCommentSection
+              target-type="TOOL"
+              :target-id="tool.id"
+              @comment-added="handleCommentAdded"
             />
           </div>
         </div>

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { LayoutGrid, Wrench, Bookmark } from '@lucide/vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import type { ToolSummary, PageResponse } from '@/types'
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '工具列表', icon: LayoutGrid, to: '/' },
+  { label: '我的工具', icon: Wrench, to: '/me/tools' },
+  { label: '我的收藏', icon: Bookmark, to: '/me/favorites' }
+]
 
 const tools = ref<ToolSummary[]>([])
 const loading = ref(false)
@@ -36,6 +44,11 @@ const handleDelete = async (toolId: number, toolName: string) => {
   finally { deletingId.value = null }
 }
 
+const handlePageChange = (page: number) => {
+  pagination.value.page = page - 1
+  fetchMyTools()
+}
+
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 
 onMounted(() => {
@@ -47,6 +60,8 @@ onMounted(() => {
 <template>
   <div class="my-tools-page">
     <div class="page-bg"><div class="bg-orb bg-orb-1"></div><div class="bg-orb bg-orb-2"></div></div>
+
+    <GeneralizedSidebar :items="sidebarItems" />
 
     <div class="app-container">
       <div class="page-header animate-fade-in-up">
@@ -137,12 +152,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.my-tools-page { min-height: calc(100vh - 60px); padding: 40px 20px 80px; position: relative; }
+.my-tools-page { min-height: calc(100vh - 60px); padding: 40px 20px 80px; position: relative; display: flex; gap: 24px; max-width: 1200px; margin: 0 auto; }
 .page-bg { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.3; }
 .bg-orb-1 { width: 400px; height: 400px; background: rgba(139, 92, 246, 0.3); top: -100px; right: -100px; }
 .bg-orb-2 { width: 300px; height: 300px; background: rgba(6, 182, 212, 0.2); bottom: 100px; left: -100px; }
-.app-container { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+.app-container { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .page-header { text-align: center; margin-bottom: 24px; }
 .header-actions { display: flex; justify-content: center; margin-bottom: 24px; }
 .page-title { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 36px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }

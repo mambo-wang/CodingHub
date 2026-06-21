@@ -43,14 +43,15 @@
         </div>
 
         <div class="post-actions">
-          <button @click="handleLike" :class="['action-btn', { liked: hasLiked }]">
-            <Heart :size="18" :fill="hasLiked ? 'currentColor' : 'none'" />
-            {{ hasLiked ? '已赞' : '点赞' }}
-          </button>
-          <button @click="handleFavorite" :class="['action-btn', { liked: hasFavorited }]">
-            <Bookmark :size="18" :fill="hasFavorited ? 'currentColor' : 'none'" />
-            {{ hasFavorited ? '已收藏' : '收藏' }}
-          </button>
+          <UnifiedLikeButton
+            target-type="FORUM_POST"
+            :target-id="post.id"
+            :initial-count="post.likeCount"
+          />
+          <UnifiedFavoriteButton
+            target-type="FORUM_POST"
+            :target-id="post.id"
+          />
           <button
             v-if="canModify"
             class="action-btn"
@@ -76,18 +77,10 @@
       </div>
 
       <div class="comments-section">
-        <CommentList
-          :comments="comments"
-          @reply="handleReply"
-          @like="handleCommentLike"
-        />
-
-        <CommentEditor
-          :isLoggedIn="isLoggedIn"
-          :parentId="replyToId"
-          :replyingToName="replyingToName"
-          @submit="handleCommentSubmit"
-          @cancel="handleCancelReply"
+        <UnifiedCommentSection
+          target-type="FORUM_POST"
+          :target-id="Number(route.params.id)"
+          @comment-added="handleCommentAdded"
         />
       </div>
 
@@ -111,17 +104,16 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Loader2, Pencil } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Trash2, Loader2, Pencil } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
 import PostContent from '@/components/forum/PostContent.vue';
-import CommentList from '@/components/forum/CommentList.vue';
-import CommentEditor from '@/components/forum/CommentEditor.vue';
+import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue';
+import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue';
+import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
-import forumService from '@/services/forum';
-import { postFavoriteApi } from '@/services/api';
-import type { ForumComment } from '@/types/forum';
+import type { CommentResponse } from '@/services/interaction';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
 const route = useRoute();
@@ -130,7 +122,6 @@ const forumStore = useForumStore();
 const authStore = useAuthStore();
 
 const { currentPost: post } = storeToRefs(forumStore);
-const { isLoggedIn } = storeToRefs(authStore);
 
 const canModify = computed(() => {
   if (!authStore.isLoggedIn || !post.value) return false;
@@ -142,10 +133,6 @@ const handleEdit = () => {
 };
 
 const loading = ref(true);
-const comments = ref<ForumComment[]>([]);
-const replyToId = ref<number | undefined>();
-const hasLiked = ref(false);
-const hasFavorited = ref(false);
 const dialogVisible = ref(false);
 const deleting = ref(false);
 
@@ -160,69 +147,19 @@ const categoryColors: Record<number, string> = {
 const getCategoryBg = (categoryId: number) =>
   `${categoryColors[categoryId] || '#7C3AED'}15`;
 
-const replyingToName = computed(() => {
-  if (!replyToId.value) return undefined;
-  const comment = comments.value.find(c => c.id === replyToId.value);
-  return comment?.authorName || undefined;
-});
-
 onMounted(async () => {
   const postId = Number(route.params.id);
-
   try {
     await forumStore.fetchPostById(postId);
-    comments.value = await forumService.getComments(postId);
   } finally {
     loading.value = false;
   }
 });
 
-const handleLike = async () => {
-  if (!post.value) return;
-
-  try {
-    await forumService.like({ postId: post.value.id });
-    hasLiked.value = true;
-    post.value.likeCount += 1;
-  } catch (e) {}
-};
-
-const handleFavorite = async () => {
-  if (!post.value) return;
-
-  try {
-    await postFavoriteApi.toggleFavorite(post.value.id);
-    hasFavorited.value = !hasFavorited.value;
-  } catch (e) {}
-};
-
-const handleReply = (commentId: number) => {
-  replyToId.value = commentId;
-};
-
-const handleCancelReply = () => {
-  replyToId.value = undefined;
-};
-
-const handleCommentLike = async (commentId: number) => {
-  try {
-    await forumService.like({ commentId });
-  } catch (e) {}
-};
-
-const handleCommentSubmit = async (data: { content: string; authorName?: string; parentId?: number }) => {
-  if (!post.value) return;
-
-  try {
-    const newComment = await forumService.createComment(post.value.id, {
-      content: data.content,
-      parentId: data.parentId,
-      authorName: data.authorName
-    });
-
-    comments.value.push(newComment);
-    replyToId.value = undefined;
-  } catch (e) {}
+const handleCommentAdded = (_comment: CommentResponse) => {
+  if (post.value) {
+    post.value.commentCount += 1;
+  }
 };
 
 const handleDeleteClick = () => {

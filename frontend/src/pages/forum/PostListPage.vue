@@ -1,6 +1,6 @@
 <template>
   <div class="post-list-page">
-    <SidebarNav />
+    <GeneralizedSidebar :items="sidebarItems" />
 
     <div class="main-content">
       <div class="page-header">
@@ -78,19 +78,25 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { Plus, Search, ChevronLeft, ChevronRight } from '@lucide/vue';
+import { Plus, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText, Bookmark } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
 import forumService from '@/services/forum';
 import PostCard from '@/components/forum/PostCard.vue';
 import CategoryFilter from '@/components/forum/CategoryFilter.vue';
-import SidebarNav from '@/components/forum/SidebarNav.vue';
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const forumStore = useForumStore();
 const authStore = useAuthStore();
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '帖子列表', icon: LayoutGrid, to: '/forum' },
+  { label: '我的帖子', icon: FileText, to: '/forum/my-posts', requiresAuth: true },
+  { label: '我的收藏', icon: Bookmark, to: '/forum/my-favorites', requiresAuth: true }
+];
 
 const { posts, categories, pagination, loading } = storeToRefs(forumStore);
 const { isLoggedIn } = storeToRefs(authStore);

@@ -1,6 +1,6 @@
 <template>
   <div class="my-favorites-page">
-    <SidebarNav />
+    <GeneralizedSidebar :items="sidebarItems" />
     <div class="main-content">
       <div class="page-header">
         <h1>我的收藏</h1>
@@ -22,19 +22,27 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { postFavoriteApi } from '@/services/api';
+import { LayoutGrid, FileText, Bookmark } from '@lucide/vue';
+import { interactionApi } from '@/services/interaction';
 import PostCard from '@/components/forum/PostCard.vue';
-import SidebarNav from '@/components/forum/SidebarNav.vue';
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue';
 import type { ForumPost } from '@/types/forum';
 
 const router = useRouter();
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '帖子列表', icon: LayoutGrid, to: '/forum' },
+  { label: '我的帖子', icon: FileText, to: '/forum/my-posts', requiresAuth: true },
+  { label: '我的收藏', icon: Bookmark, to: '/forum/my-favorites' }
+];
+
 const favorites = ref<ForumPost[]>([]);
 const loading = ref(true);
 
 onMounted(async () => {
   try {
-    const res = await postFavoriteApi.getMyFavorites();
-    favorites.value = res.data || [];
+    const data = await interactionApi.getMyFavorites('FORUM_POST', 0, 100);
+    favorites.value = data.content || [];
   } finally {
     loading.value = false;
   }

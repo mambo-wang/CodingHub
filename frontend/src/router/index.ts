@@ -26,6 +26,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/me/favorites',
+    name: 'MyToolFavorites',
+    component: () => import('@/pages/MyToolFavoritesPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/me/profile',
     name: 'Profile',
     component: () => import('@/pages/ProfilePage.vue'),
@@ -117,6 +123,18 @@ const routes: RouteRecordRaw[] = [
     path: '/videos/:id',
     name: 'VideoDetail',
     component: () => import('@/pages/video/VideoDetailPage.vue')
+  },
+  {
+    path: '/videos/my-videos',
+    name: 'MyVideos',
+    component: () => import('@/pages/video/MyVideosPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/videos/my-favorites',
+    name: 'MyVideoFavorites',
+    component: () => import('@/pages/video/MyVideoFavoritesPage.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/admin/approvals',

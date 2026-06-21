@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pencil, Trash2 } from '@lucide/vue'
+import { Pencil, Trash2, LayoutGrid, Wrench, Bookmark } from '@lucide/vue'
 import api from '@/services/api'
 import type { ToolSummary, Category, PageResponse } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const sidebarItems: SidebarNavItem[] = [
+  { label: '工具列表', icon: LayoutGrid, to: '/' },
+  { label: '我的工具', icon: Wrench, to: '/me/tools', requiresAuth: true },
+  { label: '我的收藏', icon: Bookmark, to: '/me/favorites', requiresAuth: true }
+]
 
 const tools = ref<ToolSummary[]>([])
 const categories = ref<Category[]>([])
@@ -228,7 +235,11 @@ onMounted(() => {
     <!-- Tools Grid -->
     <section class="tools-section">
       <div class="app-container">
-        <!-- Loading State -->
+        <div class="tools-with-sidebar">
+          <GeneralizedSidebar :items="sidebarItems" />
+
+          <div class="tools-content">
+          <!-- Loading State -->
         <div v-if="loading" class="tools-grid">
           <div v-for="i in 8" :key="i" class="tool-card-skeleton glass-card">
             <div class="skeleton-header"></div>
@@ -326,6 +337,8 @@ onMounted(() => {
             </button>
           </div>
         </div>
+        </div><!-- /tools-content -->
+        </div><!-- /tools-with-sidebar -->
       </div>
     </section>
 
@@ -611,6 +624,17 @@ onMounted(() => {
 }
 
 /* Tools Grid */
+.tools-with-sidebar {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.tools-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
