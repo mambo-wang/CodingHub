@@ -52,7 +52,16 @@
             {{ hasFavorited ? '已收藏' : '收藏' }}
           </button>
           <button
-            v-if="isLoggedIn && currentUserId === post.authorId"
+            v-if="canModify"
+            class="action-btn"
+            @click="handleEdit"
+            aria-label="编辑帖子"
+          >
+            <Pencil :size="18" />
+            编辑
+          </button>
+          <button
+            v-if="canModify"
             data-testid="delete-post-btn"
             class="action-btn btn-delete"
             :disabled="deleting"
@@ -102,7 +111,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Loader2 } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Loader2, Pencil } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
@@ -123,7 +132,14 @@ const authStore = useAuthStore();
 const { currentPost: post } = storeToRefs(forumStore);
 const { isLoggedIn } = storeToRefs(authStore);
 
-const currentUserId = computed(() => authStore.user?.id ?? null);
+const canModify = computed(() => {
+  if (!authStore.isLoggedIn || !post.value) return false;
+  return authStore.user?.id === post.value.authorId || authStore.isAdmin;
+});
+
+const handleEdit = () => {
+  if (post.value) router.push(`/forum/posts/${post.value.id}/edit`);
+};
 
 const loading = ref(true);
 const comments = ref<ForumComment[]>([]);

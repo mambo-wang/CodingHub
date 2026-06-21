@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Pencil, Trash2 } from '@lucide/vue'
 import api from '@/services/api'
 import type { ToolSummary, Category, PageResponse } from '@/types'
+import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const tools = ref<ToolSummary[]>([])
 const categories = ref<Category[]>([])
@@ -15,6 +19,9 @@ const sortBy = ref('latest')
 const loading = ref(false)
 const showMcpModal = ref(false)
 const copySuccess = ref(false)
+const deleteDialogVisible = ref(false)
+const deleteTargetId = ref<number | null>(null)
+const deleting = ref(false)
 const pagination = ref({
   page: 0,
   size: 12,
@@ -107,6 +114,36 @@ const handlePageChange = (page: number) => {
 
 const goToDetail = (toolId: number) => {
   router.push(`/tools/${toolId}`)
+}
+
+const canModifyTool = (tool: ToolSummary) => {
+  if (!authStore.isLoggedIn) return false
+  const userId = authStore.user?.id
+  if (userId === undefined) return false
+  return userId === tool.uploaderId || authStore.isAdmin
+}
+
+const handleToolEdit = (toolId: number) => {
+  router.push(`/me/tools/${toolId}/edit`)
+}
+
+const handleToolDeleteClick = (toolId: number) => {
+  deleteTargetId.value = toolId
+  deleteDialogVisible.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (deleteTargetId.value === null) return
+  deleting.value = true
+  try {
+    await api.delete(`/tools/${deleteTargetId.value}`)
+    tools.value = tools.value.filter(t => t.id !== deleteTargetId.value)
+    deleteDialogVisible.value = false
+  } catch (e) {
+    console.error('Delete failed:', e)
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(() => {
@@ -226,6 +263,22 @@ onMounted(() => {
               </div>
             </div>
             <div class="tool-card-glow"></div>
+            <div class="tool-card-actions" v-if="canModifyTool(tool)">
+              <button
+                class="btn-icon-edit"
+                aria-label="编辑工具"
+                @click.stop="handleToolEdit(tool.id)"
+              >
+                <Pencil :size="16" />
+              </button>
+              <button
+                class="btn-icon-delete"
+                aria-label="删除工具"
+                @click.stop="handleToolDeleteClick(tool.id)"
+              >
+                <Trash2 :size="16" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -321,6 +374,19 @@ onMounted(() => {
     <a href="https://deerflow.tech" target="_blank" class="deerflow-brand">
       ✦ Created By Deerflow
     </a>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      :visible="deleteDialogVisible"
+      title="删除工具"
+      description="确定要删除此工具吗？此操作不可恢复。"
+      confirm-text="确认删除"
+      :danger="true"
+      :loading="deleting"
+      @confirm="handleConfirmDelete"
+      @cancel="deleteDialogVisible = false"
+      @update:visible="deleteDialogVisible = $event"
+    />
   </div>
 </template>
 
@@ -573,6 +639,46 @@ onMounted(() => {
 
 .tool-card:hover .tool-card-glow {
   opacity: 1;
+}
+
+.tool-card-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+  opacity: 0.35;
+  transition: opacity 200ms ease;
+}
+
+.tool-card:hover .tool-card-actions {
+  opacity: 1;
+}
+
+.btn-icon-edit,
+.btn-icon-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-glass);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.btn-icon-edit:hover {
+  color: var(--accent-1);
+  border-color: color-mix(in srgb, var(--accent-1) 30%, transparent);
+}
+
+.btn-icon-delete:hover {
+  color: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent);
 }
 
 .tool-category-tag {

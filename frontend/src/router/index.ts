@@ -53,6 +53,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/forum/PostListPage.vue')
   },
   {
+    path: '/forum/posts/:id/edit',
+    name: 'EditPost',
+    component: () => import('@/pages/forum/PostEditorPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/forum/posts/:id',
     name: 'ForumPostDetail',
     component: () => import('@/pages/forum/PostDetailPage.vue')
@@ -99,6 +105,12 @@ const routes: RouteRecordRaw[] = [
     path: '/videos/upload',
     name: 'VideoUpload',
     component: () => import('@/pages/video/VideoUploadPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/videos/:id/edit',
+    name: 'EditVideo',
+    component: () => import('@/pages/video/VideoEditPage.vue'),
     meta: { requiresAuth: true }
   },
   {

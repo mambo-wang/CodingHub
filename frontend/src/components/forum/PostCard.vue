@@ -2,6 +2,14 @@
   <div class="post-card" @click="goToDetail">
     <div class="card-accent" :style="{ background: getCategoryColor(post.categoryId) }"></div>
     <button
+      v-if="editable"
+      class="btn-icon-edit"
+      aria-label="编辑此帖"
+      @click.stop="$emit('edit', post.id)"
+    >
+      <Pencil :size="16" />
+    </button>
+    <button
       v-if="deletable"
       class="btn-icon-delete"
       aria-label="删除此帖"
@@ -53,18 +61,20 @@
 </template>
 
 <script setup lang="ts">
-import { User, Eye, MessageCircle, Heart, Bookmark, Trash2 } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil } from '@lucide/vue';
 import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { postFavoriteApi } from '@/services/api';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
-const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean }>(), {
+const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean; editable?: boolean }>(), {
   deletable: false,
+  editable: false,
 });
-const emit = defineEmits<{
+defineEmits<{
   (e: 'delete', postId: number): void;
+  (e: 'edit', postId: number): void;
 }>();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -248,6 +258,46 @@ const toggleFavorite = async () => {
 
 .favorite-btn.active svg {
   opacity: 1;
+}
+
+.btn-icon-delete,
+.btn-icon-edit {
+  opacity: 0.35;
+}
+
+.post-card:hover .btn-icon-delete,
+.post-card:hover .btn-icon-edit {
+  opacity: 1;
+}
+
+.btn-icon-edit {
+  position: absolute;
+  top: 12px;
+  right: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 200ms ease;
+  z-index: 2;
+}
+
+.btn-icon-edit:hover {
+  color: var(--accent-1);
+  border-color: color-mix(in srgb, var(--accent-1) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-1) 10%, transparent);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+}
+
+.btn-icon-edit:active {
+  transform: scale(0.95);
 }
 
 .btn-icon-delete {

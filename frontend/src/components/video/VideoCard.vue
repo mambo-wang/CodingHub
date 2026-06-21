@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Eye, Heart, MessageCircle, Play } from '@lucide/vue'
+import { Eye, Heart, MessageCircle, Play, Pencil, Trash2 } from '@lucide/vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import type { VideoListItem } from '@/types/video'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   video: VideoListItem
+  editable?: boolean
+  deletable?: boolean
+}>(), {
+  editable: false,
+  deletable: false,
+})
+const emit = defineEmits<{
+  (e: 'edit', videoId: number): void
+  (e: 'delete', videoId: number): void
 }>()
 
 const formatDuration = (seconds: number): string => {
@@ -65,6 +74,27 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
         <span class="duration-badge">{{ formatDuration(video.duration) }}</span>
       </div>
 
+      <div class="card-actions" v-if="editable || deletable">
+        <button
+          v-if="editable"
+          class="btn-icon-edit"
+          aria-label="编辑视频"
+          @click.stop.prevent="emit('edit', video.id)"
+          @pointerdown.stop
+        >
+          <Pencil :size="16" />
+        </button>
+        <button
+          v-if="deletable"
+          class="btn-icon-delete"
+          aria-label="删除视频"
+          @click.stop.prevent="emit('delete', video.id)"
+          @pointerdown.stop
+        >
+          <Trash2 :size="16" />
+        </button>
+      </div>
+
       <div class="video-info">
         <h3 class="video-title">{{ video.title }}</h3>
 
@@ -109,6 +139,7 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   overflow: hidden;
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .video-card:hover {
@@ -219,6 +250,48 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+  opacity: 0.35;
+  transition: opacity 200ms ease;
+}
+
+.video-card:hover .card-actions {
+  opacity: 1;
+}
+
+.btn-icon-edit,
+.btn-icon-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.btn-icon-edit:hover {
+  color: #8B5CF6;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.btn-icon-delete:hover {
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 /* Light theme */

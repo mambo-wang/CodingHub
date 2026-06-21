@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
-import { Eye, ThumbsUp, MessageCircle } from '@lucide/vue'
+import { Eye, ThumbsUp, MessageCircle, Pencil, Trash2 } from '@lucide/vue'
 import api from '@/services/api'
 import { fileUploadApi } from '@/services/api'
 import { getToolDetail, getComments, type Comment } from '@/services/tool'
@@ -12,9 +12,12 @@ import ToolLikeButton from '@/components/ToolLikeButton.vue'
 import ToolCommentList from '@/components/ToolCommentList.vue'
 import ToolCommentEditor from '@/components/ToolCommentEditor.vue'
 import AuthorBadge from '@/components/AuthorBadge.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const tool = ref<ToolDetail | null>(null)
 const toolStats = ref({ viewCount: 0, likeCount: 0, commentCount: 0, score: 0, isLiked: false })
@@ -25,6 +28,38 @@ const filesLoading = ref(false)
 const comments = ref<Comment[]>([])
 const commentsLoading = ref(false)
 const showLoginTip = ref(false)
+
+const canModify = computed(() => {
+  if (!authStore.isLoggedIn || !tool.value) return false
+  return authStore.user?.id === tool.value.uploaderId || authStore.isAdmin
+})
+
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+
+const handleEdit = () => {
+  if (tool.value) router.push(`/me/tools/${tool.value.id}/edit`)
+}
+
+const handleDeleteClick = () => {
+  deleteDialogVisible.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (!tool.value) return
+  deleting.value = true
+  try {
+    await api.delete(`/tools/${tool.value.id}`)
+    router.push('/')
+  } catch (e: any) {
+    if (e.response?.status === 403) {
+      // toast "无权操作此内容"
+    }
+    console.error('Delete failed:', e)
+  } finally {
+    deleting.value = false
+  }
+}
 
 const md = new MarkdownIt({
   html: false,
@@ -249,6 +284,16 @@ const handleCommentSubmitted = (comment: Comment) => {
               @update="handleLikeUpdate"
               @require-login="handleRequireLogin"
             />
+            <div class="tool-actions">
+              <button v-if="canModify" class="action-btn edit-btn" @click="handleEdit">
+                <Pencil :size="16" />
+                编辑
+              </button>
+              <button v-if="canModify" class="action-btn delete-btn" @click="handleDeleteClick">
+                <Trash2 :size="16" />
+                删除
+              </button>
+            </div>
           </div>
 
           <!-- Login Tip -->
@@ -324,6 +369,18 @@ const handleCommentSubmitted = (comment: Comment) => {
     <a href="https://deerflow.tech" target="_blank" class="deerflow-brand">
       ✦ Created By Deerflow
     </a>
+
+    <ConfirmDialog
+      :visible="deleteDialogVisible"
+      title="删除工具"
+      description="确定要删除此工具吗？此操作不可恢复。"
+      confirm-text="确认删除"
+      :danger="true"
+      :loading="deleting"
+      @confirm="handleConfirmDelete"
+      @cancel="deleteDialogVisible = false"
+      @update:visible="deleteDialogVisible = $event"
+    />
   </div>
 </template>
 
@@ -873,6 +930,41 @@ const handleCommentSubmitted = (comment: Comment) => {
   gap: 12px;
   padding: 16px 32px;
   border-bottom: 1px solid var(--border-color);
+}
+
+.tool-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.tool-actions .action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: var(--accent-1);
+  border-color: color-mix(in srgb, var(--accent-1) 30%, transparent);
+}
+
+.delete-btn {
+  color: var(--text-muted);
+}
+
+.delete-btn:hover {
+  color: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent);
 }
 
 /* Login Tip */

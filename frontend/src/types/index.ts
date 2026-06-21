@@ -22,6 +22,7 @@ export interface ToolSummary {
   version?: string
   categoryName: string
   categoryIcon: string
+  uploaderId: number
   uploaderUsername: string
   uploaderNickname?: string
   uploaderAvatarUrl?: string | null

@@ -39,7 +39,7 @@
     </div>
 
     <div class="form-actions">
-      <button @click="publish" class="publish-btn">发布</button>
+      <button @click="publish" class="publish-btn">{{ isEdit ? '更新' : '发布' }}</button>
     </div>
   </div>
 </template>
@@ -66,6 +66,16 @@ const loading = ref(false);
 
 onMounted(async () => {
   await forumStore.fetchCategories();
+  if (route.params.id) {
+    try {
+      const post = await forumService.getPostById(Number(route.params.id));
+      title.value = post.title;
+      categoryId.value = post.categoryId;
+      content.value = post.content;
+    } catch (e) {
+      errorMessage.value = '加载帖子失败';
+    }
+  }
 });
 
 const publish = async () => {
@@ -83,15 +93,20 @@ const publish = async () => {
 
   loading.value = true;
   try {
-    await forumService.createPost({
+    const data = {
       title: title.value,
       content: content.value,
       categoryId: categoryId.value as number
-    });
-
-    router.push('/forum');
+    };
+    if (isEdit.value) {
+      await forumService.updatePost(Number(route.params.id), data);
+      router.push(`/forum/posts/${route.params.id}`);
+    } else {
+      await forumService.createPost(data);
+      router.push('/forum');
+    }
   } catch (e: any) {
-    errorMessage.value = e.response?.data?.message || '发布失败，请重试';
+    errorMessage.value = e.response?.data?.message || (isEdit.value ? '更新失败，请重试' : '发布失败，请重试');
   } finally {
     loading.value = false;
   }

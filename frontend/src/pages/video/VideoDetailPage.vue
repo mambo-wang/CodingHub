@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Eye, Heart, MessageCircle, Bookmark, Loader2, Clock } from '@lucide/vue'
+import { ArrowLeft, Eye, Heart, MessageCircle, Bookmark, Loader2, Clock, Pencil, Trash2 } from '@lucide/vue'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
 import VideoPlayer from '@/components/video/VideoPlayer.vue'
 import VideoCommentList from '@/components/video/VideoCommentList.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import type { VideoDetail } from '@/types/video'
 
 const route = useRoute()
@@ -20,6 +21,38 @@ const loading = ref(true)
 const error = ref('')
 const likeLoading = ref(false)
 const favoriteLoading = ref(false)
+
+const canModify = computed(() => {
+  if (!authStore.isLoggedIn || !video.value) return false
+  return authStore.user?.id === video.value.uploaderId || authStore.isAdmin
+})
+
+const deleteDialogVisible = ref(false)
+const deleting = ref(false)
+
+const handleEdit = () => {
+  if (video.value) router.push(`/videos/${video.value.id}/edit`)
+}
+
+const handleDeleteClick = () => {
+  deleteDialogVisible.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (!video.value) return
+  deleting.value = true
+  try {
+    await videoService.deleteVideo(video.value.id)
+    router.push('/videos')
+  } catch (e: any) {
+    if (e.response?.status === 403) {
+      // show error
+    }
+    console.error('Delete failed:', e)
+  } finally {
+    deleting.value = false
+  }
+}
 
 const streamUrl = computed(() => {
   if (!video.value) return ''
@@ -209,6 +242,14 @@ const goBack = () => {
               <Bookmark :size="18" :fill="video.userFavorited ? 'currentColor' : 'none'" aria-hidden="true" />
               <span>{{ video.userFavorited ? '已收藏' : '收藏' }}</span>
             </button>
+            <button v-if="canModify" class="action-btn" @click="handleEdit">
+              <Pencil :size="16" />
+              编辑
+            </button>
+            <button v-if="canModify" class="action-btn delete-action-btn" @click="handleDeleteClick">
+              <Trash2 :size="16" />
+              删除
+            </button>
           </div>
 
           <div v-if="video.description" class="video-description">
@@ -222,6 +263,18 @@ const goBack = () => {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :visible="deleteDialogVisible"
+      title="删除视频"
+      description="确定要删除此视频吗？此操作不可恢复。"
+      confirm-text="确认删除"
+      :danger="true"
+      :loading="deleting"
+      @confirm="handleConfirmDelete"
+      @cancel="deleteDialogVisible = false"
+      @update:visible="deleteDialogVisible = $event"
+    />
   </div>
 </template>
 
@@ -497,6 +550,12 @@ const goBack = () => {
 .action-btn.favorited:hover:not(:disabled) {
   background: rgba(139, 92, 246, 0.1);
   border-color: rgba(139, 92, 246, 0.5);
+}
+
+.delete-action-btn:hover:not(:disabled) {
+  color: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent);
+  background: rgba(239, 68, 68, 0.05);
 }
 
 /* Description */

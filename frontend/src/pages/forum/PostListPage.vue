@@ -35,6 +35,10 @@
           v-for="post in posts"
           :key="post.id"
           :post="post"
+          :editable="canEditPost(post.authorId)"
+          :deletable="canDeletePost(post.authorId)"
+          @edit="goToEdit"
+          @delete="handleDeletePost"
           @click="goToDetail(post.id)"
         />
         <div v-if="posts.length === 0" class="empty">
@@ -54,6 +58,19 @@
         </button>
       </div>
     </div>
+
+    <ConfirmDialog
+      :visible="deleteDialogVisible"
+      title="删除帖子"
+      description="确定要删除这篇帖子吗？此操作不可撤销。"
+      confirm-text="确认删除"
+      cancel-text="取消"
+      :danger="true"
+      :loading="deleting"
+      @confirm="handleConfirmDelete"
+      @cancel="handleDialogCancel"
+      @update:visible="deleteDialogVisible = $event"
+    />
   </div>
 </template>
 
@@ -64,9 +81,12 @@ import { storeToRefs } from 'pinia';
 import { Plus, Search, ChevronLeft, ChevronRight } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
+import forumService from '@/services/forum';
 import PostCard from '@/components/forum/PostCard.vue';
 import CategoryFilter from '@/components/forum/CategoryFilter.vue';
 import SidebarNav from '@/components/forum/SidebarNav.vue';
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const forumStore = useForumStore();
@@ -77,6 +97,9 @@ const { isLoggedIn } = storeToRefs(authStore);
 
 const keyword = ref('');
 const selectedCategory = ref<number | null>(null);
+const deleteDialogVisible = ref(false);
+const deleteTargetId = ref<number | null>(null);
+const deleting = ref(false);
 
 const page = computed(() => pagination.value.page);
 const totalPages = computed(() => pagination.value.totalPages);
@@ -118,6 +141,44 @@ const goToDetail = (postId: number) => {
 const goToEditor = () => {
   router.push('/forum/editor');
 };
+
+const canEditPost = (authorId: number) => {
+  if (!authStore.isLoggedIn) return false
+  return authStore.user?.id === authorId || authStore.isAdmin
+}
+const canDeletePost = canEditPost // same permission
+
+const goToEdit = (postId: number) => {
+  router.push(`/forum/posts/${postId}/edit`)
+}
+
+const handleDeletePost = (postId: number) => {
+  deleteTargetId.value = postId
+  deleteDialogVisible.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (deleteTargetId.value === null) return
+  deleting.value = true
+  try {
+    await forumService.deletePost(deleteTargetId.value)
+    posts.value = posts.value.filter(p => p.id !== deleteTargetId.value)
+    ElMessage.success('帖子已删除')
+    deleteDialogVisible.value = false
+  } catch (e: any) {
+    if (e.response?.status === 403) {
+      ElMessage.warning('无权操作此内容')
+    } else {
+      ElMessage.error('删除失败，请稍后重试')
+    }
+  } finally {
+    deleting.value = false
+  }
+}
+
+const handleDialogCancel = () => {
+  deleteDialogVisible.value = false
+}
 </script>
 
 <style scoped>

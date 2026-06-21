@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Upload, VideoOff, Loader2 } from '@lucide/vue'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
 import VideoCard from '@/components/video/VideoCard.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import { ElMessage } from 'element-plus'
 import type { VideoListItem } from '@/types/video'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 const videos = ref<VideoListItem[]>([])
@@ -17,6 +21,9 @@ const pageSize = 12
 
 const hasMore = computed(() => page.value < totalPages.value - 1)
 const loadingMore = ref(false)
+const deleteDialogVisible = ref(false)
+const deleteTargetId = ref<number | null>(null)
+const deleting = ref(false)
 
 onMounted(async () => {
   await loadVideos()
@@ -50,6 +57,43 @@ const loadMore = async () => {
   } finally {
     loadingMore.value = false
   }
+}
+
+const canEditVideo = (uploaderId: number) => {
+  if (!authStore.isLoggedIn) return false
+  return authStore.user?.id === uploaderId || authStore.isAdmin
+}
+
+const handleVideoEdit = (videoId: number) => {
+  router.push(`/videos/${videoId}/edit`)
+}
+
+const handleVideoDelete = (videoId: number) => {
+  deleteTargetId.value = videoId
+  deleteDialogVisible.value = true
+}
+
+const handleConfirmDelete = async () => {
+  if (deleteTargetId.value === null) return
+  deleting.value = true
+  try {
+    await videoService.deleteVideo(deleteTargetId.value)
+    videos.value = videos.value.filter(v => v.id !== deleteTargetId.value)
+    ElMessage.success('视频已删除')
+    deleteDialogVisible.value = false
+  } catch (e: any) {
+    if (e.response?.status === 403) {
+      ElMessage.warning('无权操作此内容')
+    } else {
+      ElMessage.error('删除失败，请稍后重试')
+    }
+  } finally {
+    deleting.value = false
+  }
+}
+
+const handleDialogCancel = () => {
+  deleteDialogVisible.value = false
 }
 </script>
 
@@ -101,6 +145,10 @@ const loadMore = async () => {
             v-for="video in videos"
             :key="video.id"
             :video="video"
+            :editable="canEditVideo(video.uploaderId)"
+            :deletable="canEditVideo(video.uploaderId)"
+            @edit="handleVideoEdit"
+            @delete="handleVideoDelete"
           />
         </div>
 
@@ -112,6 +160,19 @@ const loadMore = async () => {
         </div>
       </template>
     </div>
+
+    <ConfirmDialog
+      :visible="deleteDialogVisible"
+      title="删除微课"
+      description="确定要删除这个微课视频吗？此操作不可撤销。"
+      confirm-text="确认删除"
+      cancel-text="取消"
+      :danger="true"
+      :loading="deleting"
+      @confirm="handleConfirmDelete"
+      @cancel="handleDialogCancel"
+      @update:visible="deleteDialogVisible = $event"
+    />
   </div>
 </template>
 
