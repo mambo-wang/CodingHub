@@ -689,6 +689,10 @@ onMounted(() => {
   padding-bottom: 80px;
 }
 
+.home-page .app-container {
+  max-width: 1520px;
+}
+
 /* Hero */
 .hero {
   position: relative;
