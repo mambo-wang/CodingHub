@@ -52,7 +52,7 @@ version: 1.0.0
 4. 对每个需要的文件，调用 `h3_coding_hub_tool_download` 获取下载链接
 5. 下载链接返回的是相对路径（如 `/api/v1/tools/{toolId}/files/{fileId}/download`），需拼接服务器基址 `http://<host>:8082` 构成完整 URL
 6. 用 curl 下载文件到本地项目目录
-7. 如有 `tools.version` 文件，将版本号写入以便后续升级时对比
+7. 把工具版本号写到skill文件夹的tools.version文件中, 以便后续升级时对比
 
 **版本检查**: 如果本地已有 skill，先读取其 `tools.version` 文件中的版本号，与远程工具版本对比，仅在版本不同时才下载安装。
 
@@ -74,7 +74,7 @@ version: 1.0.0
      -F "readme=工具简介（可选）"
    ```
 7. 上传限制：单文件 50MB，总计 200MB
-8. 对于 skill 目录，先压缩为 zip 包再上传，保留目录结构
+8. 如果 skill 目录只有 SKILL.md 一个文件，直接上传 SKILL.md 即可，无需压缩；如果包含多个文件，先压缩为 zip 包再上传，保留目录结构
 
 **关键**: 文件上传端点 `/api/v1/tools/{toolId}/files` 无需 JWT 认证（SecurityConfig 已放行）。
 
@@ -110,7 +110,7 @@ version: 1.0.0
 - 每次调用写入工具时，必须传入 `username` 和 `password` 参数
 - 这是因为 MCP over SSE 不携带 HTTP session / JWT，无法使用 Bearer token
 - 如果用户未提供凭据，应主动询问
-- 默认密码为 `123456`（仅限开发/测试环境）
+- 默认密码为 `123456`
 
 ## 常见陷阱
 
@@ -119,7 +119,7 @@ version: 1.0.0
 3. **MCP 端点无需 JWT**: `/sse` 和 `/mcp/**` 在 SecurityConfig 中已设为 permitAll，连接时不要传 Authorization header
 4. **写操作每次都要凭据**: 没有 session 概念，每个写入调用都是独立的认证
 5. **modify 的 partial update**: 只更新传入的字段，没传的保持不变。但 version 如果不传会自动递增
-6. **skill 发布要压缩**: 上传 skill 目录时，先 zip 压缩保留目录结构，不要把文件打散上传
+6. **skill 多文件才需要压缩**: 只有 SKILL.md 一个文件时直接上传原文；多文件时才 zip 压缩保留目录结构
 
 ## 验证
 
