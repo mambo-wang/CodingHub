@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://github.com/mambo-wang/CodingHub" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-CodingHub-181717?style=flat-square&logo=github" alt="GitHub" />
+  </a>
+</p>
+
 # CodingHub
 
 > AI 工具及使用经验分享平台 —— 离线部署，仅需 MySQL 8.0+ 与 JDK 17，简洁安全，专为企业内部网络管控环境打造。

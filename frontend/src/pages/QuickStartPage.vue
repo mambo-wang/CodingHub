@@ -12,9 +12,25 @@ const tips = [
   '使用CodingHub MCP把xxx这个skill更新到CodingHub工具广场，工具描述不变，版本号改为2.0.0，把原有文件删除(保留readme)，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。'
 ]
 
+async function copyToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text)
+  } else {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
+}
+
 const copyTip = async (index: number) => {
   try {
-    await navigator.clipboard.writeText(tips[index])
+    await copyToClipboard(tips[index])
     copiedTip.value = index
     setTimeout(() => { copiedTip.value = null }, 2000)
   } catch (e) {
@@ -39,7 +55,7 @@ const mcpConfigJson = JSON.stringify(mcpConfig, null, 2)
 
 const copyConfig = async () => {
   try {
-    await navigator.clipboard.writeText(mcpConfigJson)
+    await copyToClipboard(mcpConfigJson)
     copySuccess.value = true
     setTimeout(() => { copySuccess.value = false }, 2000)
   } catch (e) {
@@ -90,33 +106,10 @@ const mcpTools = [
         </div>
       </section>
 
-      <!-- MCP Tools Section -->
-      <section class="section glass-card">
-        <div class="section-header">
-          <div class="section-badge">02</div>
-          <h2 class="section-title">MCP 工具列表</h2>
-        </div>
-
-        <p class="section-desc">CodingHub MCP 提供以下工具函数，可通过 AI 助手直接调用：</p>
-
-        <div class="tools-table">
-          <div class="tool-row header">
-            <span class="tool-name">函数名</span>
-            <span class="tool-desc">描述</span>
-            <span class="tool-params">参数</span>
-          </div>
-          <div v-for="tool in mcpTools" :key="tool.name" class="tool-row">
-            <span class="tool-name"><code>{{ tool.name }}</code></span>
-            <span class="tool-desc">{{ tool.desc }}</span>
-            <span class="tool-params">{{ tool.params }}</span>
-          </div>
-        </div>
-      </section>
-
       <!-- Usage Tips -->
       <section class="section glass-card">
         <div class="section-header">
-          <div class="section-badge">03</div>
+          <div class="section-badge">02</div>
           <h2 class="section-title">提示词示例</h2>
         </div>
 
@@ -139,6 +132,29 @@ const mcpTools = [
               </svg>
               {{ copiedTip === index ? '已复制' : '复制' }}
             </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- MCP Tools Section -->
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">03</div>
+          <h2 class="section-title">MCP 工具列表</h2>
+        </div>
+
+        <p class="section-desc">CodingHub MCP 提供以下工具函数，可通过 AI 助手直接调用：</p>
+
+        <div class="tools-table">
+          <div class="tool-row header">
+            <span class="tool-name">函数名</span>
+            <span class="tool-desc">描述</span>
+            <span class="tool-params">参数</span>
+          </div>
+          <div v-for="tool in mcpTools" :key="tool.name" class="tool-row">
+            <span class="tool-name"><code>{{ tool.name }}</code></span>
+            <span class="tool-desc">{{ tool.desc }}</span>
+            <span class="tool-params">{{ tool.params }}</span>
           </div>
         </div>
       </section>
