@@ -1,11 +1,11 @@
 <template>
-  <div class="tool-rank-list">
+  <div class="video-rank-list">
     <div class="panel-header">
       <div class="header-content">
         <div class="pulse-indicator"></div>
         <div class="header-text">
-          <h3 class="panel-title">工具热榜</h3>
-          <span class="panel-subtitle">TOOL RANKINGS</span>
+          <h3 class="panel-title">微课热榜</h3>
+          <span class="panel-subtitle">VIDEO RANKINGS</span>
         </div>
       </div>
       <div class="live-badge">
@@ -24,14 +24,15 @@
       </div>
       <div v-else-if="items.length === 0" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          <polygon points="23 7 16 12 23 17 23 7"/>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
         </svg>
         <span>暂无数据</span>
       </div>
       <div v-else class="rank-list">
         <div
           v-for="(item, index) in items"
-          :key="item.toolName"
+          :key="item.id"
           :class="['rank-row', { 'top-tier': index < 3 }]"
           @click="handleClick(item)"
         >
@@ -42,12 +43,15 @@
             <span v-else class="tier-num">{{ index + 1 }}</span>
           </div>
           <div class="item-info">
-            <span class="item-name">{{ item.toolName }}</span>
-            <span v-if="item.category" class="item-tag">{{ item.category }}</span>
+            <span class="item-name">{{ item.videoTitle }}</span>
+            <span class="item-meta">
+              <span class="meta-views"><Eye :size="11" />{{ item.viewCount }}</span>
+              <span class="meta-likes"><Heart :size="11" />{{ item.likeCount }}</span>
+            </span>
           </div>
           <div class="score-badge">
-            <Flame :size="12" />
-            <span>{{ Math.round(Number(item.score)) }}</span>
+            <Eye :size="12" />
+            <span>{{ item.viewCount }}</span>
           </div>
         </div>
       </div>
@@ -57,13 +61,14 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { Flame } from '@lucide/vue';
-import type { ToolRankDto } from '@/types/overview';
+import { Eye, Heart } from '@lucide/vue';
+import type { VideoRankDto } from '@/types/overview';
 
 defineProps<{
-  items: ToolRankDto[];
+  items: VideoRankDto[];
   loading?: boolean;
 }>();
+
 const router = useRouter();
 
 const getRankClass = (rank: number) => ({
@@ -72,15 +77,15 @@ const getRankClass = (rank: number) => ({
   'bronze': rank === 3
 });
 
-const handleClick = (item: ToolRankDto) => {
-  router.push('/tools/' + item.id);
+const handleClick = (item: VideoRankDto) => {
+  router.push('/videos/' + item.id);
 };
 </script>
 
 <style scoped>
-.tool-rank-list {
-  background: linear-gradient(135deg, rgba(13, 20, 30, 0.95), rgba(10, 14, 23, 0.98));
-  border: 1px solid rgba(0, 255, 255, 0.12);
+.video-rank-list {
+  background: linear-gradient(135deg, rgba(10, 25, 20, 0.95), rgba(8, 18, 15, 0.98));
+  border: 1px solid rgba(0, 255, 136, 0.12);
   border-radius: 20px;
   overflow: hidden;
   backdrop-filter: blur(20px);
@@ -91,8 +96,8 @@ const handleClick = (item: ToolRankDto) => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.08);
-  background: linear-gradient(90deg, rgba(0,255,255,0.03), transparent);
+  border-bottom: 1px solid rgba(0, 255, 136, 0.08);
+  background: linear-gradient(90deg, rgba(0,255,136,0.03), transparent);
 }
 
 .header-content {
@@ -105,14 +110,14 @@ const handleClick = (item: ToolRankDto) => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #00FFFF;
-  box-shadow: 0 0 10px #00FFFF;
+  background: #00FF88;
+  box-shadow: 0 0 10px #00FF88;
   animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px #00FFFF; }
-  50% { opacity: 0.5; box-shadow: 0 0 20px #00FFFF, 0 0 30px #00FFFF; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px #00FF88; }
+  50% { opacity: 0.5; box-shadow: 0 0 20px #00FF88, 0 0 30px #00FF88; }
 }
 
 .header-text {
@@ -131,7 +136,7 @@ const handleClick = (item: ToolRankDto) => {
 
 .panel-subtitle {
   font-size: 10px;
-  color: rgba(0, 255, 255, 0.5);
+  color: rgba(0, 255, 136, 0.5);
   letter-spacing: 3px;
 }
 
@@ -140,8 +145,8 @@ const handleClick = (item: ToolRankDto) => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: rgba(0, 255, 255, 0.08);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
   border-radius: 20px;
 }
 
@@ -149,7 +154,7 @@ const handleClick = (item: ToolRankDto) => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00FFFF;
+  background: #00FF88;
   animation: blink 1s infinite;
 }
 
@@ -160,14 +165,14 @@ const handleClick = (item: ToolRankDto) => {
 
 .live-text {
   font-size: 11px;
-  color: #00FFFF;
+  color: #00FF88;
   font-weight: 600;
   letter-spacing: 1px;
 }
 
 .rank-scroll {
   padding: 12px;
-  max-height: 400px;
+  max-height: 448px;
   overflow-y: auto;
 }
 
@@ -180,7 +185,7 @@ const handleClick = (item: ToolRankDto) => {
 }
 
 .rank-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.2);
+  background: rgba(0, 255, 136, 0.2);
   border-radius: 2px;
 }
 
@@ -198,7 +203,7 @@ const handleClick = (item: ToolRankDto) => {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, rgba(0,255,255,0.05) 25%, rgba(0,255,255,0.1) 50%, rgba(0,255,255,0.05) 75%);
+  background: linear-gradient(90deg, rgba(0,255,136,0.05) 25%, rgba(0,255,136,0.1) 50%, rgba(0,255,136,0.05) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
@@ -248,13 +253,13 @@ const handleClick = (item: ToolRankDto) => {
 }
 
 .rank-row:hover {
-  background: rgba(0, 255, 255, 0.05);
-  border-color: rgba(0, 255, 255, 0.15);
+  background: rgba(0, 255, 136, 0.05);
+  border-color: rgba(0, 255, 136, 0.15);
   transform: translateX(4px);
 }
 
 .rank-row.top-tier {
-  background: linear-gradient(90deg, rgba(0,255,255,0.08), rgba(0,255,255,0.02));
+  background: linear-gradient(90deg, rgba(0,255,136,0.08), rgba(0,255,136,0.02));
 }
 
 .rank-indicator {
@@ -317,15 +322,19 @@ const handleClick = (item: ToolRankDto) => {
   text-overflow: ellipsis;
 }
 
-.item-tag {
-  display: inline-block;
-  font-size: 10px;
-  color: #00FFFF;
-  background: rgba(0, 255, 255, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
+.item-meta {
+  display: flex;
+  gap: 12px;
   margin-top: 4px;
-  letter-spacing: 0.5px;
+}
+
+.meta-views,
+.meta-likes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748B;
 }
 
 .score-badge {
@@ -333,29 +342,29 @@ const handleClick = (item: ToolRankDto) => {
   align-items: center;
   gap: 5px;
   padding: 6px 12px;
-  background: linear-gradient(135deg, rgba(255, 0, 255, 0.15), rgba(255, 0, 255, 0.08));
-  border: 1px solid rgba(255, 0, 255, 0.3);
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 136, 0.08));
+  border: 1px solid rgba(0, 255, 136, 0.3);
   border-radius: 12px;
-  color: #FF00FF;
+  color: #00FF88;
   font-size: 13px;
   font-weight: 600;
   font-family: 'Fira Code', monospace;
 }
 
 /* Light theme */
-[data-theme="light"] .tool-rank-list {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.95));
-  border: 1px solid rgba(139, 92, 246, 0.2);
+[data-theme="light"] .video-rank-list {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 250, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 [data-theme="light"] .panel-header {
-  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05), transparent);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), transparent);
 }
 
 [data-theme="light"] .pulse-indicator {
-  background: #8b5cf6;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
 [data-theme="light"] .panel-title {
@@ -363,28 +372,28 @@ const handleClick = (item: ToolRankDto) => {
 }
 
 [data-theme="light"] .panel-subtitle {
-  color: rgba(139, 92, 246, 0.6);
+  color: rgba(16, 185, 129, 0.6);
 }
 
 [data-theme="light"] .live-badge {
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 [data-theme="light"] .live-dot {
-  background: #8b5cf6;
+  background: #10b981;
 }
 
 [data-theme="light"] .live-text {
-  color: #8b5cf6;
+  color: #10b981;
 }
 
 [data-theme="light"] .rank-scroll::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(16, 185, 129, 0.2);
 }
 
 [data-theme="light"] .skeleton {
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 25%, rgba(16, 185, 129, 0.1) 50%, rgba(16, 185, 129, 0.05) 75%);
 }
 
 [data-theme="light"] .empty-state {
@@ -392,20 +401,20 @@ const handleClick = (item: ToolRankDto) => {
 }
 
 [data-theme="light"] .rank-row {
-  background: rgba(139, 92, 246, 0.02);
+  background: rgba(16, 185, 129, 0.02);
 }
 
 [data-theme="light"] .rank-row:hover {
-  background: rgba(139, 92, 246, 0.06);
-  border-color: rgba(139, 92, 246, 0.15);
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.15);
 }
 
 [data-theme="light"] .rank-row.top-tier {
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.02));
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
 }
 
 [data-theme="light"] .rank-indicator {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: #64748B;
 }
 
@@ -413,14 +422,14 @@ const handleClick = (item: ToolRankDto) => {
   color: #1E293B;
 }
 
-[data-theme="light"] .item-tag {
-  color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.1);
+[data-theme="light"] .meta-views,
+[data-theme="light"] .meta-likes {
+  color: #94A3B8;
 }
 
 [data-theme="light"] .score-badge {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #8b5cf6;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #059669;
 }
 </style>

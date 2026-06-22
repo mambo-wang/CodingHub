@@ -130,6 +130,7 @@ public class UnifiedLikeService {
                 } else {
                     post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
                 }
+                post.updateScore();
                 forumPostRepository.save(post);
                 return post.getLikeCount();
             }

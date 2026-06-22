@@ -26,6 +26,7 @@
           <StatsCard label="用户总数" :value="stats.userCount" icon="users" />
           <StatsCard label="帖子总数" :value="stats.postCount" icon="message-square" />
           <StatsCard label="工具总数" :value="stats.toolCount" icon="wrench" />
+          <StatsCard label="微课总数" :value="stats.videoCount" icon="video" />
         </div>
       </section>
 
@@ -37,18 +38,16 @@
         </div>
         <div class="rankings-grid">
           <ToolRankList
-            :categories="toolCategories"
-            :selectedCategory="selectedToolCategory"
             :items="toolItems"
             :loading="loading"
-            @select="selectedToolCategory = $event"
           />
           <PostRankList
-            :categories="postCategories"
-            :selectedCategory="selectedPostCategory"
             :items="postItems"
             :loading="loading"
-            @select="selectedPostCategory = $event"
+          />
+          <VideoRankList
+            :items="videoItems"
+            :loading="loading"
           />
         </div>
       </section>
@@ -71,16 +70,14 @@ import { LayoutDashboard, Clock } from '@lucide/vue';
 import StatsCard from '@/components/StatsCard.vue';
 import ToolRankList from '@/components/ToolRankList.vue';
 import PostRankList from '@/components/PostRankList.vue';
-import { fetchStats, fetchToolRanks, fetchPostRanks } from '@/services/overview';
-import type { StatsDto, ToolRankDto, PostRankDto } from '@/types/overview';
+import VideoRankList from '@/components/VideoRankList.vue';
+import { fetchStats, fetchToolRanks, fetchPostRanks, fetchVideoRanks } from '@/services/overview';
+import type { StatsDto, ToolRankDto, PostRankDto, VideoRankDto } from '@/types/overview';
 
-const stats = ref<StatsDto>({ userCount: 0, postCount: 0, toolCount: 0 });
-const toolCategories = ref<string[]>([]);
-const postCategories = ref<string[]>([]);
+const stats = ref<StatsDto>({ userCount: 0, postCount: 0, toolCount: 0, videoCount: 0 });
 const toolItems = ref<ToolRankDto[]>([]);
 const postItems = ref<PostRankDto[]>([]);
-const selectedToolCategory = ref<string | null>(null);
-const selectedPostCategory = ref<string | null>(null);
+const videoItems = ref<VideoRankDto[]>([]);
 const loading = ref(true);
 
 const currentTime = ref('');
@@ -88,16 +85,16 @@ const currentTime = ref('');
 onMounted(async () => {
   try {
     loading.value = true;
-    const [statsData, toolData, postData] = await Promise.all([
+    const [statsData, toolData, postData, videoData] = await Promise.all([
       fetchStats(),
       fetchToolRanks(),
-      fetchPostRanks()
+      fetchPostRanks(),
+      fetchVideoRanks()
     ]);
     stats.value = statsData;
     toolItems.value = toolData;
     postItems.value = postData;
-    toolCategories.value = [...new Set(toolData.map(t => t.category))];
-    postCategories.value = [...new Set(postData.map(p => p.category))];
+    videoItems.value = videoData;
   } catch (error) {
     console.error('Failed to load overview data', error);
   } finally {
@@ -201,7 +198,7 @@ onMounted(async () => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
@@ -232,7 +229,7 @@ onMounted(async () => {
 
 .rankings-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -270,9 +267,12 @@ onMounted(async () => {
   color: #475569;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .rankings-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -288,6 +288,10 @@ onMounted(async () => {
   }
 
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rankings-grid {
     grid-template-columns: 1fr;
   }
 }

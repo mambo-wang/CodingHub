@@ -3,6 +3,7 @@ package com.iaihub.toolbox.controller;
 import com.iaihub.toolbox.dto.StatsDto;
 import com.iaihub.toolbox.dto.ToolRankDto;
 import com.iaihub.toolbox.dto.PostRankDto;
+import com.iaihub.toolbox.dto.VideoRankDto;
 import com.iaihub.toolbox.service.OverviewService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,5 +34,10 @@ public class OverviewController {
     @GetMapping("/post-ranks")
     public List<PostRankDto> getPostRanks() {
         return overviewService.getPostRanks();
+    }
+
+    @GetMapping("/video-ranks")
+    public List<VideoRankDto> getVideoRanks() {
+        return overviewService.getVideoRanks();
     }
 }

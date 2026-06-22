@@ -14,17 +14,6 @@
       </div>
     </div>
 
-    <div class="category-tabs">
-      <button
-        v-for="cat in ['全部', ...categories]"
-        :key="cat"
-        :class="['tab-chip', { active: selectedCategory === (cat === '全部' ? null : cat) }]"
-        @click="$emit('select', cat === '全部' ? null : cat)"
-      >
-        {{ cat }}
-      </button>
-    </div>
-
     <div class="rank-scroll">
       <div v-if="loading" class="skeleton-list">
         <div v-for="i in 5" :key="i" class="skeleton-row">
@@ -33,7 +22,7 @@
           <div class="skeleton sk-score"></div>
         </div>
       </div>
-      <div v-else-if="displayItems.length === 0" class="empty-state">
+      <div v-else-if="items.length === 0" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
@@ -41,7 +30,7 @@
       </div>
       <div v-else class="rank-list">
         <div
-          v-for="(item, index) in displayItems"
+          v-for="(item, index) in items"
           :key="item.postTitle"
           :class="['rank-row', { 'top-tier': index < 3 }]"
           @click="handleClick(item)"
@@ -54,11 +43,11 @@
           </div>
           <div class="item-info">
             <span class="item-name">{{ item.postTitle }}</span>
-            <span class="item-tag">{{ item.category }}</span>
+            <span v-if="item.category" class="item-tag">{{ item.category }}</span>
           </div>
           <div class="score-badge">
-            <MessageSquare :size="12" />
-            <span>{{ item.commentCount }}</span>
+            <Flame :size="12" />
+            <span>{{ Math.round(Number(item.score)) }}</span>
           </div>
         </div>
       </div>
@@ -67,24 +56,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { MessageSquare } from '@lucide/vue';
+import { Flame } from '@lucide/vue';
 import type { PostRankDto } from '@/types/overview';
 
-const props = defineProps<{
-  categories: string[];
-  selectedCategory: string | null;
+defineProps<{
   items: PostRankDto[];
   loading?: boolean;
 }>();
-const emit = defineEmits<{ (e: 'select', category: string | null): void }>();
 const router = useRouter();
-
-const displayItems = computed(() => {
-  if (!props.selectedCategory) return props.items;
-  return props.items.filter(item => item.category === props.selectedCategory);
-});
 
 const getRankClass = (rank: number) => ({
   'gold': rank === 1,
@@ -183,42 +163,6 @@ const handleClick = (item: PostRankDto) => {
   color: #FF00FF;
   font-weight: 600;
   letter-spacing: 1px;
-}
-
-.category-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 14px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  overflow-x: auto;
-}
-
-.tab-chip {
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #94A3B8;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-}
-
-.tab-chip:hover {
-  color: #FF00FF;
-  border-color: rgba(255, 0, 255, 0.4);
-  background: rgba(255, 0, 255, 0.05);
-}
-
-.tab-chip.active {
-  background: linear-gradient(135deg, #FF00FF, #CC00CC);
-  border-color: transparent;
-  color: #0A0E17;
-  font-weight: 600;
-  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
 }
 
 .rank-scroll {
@@ -433,29 +377,6 @@ const handleClick = (item: PostRankDto) => {
 
 [data-theme="light"] .live-text {
   color: #ec4899;
-}
-
-[data-theme="light"] .category-tabs {
-  background: rgba(0, 0, 0, 0.03);
-  border-bottom: 1px solid rgba(236, 72, 153, 0.08);
-}
-
-[data-theme="light"] .tab-chip {
-  color: #64748B;
-  border-color: rgba(236, 72, 153, 0.15);
-}
-
-[data-theme="light"] .tab-chip:hover {
-  color: #ec4899;
-  border-color: rgba(236, 72, 153, 0.4);
-  background: rgba(236, 72, 153, 0.05);
-}
-
-[data-theme="light"] .tab-chip.active {
-  background: linear-gradient(135deg, #ec4899, #f472b6);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
 }
 
 [data-theme="light"] .rank-scroll::-webkit-scrollbar-thumb {

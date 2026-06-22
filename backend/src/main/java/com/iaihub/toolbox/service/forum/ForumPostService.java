@@ -49,6 +49,7 @@ public class ForumPostService {
             .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));
 
         post.setViewCount(post.getViewCount() + 1);
+        post.updateScore();
         postRepository.save(post);
 
         return toDTO(post);

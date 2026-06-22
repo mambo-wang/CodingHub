@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { StatsDto, ToolRankDto, PostRankDto } from '@/types/overview';
+import type { StatsDto, ToolRankDto, PostRankDto, VideoRankDto } from '@/types/overview';
 
 const api = axios.create({
   baseURL: '/api',
@@ -17,5 +17,10 @@ export async function fetchToolRanks(): Promise<ToolRankDto[]> {
 
 export async function fetchPostRanks(): Promise<PostRankDto[]> {
   const response = await api.get('/overview/post-ranks');
+  return response.data;
+}
+
+export async function fetchVideoRanks(): Promise<VideoRankDto[]> {
+  const response = await api.get('/overview/video-ranks');
   return response.data;
 }

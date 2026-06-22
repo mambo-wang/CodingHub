@@ -197,6 +197,7 @@ public class UnifiedCommentService {
             case FORUM_POST -> {
                 ForumPost post = forumPostRepository.findById(targetId).orElseThrow();
                 post.setCommentCount(post.getCommentCount() + 1);
+                post.updateScore();
                 forumPostRepository.save(post);
             }
             case VIDEO -> {

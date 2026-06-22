@@ -1,5 +1,12 @@
 <template>
   <div class="post-detail-page">
+    <div class="page-header animate-fade-in-up">
+      <button class="back-btn" @click="goBack" aria-label="返回帖子列表">
+        <ArrowLeft :size="20" aria-hidden="true" />
+      </button>
+      <span class="back-label">返回帖子列表</span>
+    </div>
+
     <div v-if="loading" class="loading">
       <Loader2 :size="24" class="spin" />
       加载中...
@@ -104,7 +111,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { User, Eye, MessageCircle, Heart, Trash2, Loader2, Pencil } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Trash2, Loader2, Pencil, ArrowLeft } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
@@ -130,6 +137,10 @@ const canModify = computed(() => {
 
 const handleEdit = () => {
   if (post.value) router.push(`/forum/posts/${post.value.id}/edit`);
+};
+
+const goBack = () => {
+  router.push('/forum');
 };
 
 const loading = ref(true);
@@ -226,6 +237,57 @@ const formatCount = (count: number) => {
   margin: 0 auto;
   padding: 40px 24px 80px;
   position: relative;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.back-btn:hover {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+  background: rgba(124, 58, 237, 0.1);
+  transform: translateX(-2px);
+}
+
+.back-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .loading {

@@ -17,20 +17,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue';
-import { Users, MessageSquare, Wrench } from '@lucide/vue';
+import { computed, ref, watch } from 'vue';
+import { Users, MessageSquare, Wrench, Video } from '@lucide/vue';
 
 const props = defineProps<{
   label: string;
   value: number;
-  icon: 'users' | 'message-square' | 'wrench';
+  icon: 'users' | 'message-square' | 'wrench' | 'video';
 }>();
 
 const displayValue = ref(0);
 const animatedValue = computed(() => displayValue.value.toLocaleString('zh-CN'));
 
 const iconComponent = computed(() => {
-  const icons = { users: Users, 'message-square': MessageSquare, wrench: Wrench };
+  const icons = { users: Users, 'message-square': MessageSquare, wrench: Wrench, video: Video };
   return icons[props.icon];
 });
 
@@ -162,6 +162,7 @@ watch(() => props.value, (newVal) => {
 .accent-users { --accent-color: #00FFFF; }
 .accent-message-square { --accent-color: #FF00FF; }
 .accent-wrench { --accent-color: #00FF88; }
+.accent-video { --accent-color: #FFB800; }
 
 .stats-card:hover .icon-ring {
   box-shadow: 0 0 30px var(--accent-color), 0 0 60px var(--accent-color), inset 0 0 20px rgba(0, 255, 255, 0.2);
@@ -219,4 +220,5 @@ watch(() => props.value, (newVal) => {
 [data-theme="light"] .accent-users { --accent-color: #8b5cf6; }
 [data-theme="light"] .accent-message-square { --accent-color: #ec4899; }
 [data-theme="light"] .accent-wrench { --accent-color: #10b981; }
+[data-theme="light"] .accent-video { --accent-color: #f59e0b; }
 </style>

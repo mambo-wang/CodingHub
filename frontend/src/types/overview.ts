@@ -2,6 +2,7 @@ export interface StatsDto {
   userCount: number;
   postCount: number;
   toolCount: number;
+  videoCount: number;
 }
 
 export interface ToolRankDto {
@@ -16,4 +17,11 @@ export interface PostRankDto {
   category: string;
   postTitle: string;
   score: number;
+}
+
+export interface VideoRankDto {
+  id: number;
+  videoTitle: string;
+  viewCount: number;
+  likeCount: number;
 }
