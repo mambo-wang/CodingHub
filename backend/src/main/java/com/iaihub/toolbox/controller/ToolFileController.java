@@ -32,7 +32,7 @@ public class ToolFileController {
             @PathVariable Long toolId,
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "readme", required = false) String readme,
-            @AuthenticationPrincipal(expression = "null") User currentUser) {
+            @AuthenticationPrincipal User currentUser) {
 
         log.info("Received file upload request for tool {}, files count: {}, user={}",
                 toolId, files.size(), currentUser != null ? currentUser.getId() : "anonymous");

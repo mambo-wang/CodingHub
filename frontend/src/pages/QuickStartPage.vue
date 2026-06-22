@@ -3,13 +3,27 @@ import { ref } from 'vue'
 
 const copySuccess = ref(false)
 const copiedTip = ref<number | null>(null)
+const copySkillSuccess = ref(false)
+const copiedSkillTip = ref<number | null>(null)
+
+const skillPrompt = '使用CodingHub MCP获取codinghub SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。'
+
+const skillTips = [
+  '使用CodingHub SKILL查询工具列表',
+  '使用CodingHub SKILL把xxx这个skill安装到当前项目',
+  '使用CodingHub SKILL排查有无需要升级的SKILL',
+  '使用CodingHub SKILL把当前项目的xxx skill发布到CodingHub',
+  '使用CodingHub SKILL把xxx skill更新到CodingHub',
+  '使用CodingHub SKILL把XXX.md发布到论坛'
+]
 
 const tips = [
-  '使用CodingHub MCP查询工具列表, 并根据现有skill的tools.version版本号排查有无需要升级的工具',
+  '使用CodingHub MCP查询工具列表',
   '使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。',
-  '使用CodingHub MCP新建帖子，把XXX.md 把这个文档发布到论坛',
+  '使用CodingHub MCP根据现有skill的tools.version版本号排查有无需要升级的工具',
   '使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。',
-  '使用CodingHub MCP把xxx这个skill更新到CodingHub工具广场，工具描述不变，版本号改为2.0.0，把原有文件删除(保留readme)，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。'
+  '使用CodingHub MCP把xxx这个skill更新到CodingHub工具广场，工具描述不变，版本号改为2.0.0，把原有文件删除(保留readme)，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。',
+  '使用CodingHub MCP新建帖子，把XXX.md发布到论坛'
 ]
 
 async function copyToClipboard(text: string) {
@@ -38,6 +52,16 @@ const copyTip = async (index: number) => {
   }
 }
 
+const copySkillTip = async (index: number) => {
+  try {
+    await copyToClipboard(skillTips[index])
+    copiedSkillTip.value = index
+    setTimeout(() => { copiedSkillTip.value = null }, 2000)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 // 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
 const mcpConfig = {
@@ -58,6 +82,16 @@ const copyConfig = async () => {
     await copyToClipboard(mcpConfigJson)
     copySuccess.value = true
     setTimeout(() => { copySuccess.value = false }, 2000)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const copySkill = async () => {
+  try {
+    await copyToClipboard(skillPrompt)
+    copySkillSuccess.value = true
+    setTimeout(() => { copySkillSuccess.value = false }, 2000)
   } catch (e) {
     console.error(e)
   }
@@ -106,17 +140,74 @@ const mcpTools = [
         </div>
       </section>
 
-      <!-- Usage Tips -->
+      <!-- Install Skill Section -->
       <section class="section glass-card">
         <div class="section-header">
           <div class="section-badge">02</div>
-          <h2 class="section-title">提示词示例</h2>
+          <h2 class="section-title">安装 SKILL</h2>
+        </div>
+
+        <p class="section-desc">将以下提示词发送给 AI 助手，自动从 CodingHub 获取并安装 CodingHub SKILL：</p>
+
+        <div class="config-card">
+          <div class="config-label">安装提示词</div>
+          <pre class="config-code skill-prompt">{{ skillPrompt }}</pre>
+          <button class="copy-btn" :class="{ success: copySkillSuccess }" @click="copySkill">
+            <svg v-if="!copySkillSuccess" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            {{ copySkillSuccess ? '已复制' : '一键复制' }}
+          </button>
+        </div>
+      </section>
+
+      <!-- SKILL Tips Section -->
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">03</div>
+          <h2 class="section-title">提示词示例（使用 CodingHub SKILL）</h2>
+        </div>
+
+        <p class="section-desc">安装 CodingHub SKILL 后，可直接使用以下自然语言指令：</p>
+
+        <div class="tips-grid">
+          <div v-for="(tip, index) in skillTips" :key="'s' + index" class="tip-card">
+            <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬'][index] }}</div>
+            <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流'][index] }}</h3>
+            <p>{{ tip }}</p>
+            <button
+              class="tip-copy-btn"
+              :class="{ success: copiedSkillTip === index }"
+              @click.stop="copySkillTip(index)"
+            >
+              <svg v-if="copiedSkillTip !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              {{ copiedSkillTip === index ? '已复制' : '复制' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- MCP Tips Section -->
+      <section class="section glass-card">
+        <div class="section-header">
+          <div class="section-badge">04</div>
+          <h2 class="section-title">提示词示例（使用 CodingHub MCP）</h2>
         </div>
 
         <div class="tips-grid">
           <div v-for="(tip, index) in tips" :key="index" class="tip-card">
-            <div class="tip-icon">{{ ['🔍', '📦', '💬', '📤', '🔄'][index] }}</div>
-            <h3>{{ ['搜索工具', '安装工具', '社区交流', '分享工具', '更新工具'][index] }}</h3>
+            <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬'][index] }}</div>
+            <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流'][index] }}</h3>
             <p>{{ tip }}</p>
             <button
               class="tip-copy-btn"
@@ -139,7 +230,7 @@ const mcpTools = [
       <!-- MCP Tools Section -->
       <section class="section glass-card">
         <div class="section-header">
-          <div class="section-badge">03</div>
+          <div class="section-badge">05</div>
           <h2 class="section-title">MCP 工具列表</h2>
         </div>
 
@@ -268,6 +359,12 @@ const mcpTools = [
   white-space: pre;
   overflow-x: auto;
   margin: 0 0 16px 0;
+}
+
+.skill-prompt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
 }
 
 .copy-btn {

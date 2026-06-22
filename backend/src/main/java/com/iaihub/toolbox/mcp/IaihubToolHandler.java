@@ -124,7 +124,7 @@ public class IaihubToolHandler {
                 fileList.add(new FileInfo(
                         file.getOriginalName(),
                         file.getFileSize(),
-                        "/api/files/download/" + file.getId(),
+                        "/api/v1/tools/" + toolId + "/files/" + file.getId() + "/download",
                         file.getCreatedAt() != null ? file.getCreatedAt().toString() : ""
                 ));
             }

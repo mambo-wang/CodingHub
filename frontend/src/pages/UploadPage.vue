@@ -135,6 +135,8 @@ const handleSubmit = async () => {
     router.push('/')
   } catch (error: any) {
     console.error('Upload failed:', error)
+    const msg = error?.response?.data?.message || error?.message || '上传失败，请稍后重试'
+    ElMessage.error(msg)
   } finally {
     loading.value = false
     uploading.value = false

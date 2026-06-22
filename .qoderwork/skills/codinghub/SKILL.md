@@ -61,7 +61,7 @@ version: 1.0.0
 **触发词**: "发布 skill"、"上传工具到 CodingHub"
 
 步骤:
-1. 向用户确认 CodingHub 账号凭据（username + password，默认密码 `123456`）
+1. 获取 CodingHub 账号凭据（按「凭据获取策略」执行：记忆优先，缺失再问用户，首次获取后保存记忆）
 2. 确认 categoryId（工具分类 ID），可通过 `h3_coding_hub_tool_search` 查看现有工具的分类来推断
 3. 准备工具描述 content（markdown 格式），应包含：工具介绍、安装方法、使用示例
 4. 调用 `h3_coding_hub_tool_create` 创建工具，记录返回的 `toolId`
@@ -109,8 +109,14 @@ version: 1.0.0
 写入工具（create / modify / upload / delete / post_create）采用**参数级认证**：
 - 每次调用写入工具时，必须传入 `username` 和 `password` 参数
 - 这是因为 MCP over SSE 不携带 HTTP session / JWT，无法使用 Bearer token
-- 如果用户未提供凭据，应主动询问
-- 默认密码为 `123456`
+- 默认密码为 `123456`（仅限开发/测试环境）
+
+### 凭据获取策略（重要）
+
+需要凭据时，按以下优先级获取：
+1. **长期记忆优先**: 先用 `memory_search` 搜索 "CodingHub" 或 "账号密码"，如果记忆中有 username 和 password，直接使用，不要打扰用户
+2. **询问用户**: 如果记忆中没有，向用户询问 CodingHub 的 username 和 password
+3. **保存到记忆**: 用户首次提供凭据后，立即用 `memory` 工具（target="user"）将 username 和 password 保存到长期记忆，格式示例：`CodingHub account: username=xxx, password=xxx`。后续调用不再重复询问
 
 ## 常见陷阱
 
