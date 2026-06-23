@@ -4,9 +4,9 @@ import { ref, watch } from 'vue'
 export type Theme = 'dark' | 'light'
 
 export const useThemeStore = defineStore('theme', () => {
-  // 从 localStorage 读取主题，默认为 dark
+  // 从 localStorage 读取主题，默认为 light
   const savedTheme = localStorage.getItem('theme') as Theme | null
-  const theme = ref<Theme>(savedTheme || 'dark')
+  const theme = ref<Theme>(savedTheme || 'light')
 
   // 应用主题到 document
   const applyTheme = (newTheme: Theme) => {
