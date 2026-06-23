@@ -11,7 +11,6 @@ import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.CategoryRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
-import com.iaihub.toolbox.util.XssSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -71,13 +70,10 @@ public class ToolService {
         User uploader = userRepository.findById(uploaderId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
 
-        // Sanitize content for XSS
-        String sanitizedContent = XssSanitizer.sanitize(request.getContent());
-
         Tool tool = Tool.builder()
                 .name(request.getName())
                 .category(category)
-                .content(sanitizedContent)
+                .content(request.getContent())
                 .version(request.getVersion())
                 .uploader(uploader)
                 .status(Tool.Status.NORMAL)
@@ -123,8 +119,7 @@ public class ToolService {
         }
 
         if (request.getContent() != null) {
-            String sanitizedContent = XssSanitizer.sanitize(request.getContent());
-            tool.setContent(sanitizedContent);
+            tool.setContent(request.getContent());
         }
 
         if (newName != null) {
