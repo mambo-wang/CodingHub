@@ -23,7 +23,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom 'io.modelcontextprotocol.sdk:mcp-bom:2.0.0-RC1'
+        mavenBom 'io.modelcontextprotocol.sdk:mcp-bom:2.0.0'
     }
 }
 
@@ -49,7 +49,7 @@ dependencies {
     implementation('io.modelcontextprotocol.sdk:mcp') {
         exclude group: 'io.modelcontextprotocol.sdk', module: 'mcp-json-jackson3'
     }
-    implementation 'io.modelcontextprotocol.sdk:mcp-json-jackson2:2.0.0-RC1'
+    implementation 'io.modelcontextprotocol.sdk:mcp-json-jackson2'
 
     // JSON logging
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
