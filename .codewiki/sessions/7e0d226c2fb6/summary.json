@@ -1,0 +1,33 @@
+{
+  "session_id": "7e0d226c2fb6",
+  "repo_name": "CodingHub",
+  "repo_path": "D:\\repos\\CodingHub",
+  "output_dir": "D:\\repos\\CodingHub\\docs",
+  "total_components": 714,
+  "total_leaf_nodes": 190,
+  "languages": {
+    "null": 714
+  },
+  "leaf_nodes_preview": [
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\forum\\ForumLikeRepository.java::ForumLikeRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpResourceHandler.java::McpResourceHandler",
+    "frontend\\src\\services\\interaction.ts::FavoriteResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\SecurityConfig.java::SecurityConfig",
+    "frontend\\src\\types\\overview.ts::VideoRankDto",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\util\\XssSanitizer.java::XssSanitizer",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\LoginRequest.java::LoginRequest",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\forum\\ForumTagRepository.java::ForumTagRepository",
+    "frontend\\src\\types\\forum.ts::PageResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\DataInitializer.java::DataInitializer",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::PostSearchResponse",
+    "frontend\\src\\types\\index.ts::RegisterRequest",
+    "frontend\\src\\types\\tool.ts::ToolDetailDTO",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::IaihubToolHandler",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::FileUploadInfoResponse",
+    "frontend\\src\\services\\interaction.ts::InteractionPageResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\forum\\ForumCommentService.java::ForumCommentService",
+    "frontend\\src\\types\\index.ts::ApiResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\video\\VideoUploadRequest.java::VideoUploadRequest",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\UnifiedInteractionController.java::UnifiedInteractionController"
+  ]
+}

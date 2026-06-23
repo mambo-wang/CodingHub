@@ -1,10 +1,15 @@
 # MCP 协议模块
 
-## 1. 模块概述
+## 1. 模块简介
 
-MCP（Model Context Protocol）协议模块是 CodingHub 平台与外部 AI 助手之间的标准化集成层。该模块基于 [Model Context Protocol](https://modelcontextprotocol.io) 规范，通过 SSE（Server-Sent Events）传输机制，向 MCP 客户端暴露 **11 个标准化工具**，涵盖工具检索、工具管理、帖子管理、文件操作等核心能力。
+MCP（Model Context Protocol）协议模块是 CodingHub 平台的 AI 代理接入层，基于 **Spring AI MCP SDK 2.0.0** 实现。该模块将平台的工具管理能力、论坛社区能力通过标准化的 MCP 协议暴露给外部 AI 代理（如 Claude、Cursor、QoderWork 等），使 AI 助手可以直接搜索、创建、修改工具和帖子，实现平台能力的程序化调用。
 
-模块采用 **MCP Java SDK** 构建，服务器名称为 `H3CodingHub-MCP-Server`，版本 `2.0.0`，支持 `tools` 和 `logging` 两大能力（capability）。
+### 核心能力
+
+- **工具管理**：搜索工具、获取详情、文件管理（列表/下载/上传/删除）、创建与修改工具
+- **论坛交互**：搜索帖子、获取帖子详情、创建帖子
+- **SSE 传输**：基于 Server-Sent Events 的实时双向通信
+- **认证集成**：写操作通过用户名/密码进行身份验证
 
 ### 核心设计目标
 
@@ -97,7 +102,39 @@ sequenceDiagram
     Transport-->>Client: SSE 事件推送响应
 ```
 
-## 3. 源码文件清单
+## 3. MCP SDK 集成
+
+### 3.1 依赖配置
+
+项目使用 **MCP SDK BOM 2.0.0** 进行版本管理：
+
+```groovy
+// build.gradle
+dependencyManagement {
+    mavenBom 'io.modelcontextprotocol.sdk:mcp-bom:2.0.0'
+}
+
+dependencies {
+    implementation('io.modelcontextprotocol.sdk:mcp') {
+        exclude group: 'io.modelcontextprotocol.sdk', module: 'mcp-json-jackson3'
+    }
+    implementation 'io.modelcontextprotocol.sdk:mcp-json-jackson2'
+}
+```
+
+> **注意**：项目排除了 `mcp-json-jackson3` 并显式引入 `mcp-json-jackson2`，以兼容 Spring Boot 3.2.x 自带的 Jackson 2.x 版本。
+
+### 3.2 SDK 核心组件
+
+| 组件 | 用途 |
+|------|------|
+| `McpSyncServer` | 同步 MCP 服务器实例，管理工具注册和请求路由 |
+| `HttpServletSseServerTransportProvider` | SSE 传输层，处理 HTTP 连接和消息收发 |
+| `McpSchema` | MCP 协议数据模型（Tool、CallToolRequest、CallToolResult 等） |
+| `McpServerFeatures.SyncToolSpecification` | 工具定义 + 调用处理器的绑定 |
+| `JacksonMcpJsonMapper` | 基于 Jackson 的 JSON 序列化/反序列化 |
+
+## 4. 源码文件清单
 
 | 文件路径 | 类名 | 职责 |
 |---------|------|------|
@@ -110,9 +147,9 @@ sequenceDiagram
 | `service/McpSearchService.java` | `McpSearchService` | MCP 搜索服务，封装工具和帖子检索 |
 | `dto/McpSearchRequest.java` | `McpSearchRequest` | 搜索请求 DTO |
 
-## 4. MCP Server 配置
+## 5. MCP Server 配置
 
-### 4.1 服务器属性配置（McpServerConfig）
+### 5.1 服务器属性配置（McpServerConfig）
 
 `McpServerConfig` 通过 `@ConfigurationProperties(prefix = "mcp.server")` 绑定 Spring Boot 配置文件，支持以下属性：
 
@@ -136,7 +173,7 @@ mcp:
     connection-timeout-ms: 30000
 ```
 
-### 4.2 SDK 核心配置（McpSdkServerConfig）
+### 5.2 SDK 核心配置（McpSdkServerConfig）
 
 `McpSdkServerConfig` 是 MCP 服务的核心配置类，负责初始化以下 Spring Bean：
 
@@ -199,9 +236,9 @@ public McpSyncServer mcpSyncServer(HttpServletSseServerTransportProvider transpo
 
 创建同步 MCP 服务器实例，声明服务器信息和能力，并注册全部 11 个工具。Bean 销毁时自动调用 `close()` 释放资源。
 
-## 5. 连接管理
+## 6. 连接管理
 
-### 5.1 当前方案：MCP SDK 内置传输层
+### 6.1 当前方案：MCP SDK 内置传输层
 
 当前版本使用 MCP SDK 提供的 `HttpServletSseServerTransportProvider` 管理所有 SSE 连接。该组件内部处理：
 
@@ -209,7 +246,7 @@ public McpSyncServer mcpSyncServer(HttpServletSseServerTransportProvider transpo
 - JSON-RPC 消息的接收与响应
 - 连接生命周期管理（超时、断开、错误处理）
 
-### 5.2 旧版方案：McpConnectionManager（已废弃）
+### 6.2 旧版方案：McpConnectionManager（已废弃）
 
 `McpConnectionManager` 是早期自研的 SSE 连接管理器，现已标记为 `@Deprecated`，由 SDK 内置传输层替代。
 
@@ -244,11 +281,11 @@ public McpSyncServer mcpSyncServer(HttpServletSseServerTransportProvider transpo
 
 **SSE 超时配置：** 默认 30 分钟（`30 * 60 * 1000L` 毫秒）。
 
-## 6. 工具处理器（IaihubToolHandler）
+## 7. 工具处理器（IaihubToolHandler）
 
 `IaihubToolHandler` 是 MCP 模块的核心业务组件，封装了所有 11 个 MCP 工具的处理逻辑。
 
-### 6.1 依赖注入
+### 7.1 依赖注入
 
 ```java
 @Component
@@ -262,7 +299,7 @@ public class IaihubToolHandler {
 }
 ```
 
-### 6.2 认证机制
+### 7.2 认证机制
 
 对于需要认证的写操作（创建、修改、删除），MCP 客户端需在工具参数中传入 `username` 和 `password`。处理器内部通过 `UserService.login()` 进行认证，获取用户 ID 和角色信息后执行实际操作。
 
@@ -281,7 +318,7 @@ sequenceDiagram
     Handler-->>Client: McpSchema.CallToolResult（JSON）
 ```
 
-### 6.3 版本号自动递增
+### 7.3 版本号自动递增
 
 当修改工具时未传入 `version` 参数，`incrementVersion()` 方法自动递增版本号的最后一位：
 
@@ -292,7 +329,7 @@ sequenceDiagram
 | `1.0.0-beta` | `1.0.1-beta` |
 | `1.0.alpha` | `1.0.alpha.1` |
 
-### 6.4 响应格式
+### 7.4 响应格式
 
 所有工具返回统一的 `McpSchema.CallToolResult` 格式：
 
@@ -322,7 +359,7 @@ sequenceDiagram
 }
 ```
 
-### 6.5 内部 DTO 类
+### 7.5 内部 DTO 类
 
 `IaihubToolHandler` 内部定义了以下 DTO 类用于序列化响应：
 
@@ -339,7 +376,7 @@ sequenceDiagram
 | `FileUploadInfoResponse` | `toolId`, `toolName`, `uploadUrl`, `httpMethod`, `contentType`, `formFields`, `limits`, `instruction` | 文件上传指引 |
 | `FileDeleteResponse` | `toolId`, `fileId`, `deleted` | 文件删除结果 |
 
-## 7. 资源处理器（McpResourceHandler）
+## 8. 资源处理器（McpResourceHandler）
 
 `McpResourceHandler` 提供 MCP 资源层面的工具列表与检索能力：
 
@@ -349,7 +386,7 @@ sequenceDiagram
 | `searchTools(query, category, limit)` | 委托 `McpSearchService` 搜索工具 |
 | `getToolContent(toolId)` | 获取指定工具的 Markdown 内容 |
 
-## 8. 搜索服务（McpSearchService）
+## 9. 搜索服务（McpSearchService）
 
 `McpSearchService` 是 MCP 模块的数据访问层，封装了对 Repository 的调用：
 
@@ -362,9 +399,9 @@ sequenceDiagram
 | `getPostById(postId)` | 获取帖子详情 | — |
 | `getToolFile(toolId, fileId)` | 获取指定工具下的指定文件 | — |
 
-## 9. 工具注册与发现机制
+## 10. 工具注册与发现机制
 
-### 9.1 注册流程
+### 10.1 注册流程
 
 工具注册在 `McpSdkServerConfig.mcpSyncServer()` 方法中完成，通过统一的 `registerTool()` 私有方法：
 
@@ -382,7 +419,7 @@ private void registerTool(McpSyncServer server, String name, String description,
 3. 创建 `McpServerFeatures.SyncToolSpecification`，绑定工具定义和调用处理器（`BiFunction`）
 4. 调用 `server.addTool(toolHandler)` 注册到 MCP 服务器
 
-### 9.2 工具发现
+### 10.2 工具发现
 
 MCP 客户端通过标准协议流程发现可用工具：
 
@@ -390,9 +427,9 @@ MCP 客户端通过标准协议流程发现可用工具：
 2. MCP 服务器返回所有已注册工具的名称、描述和输入 Schema
 3. 客户端根据 Schema 构造 `tools/call` 请求调用具体工具
 
-## 10. SSE 事件流协议
+## 11. SSE 事件流协议
 
-### 10.1 连接建立
+### 11.1 连接建立
 
 ```
 GET /sse HTTP/1.1
@@ -402,7 +439,7 @@ Accept: text/event-stream
 
 服务器响应 SSE 流，保持长连接。
 
-### 10.2 消息发送
+### 11.2 消息发送
 
 ```
 POST /mcp/message HTTP/1.1
@@ -423,7 +460,7 @@ Content-Type: application/json
 }
 ```
 
-### 10.3 响应推送
+### 11.3 响应推送
 
 服务器通过 SSE 流推送 JSON-RPC 响应：
 
@@ -432,7 +469,7 @@ event: message
 data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isError":false},"id":1}
 ```
 
-## 11. API 端点
+## 12. API 端点
 
 | 方法 | 路径 | 说明 | 处理方 |
 |------|------|------|--------|
@@ -451,9 +488,9 @@ data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isEr
 }
 ```
 
-## 12. 工具清单
+## 13. 工具清单
 
-### 12.1 查询类工具（无需认证）
+### 13.1 查询类工具（无需认证）
 
 | # | 工具名称 | 说明 | 必填参数 | 可选参数 |
 |---|---------|------|---------|----------|
@@ -464,7 +501,7 @@ data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isEr
 | 5 | `h3_coding_hub_post_get` | 获取帖子内容，含完整 Markdown | `postId` | — |
 | 6 | `h3_coding_hub_tool_download` | 获取工具文件的下载链接 | `toolId`, `fileId` | — |
 
-### 12.2 写入类工具（需要认证）
+### 13.2 写入类工具（需要认证）
 
 | # | 工具名称 | 说明 | 必填参数 | 可选参数 |
 |---|---------|------|---------|----------|
@@ -474,7 +511,7 @@ data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isEr
 | 10 | `h3_coding_hub_tool_modify` | 修改已有工具，支持部分更新 | `toolId`, `username`, `password` | `name`, `categoryId`, `content`, `version`（不传则自动递增） |
 | 11 | `h3_coding_hub_tool_file_delete` | 删除工具下的指定文件 | `toolId`, `fileId`, `username`, `password` | — |
 
-### 12.3 工具详细说明
+### 13.3 工具详细说明
 
 #### h3_coding_hub_tool_search
 
@@ -608,7 +645,7 @@ data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isEr
 { "toolId": 1, "fileId": 1, "deleted": true }
 ```
 
-## 13. 搜索请求 DTO（McpSearchRequest）
+## 14. 搜索请求 DTO（McpSearchRequest）
 
 `McpSearchRequest` 是 MCP 搜索接口的数据传输对象，包含以下字段：
 
@@ -618,9 +655,9 @@ data: {"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"..."}], "isEr
 | `category` | `String` | — | — | 分类名称 |
 | `limit` | `Integer` | `@Min(1)` `@Max(100)` | `20` | 返回数量限制 |
 
-## 14. MCP 客户端接入指南
+## 15. MCP 客户端接入指南
 
-### 14.1 连接配置
+### 15.1 连接配置
 
 MCP 客户端需配置以下连接信息：
 
@@ -631,7 +668,7 @@ MCP 客户端需配置以下连接信息：
 | 协议版本 | MCP（JSON-RPC 2.0） |
 | 传输方式 | SSE（Server-Sent Events） |
 
-### 14.2 典型使用流程
+### 15.2 典型使用流程
 
 ```mermaid
 graph LR
@@ -651,9 +688,16 @@ graph LR
 6. **创建工具**：调用 `h3_coding_hub_tool_create`（需认证），获取工具 ID
 7. **上传文件**：调用 `h3_coding_hub_tool_file_upload` 获取上传接口信息，通过 HTTP POST 上传
 
-### 14.3 认证说明
+### 15.3 认证说明
 
 - **查询类操作**（搜索、查看详情、下载）无需认证
 - **写入类操作**（创建、修改、删除）需在参数中传入 `username` 和 `password`
 - 默认密码为 `123456`
 - 认证在工具处理器内部通过 `UserService.login()` 完成，不使用 JWT Token
+
+## 16. 与其他模块的关系
+
+- **[工具市场](工具市场.md)**：MCP 模块通过 `ToolService`、`ToolFileService` 实现工具的 CRUD 操作，共享 `Tool`、`ToolFile` 实体和 `ToolRepository`、`ToolFileRepository` 数据访问层。MCP 工具 `h3_coding_hub_tool_search`、`h3_coding_hub_tool_get` 等直接操作工具市场的数据。
+- **[论坛社区](论坛社区.md)**：MCP 模块通过 `ForumPostService` 实现帖子的查询和创建，共享 `ForumPost` 实体和 `ForumPostRepository` 数据访问层。MCP 工具 `h3_coding_hub_post_search`、`h3_coding_hub_post_get`、`h3_coding_hub_post_create` 直接操作论坛帖子数据。
+- **认证系统**：写操作工具通过 `UserService.login()` 进行身份验证，复用现有的登录认证流程，而非使用 JWT Token 机制。
+- **文件存储**：文件上传/下载通过 `ToolFileService` 实现，文件存储在服务器 `uploads/` 目录下。
