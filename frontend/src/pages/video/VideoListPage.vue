@@ -228,8 +228,8 @@ const handleDialogCancel = () => {
 }
 
 .app-container {
-  max-width: 1280px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
   padding: 0 24px;
 }
 
@@ -296,26 +296,8 @@ const handleDialogCancel = () => {
 /* Video Grid */
 .video-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
-}
-
-@media (min-width: 640px) {
-  .video-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .video-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 1280px) {
-  .video-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 /* Skeleton */
