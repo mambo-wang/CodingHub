@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { Loader2, AlertCircle, RotateCcw } from '@lucide/vue'
 
 const props = defineProps<{

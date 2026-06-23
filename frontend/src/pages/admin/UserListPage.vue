@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import type { AdminUser, PageResponse, ApiResponse } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
