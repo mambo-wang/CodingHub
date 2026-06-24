@@ -1,69 +1,11 @@
-# Forum Favorites and Navigation
-
-## Purpose
-
-TBD - 论坛收藏与导航功能规格
-
-## Requirements
+## REMOVED Requirements
 
 ### Requirement: 论坛收藏与导航
+**原因**：论坛收藏功能已迁移到统一的 `unified-interactions` 能力，导航组件已替换为通用的 `GeneralizedSidebar`（由 `unified-sidebar-nav` 能力提供），post_favorites 表和 SidebarNav 组件废弃。
 
-#### Scenario 1: 未登录用户访问论坛
-- GIVEN: 用户未登录
-- WHEN: 用户访问论坛列表页面
-- THEN: 显示帖子列表，可以浏览帖子
-
-#### Scenario 2: 未登录用户查看帖子详情
-- GIVEN: 用户未登录
-- WHEN: 用户点击帖子进入详情页
-- THEN: 可以查看帖子内容和评论
-
-#### Scenario 3: 未登录用户点击点赞
-- GIVEN: 用户未登录，已登录用户在帖子上点了赞
-- WHEN: 未登录用户点击帖子上的点赞按钮
-- THEN: 提示"请先登录"对话框
-
-#### Scenario 4: 已登录用户点赞帖子
-- GIVEN: 用户已登录，帖子未点赞
-- WHEN: 用户点击帖子点赞按钮
-- THEN: 点赞成功，点赞数+1，按钮变为已激活状态
-
-#### Scenario 5: 已登录用户收藏帖子
-- GIVEN: 用户已登录，帖子未收藏
-- WHEN: 用户点击帖子收藏按钮
-- THEN: 收藏成功，收藏数+1，收藏按钮变为激活状态
-
-#### Scenario 6: 未登录用户点击收藏
-- GIVEN: 用户未登录
-- WHEN: 用户点击帖子收藏按钮
-- THEN: 提示"请先登录"对话框
-
-#### Scenario 7: 已登录用户取消收藏
-- GIVEN: 用户已登录，帖子已收藏
-- WHEN: 用户再次点击收藏按钮
-- THEN: 取消收藏成功，收藏数-1，收藏按钮恢复未激活状态
-
-#### Scenario 8: 已登录用户访问我的收藏
-- GIVEN: 用户已登录
-- WHEN: 用户点击左侧导航栏"我的收藏"
-- THEN: 显示该用户收藏的所有帖子列表
-
-#### Scenario 9: 未登录用户点击我的收藏
-- GIVEN: 用户未登录
-- WHEN: 用户点击左侧导航栏"我的收藏"
-- THEN: 提示"请先登录"对话框
-
-#### Scenario 10: 已登录用户访问我的帖子
-- GIVEN: 用户已登录
-- WHEN: 用户点击左侧导航栏"我的帖子"
-- THEN: 显示该用户发布的所有帖子列表
-
-#### Scenario 11: 未登录用户点击我的帖子
-- GIVEN: 用户未登录
-- WHEN: 用户点击左侧导航栏"我的帖子"
-- THEN: 提示"请先登录"对话框
-
-#### Scenario 12: 顶部菜单栏显示
-- GIVEN: 用户无论登录与否
-- WHEN: 用户访问首页或任意页面
-- THEN: 顶部菜单栏只显示"工具"和"论坛"两个导航项，不显示"上传工具"按钮
+**迁移方案**：
+- 收藏 API 迁移：`POST /api/v1/post-favorites/{postId}` → `POST /api/v1/interactions/favorites`（body 中 `targetType: "FORUM_POST", targetId`）
+- 收藏列表迁移：`GET /api/v1/post-favorites/posts` → `GET /api/v1/interactions/favorites?targetType=FORUM_POST`
+- 收藏状态迁移：`GET /api/v1/post-favorites/check/{postId}` → `GET /api/v1/interactions/favorites/status?targetType=FORUM_POST&targetId={id}`
+- 导航组件：SidebarNav.vue 废弃，替换为 GeneralizedSidebar（props 传入论坛导航项配置）
+- Scenario 3/6（未登录点赞/收藏提示）：由前端 UnifiedLikeButton 和 UnifiedFavoriteButton 组件统一处理
