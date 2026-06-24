@@ -48,3 +48,16 @@ export async function getTool(id: number): Promise<ToolDetailVO> {
   const response = await api.get<ToolDetailVO>(`/tools/${id}`);
   return response.data;
 }
+
+export async function pinTool(id: number): Promise<void> {
+  await api.post(`/tools/${id}/pin`);
+}
+
+export async function unpinTool(id: number): Promise<void> {
+  await api.delete(`/tools/${id}/pin`);
+}
+
+export async function getHotTop5(): Promise<number[]> {
+  const response = await api.get<{code: number; message: string; data: number[]}>('/tools/hot-top5');
+  return response.data.data;
+}

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pencil, Trash2, Upload, Bookmark, Wrench } from '@lucide/vue'
+import { Pencil, Trash2, Upload, Bookmark, Wrench, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import MarkdownIt from 'markdown-it'
 import { ElMessage } from 'element-plus'
 import api, { fileUploadApi } from '@/services/api'
 import { interactionApi } from '@/services/interaction'
+import { pinTool, unpinTool, getHotTop5 } from '@/services/tool'
 import type { ToolSummary, Category, PageResponse, CreateToolRequest } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import SortTab from '@/components/common/SortTab.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -18,13 +20,15 @@ const tools = ref<ToolSummary[]>([])
 const categories = ref<Category[]>([])
 const selectedCategory = ref<number | null>(null)
 const searchKeyword = ref('')
-const sortBy = ref('latest')
+const sortBy = ref('hot')
 const loading = ref(false)
 const showMcpModal = ref(false)
 const copySuccess = ref(false)
 const deleteDialogVisible = ref(false)
 const deleteTargetId = ref<number | null>(null)
 const deleting = ref(false)
+const hotTop5Ids = ref<Set<number>>(new Set())
+const pinLoadingId = ref<number | null>(null)
 const pagination = ref({
   page: 0,
   size: 12,
@@ -266,9 +270,38 @@ const resetUploadForm = () => {
   uploadProgress.value = 0
 }
 
+const fetchHotTop5 = async () => {
+  try {
+    const ids = await getHotTop5()
+    hotTop5Ids.value = new Set(ids)
+  } catch (error) {
+    console.error('Failed to fetch hot top 5:', error)
+  }
+}
+
+const handlePinTool = async (toolId: number) => {
+  if (pinLoadingId.value === toolId) return
+  pinLoadingId.value = toolId
+  try {
+    const tool = tools.value.find(t => t.id === toolId)
+    if (!tool) return
+    if (tool.pinned) {
+      await unpinTool(toolId)
+    } else {
+      await pinTool(toolId)
+    }
+    tool.pinned = !tool.pinned
+  } catch (error) {
+    console.error('Pin/unpin failed:', error)
+  } finally {
+    pinLoadingId.value = null
+  }
+}
+
 onMounted(() => {
   fetchCategories()
   fetchTools()
+  fetchHotTop5()
 })
 </script>
 
@@ -361,13 +394,7 @@ onMounted(() => {
 
           <!-- Sort -->
           <div class="sort-wrapper">
-            <select v-model="sortBy" class="sort-select" @change="handleSortChange(sortBy)">
-              <option value="latest">最新上传</option>
-              <option value="name">按名称</option>
-            </select>
-            <svg class="select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
+            <SortTab v-model="sortBy" @update:modelValue="handleSortChange" />
           </div>
         </div>
       </div>
@@ -394,6 +421,10 @@ onMounted(() => {
               class="tool-card glass-card"
               @click="goToDetail(tool.id)"
             >
+              <div class="tool-card-badges">
+                <ArrowUp v-if="tool.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
+                <Flame v-if="hotTop5Ids.has(tool.id)" class="badge-hot" :size="16" aria-hidden="true" />
+              </div>
               <div class="tool-card-inner">
                 <div class="tool-category-tag">
                   <span class="cat-icon">{{ tool.categoryIcon }}</span>
@@ -412,11 +443,21 @@ onMounted(() => {
                 </div>
               </div>
               <div class="tool-card-glow"></div>
-              <div class="tool-card-actions" v-if="canModifyTool(tool)">
-                <button class="btn-icon-edit" aria-label="编辑工具" @click.stop="handleToolEdit(tool.id)">
+              <div class="tool-card-actions" v-if="canModifyTool(tool) || authStore.isAdmin">
+                <button
+                  v-if="authStore.isAdmin"
+                  class="btn-icon-pin-tool"
+                  :aria-label="tool.pinned ? '取消置顶' : '置顶'"
+                  :disabled="pinLoadingId === tool.id"
+                  @click.stop="handlePinTool(tool.id)"
+                >
+                  <PinOff v-if="tool.pinned" :size="14" />
+                  <Pin v-else :size="14" />
+                </button>
+                <button v-if="canModifyTool(tool)" class="btn-icon-edit" aria-label="编辑工具" @click.stop="handleToolEdit(tool.id)">
                   <Pencil :size="16" />
                 </button>
-                <button class="btn-icon-delete" aria-label="删除工具" @click.stop="handleToolDeleteClick(tool.id)">
+                <button v-if="canModifyTool(tool)" class="btn-icon-delete" aria-label="删除工具" @click.stop="handleToolDeleteClick(tool.id)">
                   <Trash2 :size="16" />
                 </button>
               </div>
@@ -801,6 +842,18 @@ onMounted(() => {
 .btn-icon-edit, .btn-icon-delete { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--bg-glass); color: var(--text-muted); cursor: pointer; transition: all 200ms ease; }
 .btn-icon-edit:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
 .btn-icon-delete:hover { color: var(--color-destructive); border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent); }
+
+.tool-card-badges { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; z-index: 2; }
+.badge-pinned { color: var(--color-pinned, #8b5cf6); transition: transform 0.2s ease; }
+.badge-pinned:hover { transform: scale(1.1); }
+.badge-hot { color: var(--color-hot, #F59E0B); transition: color 0.2s ease; }
+.badge-hot:hover { color: #FBBF24; }
+[data-theme="light"] .badge-pinned { color: var(--color-pinned, #7c3aed); }
+[data-theme="light"] .badge-hot { color: var(--color-hot, #D97706); }
+
+.btn-icon-pin-tool { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--bg-glass); color: var(--text-muted); cursor: pointer; transition: all 200ms ease; }
+.btn-icon-pin-tool:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
+.btn-icon-pin-tool:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); margin-bottom: 16px; }
 .tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; line-height: 1.3; }

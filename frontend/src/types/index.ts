@@ -26,6 +26,11 @@ export interface ToolSummary {
   uploaderUsername: string
   uploaderNickname?: string
   uploaderAvatarUrl?: string | null
+  score?: number
+  pinned?: boolean
+  viewCount?: number
+  likeCount?: number
+  commentCount?: number
   createdAt: string
 }
 

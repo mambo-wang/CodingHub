@@ -17,6 +17,20 @@
     >
       <Trash2 :size="16" />
     </button>
+    <button
+      v-if="canPin"
+      class="btn-icon-pin"
+      :aria-label="post.pinned ? '取消置顶' : '置顶'"
+      :disabled="pinLoading"
+      @click.stop="handlePin"
+    >
+      <PinOff v-if="post.pinned" :size="14" />
+      <Pin v-else :size="14" />
+    </button>
+    <div class="card-badges">
+      <ArrowUp v-if="post.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
+      <Flame v-if="isHot" class="badge-hot" :size="16" aria-hidden="true" />
+    </div>
     <div class="card-content">
       <div class="card-header">
         <span class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
@@ -61,23 +75,48 @@
 </template>
 
 <script setup lang="ts">
-import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil } from '@lucide/vue';
+import { ref, computed } from 'vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue';
 import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { interactionApi } from '@/services/interaction';
+import forumService from '@/services/forum';
 import AuthorBadge from '@/components/AuthorBadge.vue';
 
-const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean; editable?: boolean }>(), {
+const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean; editable?: boolean; isHot?: boolean }>(), {
   deletable: false,
   editable: false,
+  isHot: false,
 });
-defineEmits<{
+const emit = defineEmits<{
   (e: 'delete', postId: number): void;
   (e: 'edit', postId: number): void;
+  (e: 'pin-changed'): void;
 }>();
 const router = useRouter();
 const authStore = useAuthStore();
+const pinLoading = ref(false);
+
+const canPin = computed(() => authStore.isAdmin);
+
+const handlePin = async () => {
+  if (pinLoading.value) return;
+  pinLoading.value = true;
+  try {
+    if (props.post.pinned) {
+      await forumService.unpinPost(props.post.id);
+    } else {
+      await forumService.pinPost(props.post.id);
+    }
+    props.post.pinned = !props.post.pinned;
+    emit('pin-changed');
+  } catch (error) {
+    console.error('Pin/unpin failed:', error);
+  } finally {
+    pinLoading.value = false;
+  }
+};
 
 // 分类颜色映射
 const categoryColors: Record<number, string> = {
@@ -333,5 +372,84 @@ const toggleFavorite = async () => {
 
 .btn-icon-delete:active {
   transform: scale(0.95);
+}
+
+.card-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.badge-pinned {
+  color: var(--color-pinned, #8b5cf6);
+  transition: transform 0.2s ease;
+}
+
+.badge-pinned:hover {
+  transform: scale(1.1);
+}
+
+.badge-hot {
+  color: var(--color-hot, #F59E0B);
+  transition: color 0.2s ease;
+}
+
+.badge-hot:hover {
+  color: #FBBF24;
+}
+
+[data-theme="light"] .badge-pinned {
+  color: var(--color-pinned, #7c3aed);
+}
+
+[data-theme="light"] .badge-hot {
+  color: var(--color-hot, #D97706);
+}
+
+.btn-icon-pin {
+  position: absolute;
+  top: 12px;
+  right: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 200ms ease;
+  z-index: 2;
+  opacity: 0;
+}
+
+.post-card:hover .btn-icon-pin {
+  opacity: 1;
+}
+
+.btn-icon-pin:hover {
+  color: var(--accent-1);
+}
+
+.btn-icon-pin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon-pin:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-pinned:hover {
+    transform: none;
+  }
 }
 </style>

@@ -11,6 +11,8 @@ export interface ForumPost {
   viewCount: number;
   likeCount: number;
   commentCount: number;
+  score?: number;
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
   isFavorited?: boolean;

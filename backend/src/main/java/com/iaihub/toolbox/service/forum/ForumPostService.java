@@ -25,18 +25,46 @@ public class ForumPostService {
     private final ForumPostTagRepository postTagRepository;
     private final UserRepository userRepository;
 
-    public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, Pageable pageable) {
+    public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, String sortBy, Pageable pageable) {
         Page<ForumPost> posts;
 
-        if (keyword != null && !keyword.isBlank()) {
-            posts = postRepository.searchByTitle(keyword, ForumPostStatus.NORMAL, pageable);
-        } else if (categoryId != null) {
-            posts = postRepository.findByCategoryIdAndStatus(categoryId, ForumPostStatus.NORMAL, pageable);
+        if ("latest".equalsIgnoreCase(sortBy)) {
+            // 最新排序：createdAt DESC，忽略 pinned
+            if (keyword != null && !keyword.isBlank()) {
+                posts = postRepository.searchByTitle(keyword, ForumPostStatus.NORMAL, pageable);
+            } else if (categoryId != null) {
+                posts = postRepository.findByCategoryIdAndStatus(categoryId, ForumPostStatus.NORMAL, pageable);
+            } else {
+                posts = postRepository.findByStatusOrderByCreatedAtDesc(ForumPostStatus.NORMAL, pageable);
+            }
         } else {
-            posts = postRepository.findByStatusOrderByCreatedAtDesc(ForumPostStatus.NORMAL, pageable);
+            // 默认 hot：pinned DESC, score DESC
+            if (keyword != null && !keyword.isBlank()) {
+                posts = postRepository.searchByTitleOrderByHot(keyword, ForumPostStatus.NORMAL, pageable);
+            } else if (categoryId != null) {
+                posts = postRepository.findByCategoryIdAndStatusOrderByHot(categoryId, ForumPostStatus.NORMAL, pageable);
+            } else {
+                posts = postRepository.findByStatusOrderByHot(ForumPostStatus.NORMAL, pageable);
+            }
         }
 
         return posts.map(this::toDTO);
+    }
+
+    public void pinPost(Long id) {
+        postRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));
+        postRepository.pinById(id);
+    }
+
+    public void unpinPost(Long id) {
+        postRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));
+        postRepository.unpinById(id);
+    }
+
+    public List<Long> getHotTop5() {
+        return postRepository.findTop5ByStatusOrderByScoreDesc(PageRequest.of(0, 5));
     }
 
     public Page<ForumPostDTO> getMyPosts(Long userId, Pageable pageable) {
@@ -130,7 +158,9 @@ public class ForumPostService {
             authorNickname,
             post.getCategoryId(), categoryName,
             post.getViewCount(), post.getLikeCount(), post.getCommentCount(),
-            post.getCreatedAt(), post.getUpdatedAt()
+            post.getCreatedAt(), post.getUpdatedAt(),
+            post.getScore() != null ? post.getScore() : java.math.BigDecimal.ZERO,
+            post.getPinned() != null ? post.getPinned() : false
         );
     }
 }

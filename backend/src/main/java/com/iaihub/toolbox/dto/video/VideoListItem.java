@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -25,4 +26,6 @@ public class VideoListItem {
     private String uploaderNickname;
     private String uploaderAvatarUrl;
     private LocalDateTime createdAt;
+    private BigDecimal score;
+    private Boolean pinned;
 }

@@ -29,6 +29,10 @@
         </button>
       </div>
 
+      <div class="sort-row">
+        <SortTab v-model="sortBy" @update:modelValue="handleSortChange" />
+      </div>
+
       <div v-if="loading" class="loading">加载中...</div>
       <div v-else class="post-list">
         <PostCard
@@ -37,6 +41,7 @@
           :post="post"
           :editable="canEditPost(post.authorId)"
           :deletable="canDeletePost(post.authorId)"
+          :isHot="hotTop5Ids.has(post.id)"
           @edit="goToEdit"
           @delete="handleDeletePost"
           @click="goToDetail(post.id)"
@@ -84,6 +89,7 @@ import { useAuthStore } from '@/stores/auth';
 import forumService from '@/services/forum';
 import PostCard from '@/components/forum/PostCard.vue';
 import CategoryFilter from '@/components/forum/CategoryFilter.vue';
+import SortTab from '@/components/common/SortTab.vue';
 import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue';
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import { ElMessage } from 'element-plus';
@@ -103,6 +109,8 @@ const { isLoggedIn } = storeToRefs(authStore);
 
 const keyword = ref('');
 const selectedCategory = ref<number | null>(null);
+const sortBy = ref('hot');
+const hotTop5Ids = ref<Set<number>>(new Set());
 const deleteDialogVisible = ref(false);
 const deleteTargetId = ref<number | null>(null);
 const deleting = ref(false);
@@ -112,15 +120,26 @@ const totalPages = computed(() => pagination.value.totalPages);
 
 onMounted(async () => {
   await Promise.all([
-    forumStore.fetchPosts(),
-    forumStore.fetchCategories()
+    forumStore.fetchPosts({ sortBy: sortBy.value }),
+    forumStore.fetchCategories(),
+    fetchHotTop5()
   ]);
 });
+
+const fetchHotTop5 = async () => {
+  try {
+    const ids = await forumService.getHotTop5()
+    hotTop5Ids.value = new Set(ids)
+  } catch (error) {
+    console.error('Failed to fetch hot top 5:', error)
+  }
+}
 
 const handleCategorySelect = async (categoryId: number | null) => {
   selectedCategory.value = categoryId;
   await forumStore.fetchPosts({
     category: categoryId ?? undefined,
+    sortBy: sortBy.value,
     page: 0
   });
 };
@@ -128,6 +147,7 @@ const handleCategorySelect = async (categoryId: number | null) => {
 const handleSearch = async () => {
   await forumStore.fetchPosts({
     keyword: keyword.value || undefined,
+    sortBy: sortBy.value,
     page: 0
   });
 };
@@ -136,7 +156,18 @@ const changePage = async (newPage: number) => {
   await forumStore.fetchPosts({
     category: selectedCategory.value ?? undefined,
     keyword: keyword.value || undefined,
+    sortBy: sortBy.value,
     page: newPage
+  });
+};
+
+const handleSortChange = async (value: string) => {
+  sortBy.value = value;
+  await forumStore.fetchPosts({
+    category: selectedCategory.value ?? undefined,
+    keyword: keyword.value || undefined,
+    sortBy: value,
+    page: 0
   });
 };
 
@@ -299,6 +330,12 @@ const handleDialogCancel = () => {
 
 .search-bar button:hover {
   background: #7c3aed;
+}
+
+.sort-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 .post-list {

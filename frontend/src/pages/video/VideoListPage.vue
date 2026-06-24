@@ -5,6 +5,7 @@ import { Upload, VideoOff, Loader2, LayoutGrid, Video, Bookmark } from '@lucide/
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
 import VideoCard from '@/components/video/VideoCard.vue'
+import SortTab from '@/components/common/SortTab.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import GeneralizedSidebar, { type SidebarNavItem } from '@/components/common/GeneralizedSidebar.vue'
 import { ElMessage } from 'element-plus'
@@ -25,6 +26,8 @@ const loading = ref(true)
 const page = ref(0)
 const totalPages = ref(0)
 const pageSize = 12
+const sortBy = ref('hot')
+const hotTop5Ids = ref<Set<number>>(new Set())
 
 const hasMore = computed(() => page.value < totalPages.value - 1)
 const loadingMore = ref(false)
@@ -33,13 +36,25 @@ const deleteTargetId = ref<number | null>(null)
 const deleting = ref(false)
 
 onMounted(async () => {
-  await loadVideos()
+  await Promise.all([
+    loadVideos(),
+    fetchHotTop5()
+  ])
 })
+
+const fetchHotTop5 = async () => {
+  try {
+    const ids = await videoService.getHotTop5()
+    hotTop5Ids.value = new Set(ids)
+  } catch (error) {
+    console.error('Failed to fetch hot top 5:', error)
+  }
+}
 
 const loadVideos = async () => {
   loading.value = true
   try {
-    const data = await videoService.getVideoList(0, pageSize)
+    const data = await videoService.getVideoList(0, pageSize, sortBy.value)
     videos.value = data.content
     totalPages.value = data.totalPages
     page.value = data.page
@@ -55,7 +70,7 @@ const loadMore = async () => {
   loadingMore.value = true
   try {
     const nextPage = page.value + 1
-    const data = await videoService.getVideoList(nextPage, pageSize)
+    const data = await videoService.getVideoList(nextPage, pageSize, sortBy.value)
     videos.value = [...videos.value, ...data.content]
     page.value = data.page
     totalPages.value = data.totalPages
@@ -64,6 +79,12 @@ const loadMore = async () => {
   } finally {
     loadingMore.value = false
   }
+}
+
+const handleSortChange = async (value: string) => {
+  sortBy.value = value
+  videos.value = []
+  await loadVideos()
 }
 
 const canEditVideo = (uploaderId: number) => {
@@ -128,6 +149,10 @@ const handleDialogCancel = () => {
         </router-link>
       </div>
 
+      <div class="sort-row">
+        <SortTab v-model="sortBy" @update:modelValue="handleSortChange" />
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="video-grid">
         <div v-for="i in 6" :key="i" class="skeleton-card" aria-hidden="true">
@@ -156,6 +181,7 @@ const handleDialogCancel = () => {
             :video="video"
             :editable="canEditVideo(video.uploaderId)"
             :deletable="canEditVideo(video.uploaderId)"
+            :isHot="hotTop5Ids.has(video.id)"
             @edit="handleVideoEdit"
             @delete="handleVideoDelete"
           />
@@ -291,6 +317,12 @@ const handleDialogCancel = () => {
 .upload-btn:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+.sort-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 /* Video Grid */

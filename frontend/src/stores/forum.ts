@@ -22,6 +22,7 @@ export const useForumStore = defineStore('forum', {
       category?: number;
       tag?: number;
       keyword?: string;
+      sortBy?: string;
       page?: number;
       size?: number;
     }) {

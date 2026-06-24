@@ -21,5 +21,10 @@ export interface ToolSummary {
   categoryName: string;
   categoryIcon: string;
   uploaderUsername: string;
+  score?: number;
+  pinned?: boolean;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
   createdAt: string;
 }

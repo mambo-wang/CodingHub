@@ -1,21 +1,49 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Eye, Heart, MessageCircle, Play, Pencil, Trash2 } from '@lucide/vue'
+import { ref, computed } from 'vue'
+import { Eye, Heart, MessageCircle, Play, Pencil, Trash2, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import type { VideoListItem } from '@/types/video'
+import { useAuthStore } from '@/stores/auth'
+import { videoService } from '@/services/video'
 
 const props = withDefaults(defineProps<{
   video: VideoListItem
   editable?: boolean
   deletable?: boolean
+  isHot?: boolean
 }>(), {
   editable: false,
   deletable: false,
+  isHot: false,
 })
 const emit = defineEmits<{
   (e: 'edit', videoId: number): void
   (e: 'delete', videoId: number): void
+  (e: 'pin-changed'): void
 }>()
+
+const authStore = useAuthStore()
+const pinLoading = ref(false)
+
+const canPin = computed(() => authStore.isAdmin)
+
+const handlePin = async () => {
+  if (pinLoading.value) return
+  pinLoading.value = true
+  try {
+    if (props.video.pinned) {
+      await videoService.unpinVideo(props.video.id)
+    } else {
+      await videoService.pinVideo(props.video.id)
+    }
+    props.video.pinned = !props.video.pinned
+    emit('pin-changed')
+  } catch (error) {
+    console.error('Pin/unpin failed:', error)
+  } finally {
+    pinLoading.value = false
+  }
+}
 
 const formatDuration = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
@@ -72,9 +100,13 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
           <Play :size="40" aria-hidden="true" />
         </div>
         <span class="duration-badge">{{ formatDuration(video.duration) }}</span>
+        <div class="card-badges">
+          <ArrowUp v-if="video.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
+          <Flame v-if="isHot" class="badge-hot" :size="16" aria-hidden="true" />
+        </div>
       </div>
 
-      <div class="card-actions" v-if="editable || deletable">
+      <div class="card-actions" v-if="editable || deletable || canPin">
         <button
           v-if="editable"
           class="btn-icon-edit"
@@ -92,6 +124,17 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
           @pointerdown.stop
         >
           <Trash2 :size="16" />
+        </button>
+        <button
+          v-if="canPin"
+          class="btn-icon-pin"
+          :aria-label="video.pinned ? '取消置顶' : '置顶'"
+          :disabled="pinLoading"
+          @click.stop.prevent="handlePin"
+          @pointerdown.stop
+        >
+          <PinOff v-if="video.pinned" :size="14" />
+          <Pin v-else :size="14" />
         </button>
       </div>
 
@@ -318,5 +361,73 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   .video-card:hover .cover-img {
     transform: none;
   }
+  .badge-pinned:hover {
+    transform: none;
+  }
+}
+
+.card-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.badge-pinned {
+  color: var(--color-pinned, #8b5cf6);
+  transition: transform 0.2s ease;
+}
+
+.badge-pinned:hover {
+  transform: scale(1.1);
+}
+
+.badge-hot {
+  color: var(--color-hot, #F59E0B);
+  transition: color 0.2s ease;
+}
+
+.badge-hot:hover {
+  color: #FBBF24;
+}
+
+[data-theme="light"] .badge-pinned {
+  color: var(--color-pinned, #7c3aed);
+}
+
+[data-theme="light"] .badge-hot {
+  color: var(--color-hot, #D97706);
+}
+
+.btn-icon-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.5);
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.btn-icon-pin:hover {
+  color: #8B5CF6;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.btn-icon-pin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon-pin:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 </style>

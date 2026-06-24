@@ -1,5 +1,6 @@
 package com.iaihub.toolbox.dto.forum;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record ForumPostDTO(
@@ -15,5 +16,7 @@ public record ForumPostDTO(
     Integer likeCount,
     Integer commentCount,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+    BigDecimal score,
+    Boolean pinned
 ) {}

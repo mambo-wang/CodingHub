@@ -37,6 +37,7 @@ const forumService = {
     category?: number;
     tag?: number;
     keyword?: string;
+    sortBy?: string;
     page?: number;
     size?: number;
   }): Promise<PageResponse<ForumPost>> {
@@ -66,6 +67,19 @@ const forumService = {
 
   async deletePost(id: number): Promise<void> {
     await forumApi.delete(`/posts/${id}`);
+  },
+
+  async pinPost(id: number): Promise<void> {
+    await forumApi.post(`/posts/${id}/pin`);
+  },
+
+  async unpinPost(id: number): Promise<void> {
+    await forumApi.delete(`/posts/${id}/pin`);
+  },
+
+  async getHotTop5(): Promise<number[]> {
+    const response = await forumApi.get('/posts/hot-top5');
+    return response.data.data;
   },
 
   // Categories

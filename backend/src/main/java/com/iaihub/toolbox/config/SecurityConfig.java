@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/like-status").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tools/hot-top5").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/comments").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
                 // File endpoints (must be before /api/v1/tools/**)
@@ -56,6 +57,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/stream").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/comments").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/hot-top5").permitAll()
+                // Forum public endpoints
+                .requestMatchers(HttpMethod.GET, "/api/forum/posts/hot-top5").permitAll()
                 // Unified interactions - likes and comments (public, supports anonymous)
                 .requestMatchers(HttpMethod.GET, "/api/v1/interactions/likes/status").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/interactions/likes").permitAll()

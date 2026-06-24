@@ -108,9 +108,16 @@ public class VideoService {
      * 5.2 获取视频列表
      */
     @Transactional(readOnly = true)
-    public PageResponse<VideoListItem> getVideoList(int page, int size) {
+    public PageResponse<VideoListItem> getVideoList(String sortBy, int page, int size) {
         Pageable pageable = PageRequest.of(page, Math.min(size, 100));
-        Page<Video> videoPage = videoRepository.findByStatusOrderByCreatedAtDesc(VideoStatus.NORMAL, pageable);
+        Page<Video> videoPage;
+
+        if ("latest".equalsIgnoreCase(sortBy)) {
+            videoPage = videoRepository.findByStatusOrderByCreatedAtDesc(VideoStatus.NORMAL, pageable);
+        } else {
+            // 默认 hot：pinned DESC, score DESC
+            videoPage = videoRepository.findByStatusOrderByHot(VideoStatus.NORMAL, pageable);
+        }
 
         return PageResponse.<VideoListItem>builder()
                 .content(videoPage.getContent().stream().map(this::toVideoListItem).toList())
@@ -119,6 +126,22 @@ public class VideoService {
                 .page(page)
                 .size(size)
                 .build();
+    }
+
+    public void pinVideo(Long id) {
+        videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
+                .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+        videoRepository.pinById(id);
+    }
+
+    public void unpinVideo(Long id) {
+        videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
+                .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+        videoRepository.unpinById(id);
+    }
+
+    public java.util.List<Long> getHotTop5() {
+        return videoRepository.findTop5ByStatusOrderByScoreDesc(PageRequest.of(0, 5));
     }
 
     /**
@@ -266,6 +289,8 @@ public class VideoService {
                 .uploaderNickname(uploaderNickname)
                 .uploaderAvatarUrl(uploaderAvatarUrl)
                 .createdAt(video.getCreatedAt())
+                .score(video.getScore() != null ? video.getScore() : java.math.BigDecimal.ZERO)
+                .pinned(video.getPinned() != null ? video.getPinned() : false)
                 .build();
     }
 

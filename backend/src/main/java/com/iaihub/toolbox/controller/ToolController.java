@@ -7,8 +7,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/tools")
@@ -21,7 +24,7 @@ public class ToolController {
     public ResponseEntity<ApiResponse<PageResponse<ToolSummaryDTO>>> getTools(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "latest") String sortBy,
+            @RequestParam(defaultValue = "hot") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
 
@@ -63,5 +66,25 @@ public class ToolController {
 
         toolService.deleteTool(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
+    }
+
+    @PostMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> pinTool(@PathVariable Long id) {
+        toolService.pinTool(id);
+        return ResponseEntity.ok(ApiResponse.success("置顶成功", null));
+    }
+
+    @DeleteMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unpinTool(@PathVariable Long id) {
+        toolService.unpinTool(id);
+        return ResponseEntity.ok(ApiResponse.success("取消置顶成功", null));
+    }
+
+    @GetMapping("/hot-top5")
+    public ResponseEntity<ApiResponse<List<Long>>> getHotTop5() {
+        List<Long> top5 = toolService.getHotTop5();
+        return ResponseEntity.ok(ApiResponse.success(top5));
     }
 }

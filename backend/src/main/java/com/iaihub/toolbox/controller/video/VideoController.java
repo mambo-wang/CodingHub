@@ -18,6 +18,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -67,10 +69,11 @@ public class VideoController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<VideoListItem>>> getVideoList(
+            @RequestParam(defaultValue = "hot") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        PageResponse<VideoListItem> response = videoService.getVideoList(page, size);
+        PageResponse<VideoListItem> response = videoService.getVideoList(sortBy, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -195,5 +198,25 @@ public class VideoController {
 
         PageResponse<VideoListItem> response = videoService.getMyVideos(currentUser.getId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> pinVideo(@PathVariable Long id) {
+        videoService.pinVideo(id);
+        return ResponseEntity.ok(ApiResponse.success("置顶成功", null));
+    }
+
+    @DeleteMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unpinVideo(@PathVariable Long id) {
+        videoService.unpinVideo(id);
+        return ResponseEntity.ok(ApiResponse.success("取消置顶成功", null));
+    }
+
+    @GetMapping("/hot-top5")
+    public ResponseEntity<ApiResponse<List<Long>>> getHotTop5() {
+        List<Long> top5 = videoService.getHotTop5();
+        return ResponseEntity.ok(ApiResponse.success(top5));
     }
 }

@@ -40,8 +40,8 @@ export const videoService = {
   /**
    * Get video list (paginated)
    */
-  async getVideoList(page: number = 0, size: number = 20): Promise<VideoPageResponse> {
-    const response = await api.get('/videos', { params: { page, size } })
+  async getVideoList(page: number = 0, size: number = 20, sortBy: string = 'hot'): Promise<VideoPageResponse> {
+    const response = await api.get('/videos', { params: { page, size, sortBy } })
     return response.data.data
   },
 
@@ -120,6 +120,28 @@ export const videoService = {
    */
   async getMyFavorites(page: number = 0, size: number = 20): Promise<VideoPageResponse> {
     const response = await api.get('/videos/my/favorites', { params: { page, size } })
+    return response.data.data
+  },
+
+  /**
+   * Pin video (admin only)
+   */
+  async pinVideo(id: number): Promise<void> {
+    await api.post(`/videos/${id}/pin`)
+  },
+
+  /**
+   * Unpin video (admin only)
+   */
+  async unpinVideo(id: number): Promise<void> {
+    await api.delete(`/videos/${id}/pin`)
+  },
+
+  /**
+   * Get hot top 5 video IDs
+   */
+  async getHotTop5(): Promise<number[]> {
+    const response = await api.get('/videos/hot-top5')
     return response.data.data
   }
 }

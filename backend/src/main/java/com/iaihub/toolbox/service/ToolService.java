@@ -35,8 +35,11 @@ public class ToolService {
         Page<Tool> toolPage;
         if ("name".equalsIgnoreCase(sortBy)) {
             toolPage = toolRepository.findByFiltersOrderByName(categoryId, keyword, pageable);
-        } else {
+        } else if ("latest".equalsIgnoreCase(sortBy)) {
             toolPage = toolRepository.findByFilters(categoryId, keyword, pageable);
+        } else {
+            // 默认 hot：pinned DESC, score DESC
+            toolPage = toolRepository.findByFiltersOrderByHot(categoryId, keyword, pageable);
         }
 
         return PageResponse.<ToolSummaryDTO>builder()
@@ -46,6 +49,22 @@ public class ToolService {
                 .page(page)
                 .size(size)
                 .build();
+    }
+
+    public void pinTool(Long id) {
+        toolRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("工具不存在"));
+        toolRepository.pinById(id);
+    }
+
+    public void unpinTool(Long id) {
+        toolRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("工具不存在"));
+        toolRepository.unpinById(id);
+    }
+
+    public java.util.List<Long> getHotTop5() {
+        return toolRepository.findTop5ByStatusOrderByScoreDesc(PageRequest.of(0, 5));
     }
 
     @Transactional(readOnly = true)
@@ -187,6 +206,11 @@ public class ToolService {
                 .uploaderUsername(tool.getUploader().getUsername())
                 .uploaderNickname(tool.getUploader().getNickname())
                 .createdAt(tool.getCreatedAt())
+                .score(tool.getScore() != null ? tool.getScore() : java.math.BigDecimal.ZERO)
+                .pinned(tool.getPinned() != null ? tool.getPinned() : false)
+                .viewCount(tool.getViewCount() != null ? tool.getViewCount() : 0)
+                .likeCount(tool.getLikeCount() != null ? tool.getLikeCount() : 0)
+                .commentCount(tool.getCommentCount() != null ? tool.getCommentCount() : 0)
                 .build();
     }
 

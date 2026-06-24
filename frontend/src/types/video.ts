@@ -6,6 +6,8 @@ export interface VideoListItem {
   viewCount: number
   likeCount: number
   commentCount: number
+  score?: number
+  pinned?: boolean
   uploaderId: number
   uploaderName: string
   uploaderNickname?: string

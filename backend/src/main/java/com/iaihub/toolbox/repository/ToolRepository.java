@@ -4,9 +4,11 @@ import com.iaihub.toolbox.model.Tool;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -62,4 +64,28 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
     List<Tool> findTop10ByStatusOrderByCreatedAtDesc(Tool.Status status);
 
     long countByStatus(Tool.Status status);
+
+    // 热度排序查询：pinned DESC, score DESC
+    @Query("SELECT t FROM Tool t WHERE t.status = 'NORMAL' " +
+           "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+           "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
+           "ORDER BY t.pinned DESC, t.score DESC")
+    Page<Tool> findByFiltersOrderByHot(@Param("categoryId") Long categoryId,
+                                        @Param("keyword") String keyword,
+                                        Pageable pageable);
+
+    // 热度 Top5
+    @Query("SELECT t.id FROM Tool t WHERE t.status = 'NORMAL' ORDER BY t.score DESC")
+    List<Long> findTop5ByStatusOrderByScoreDesc(Pageable pageable);
+
+    // 置顶/取消置顶
+    @Modifying
+    @Transactional
+    @Query("UPDATE Tool t SET t.pinned = true WHERE t.id = :id")
+    int pinById(@Param("id") Long id);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Tool t SET t.pinned = false WHERE t.id = :id")
+    int unpinById(@Param("id") Long id);
 }

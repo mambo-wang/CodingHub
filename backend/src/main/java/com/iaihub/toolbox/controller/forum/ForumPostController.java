@@ -1,5 +1,6 @@
 package com.iaihub.toolbox.controller.forum;
 
+import com.iaihub.toolbox.dto.ApiResponse;
 import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostDTO;
 import com.iaihub.toolbox.service.forum.ForumPostService;
@@ -11,8 +12,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.iaihub.toolbox.model.User;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/forum/posts")
@@ -26,11 +30,12 @@ public class ForumPostController {
             @RequestParam(required = false) Long category,
             @RequestParam(required = false) Long tag,
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "hot") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<ForumPostDTO> posts = postService.getPostList(category, keyword, pageable);
+        Page<ForumPostDTO> posts = postService.getPostList(category, keyword, sortBy, pageable);
 
         return ResponseEntity.ok(posts);
     }
@@ -90,5 +95,25 @@ public class ForumPostController {
         postService.deletePost(id, user);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> pinPost(@PathVariable Long id) {
+        postService.pinPost(id);
+        return ResponseEntity.ok(ApiResponse.success("置顶成功", null));
+    }
+
+    @DeleteMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unpinPost(@PathVariable Long id) {
+        postService.unpinPost(id);
+        return ResponseEntity.ok(ApiResponse.success("取消置顶成功", null));
+    }
+
+    @GetMapping("/hot-top5")
+    public ResponseEntity<ApiResponse<List<Long>>> getHotTop5() {
+        List<Long> top5 = postService.getHotTop5();
+        return ResponseEntity.ok(ApiResponse.success(top5));
     }
 }

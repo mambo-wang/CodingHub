@@ -78,6 +78,10 @@ public class Tool {
     @Builder.Default
     private BigDecimal score = BigDecimal.ZERO;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean pinned = false;
+
     // 更新 score 的方法：score = viewCount * 1 + likeCount * 3 + commentCount * 5
     public void updateScore() {
         this.score = BigDecimal.valueOf(this.viewCount)
