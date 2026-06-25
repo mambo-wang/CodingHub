@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -28,4 +29,5 @@ public class VideoListItem {
     private LocalDateTime createdAt;
     private BigDecimal score;
     private Boolean pinned;
+    private List<com.iaihub.toolbox.dto.tag.TagDTO> tags;
 }

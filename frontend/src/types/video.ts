@@ -1,3 +1,5 @@
+import type { Tag } from './index'
+
 export interface VideoListItem {
   id: number
   title: string
@@ -12,6 +14,7 @@ export interface VideoListItem {
   uploaderName: string
   uploaderNickname?: string
   uploaderAvatarUrl?: string | null
+  tags?: Tag[]
   createdAt: string
 }
 
@@ -31,6 +34,7 @@ export interface VideoDetail {
   uploaderAvatarUrl?: string | null
   userLiked: boolean
   userFavorited: boolean
+  tags?: Tag[]
   createdAt: string
   updatedAt: string
 }
@@ -47,11 +51,13 @@ export interface VideoComment {
 export interface VideoUploadRequest {
   title: string
   description?: string
+  tagIds?: number[]
 }
 
 export interface VideoUpdateRequest {
   title: string
   description?: string
+  tagIds?: number[]
 }
 
 export interface VideoInteractionResponse {

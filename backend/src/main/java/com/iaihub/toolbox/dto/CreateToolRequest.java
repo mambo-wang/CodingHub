@@ -28,8 +28,13 @@ public class CreateToolRequest {
     @Size(max = 5000, message = "介绍内容最大5000字符")
     private String content;
 
+    @Size(max = 200, message = "简短描述最大200字符")
+    private String description;
+
     @NotBlank(message = "版本号不能为空")
     @Pattern(regexp = "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+)?$",
              message = "版本号格式不正确，请使用标准格式（如 1.0.0）")
     private String version;
+
+    private java.util.List<Long> tagIds;
 }

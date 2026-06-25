@@ -5,7 +5,8 @@ import MarkdownIt from 'markdown-it'
 import { ElMessage } from 'element-plus'
 import api, { fileUploadApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import type { Category, CreateToolRequest } from '@/types'
+import type { Category, CreateToolRequest, Tag } from '@/types'
+import TagSelector from '@/components/common/TagSelector.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -28,8 +29,12 @@ const form = ref<CreateToolRequest>({
   name: '',
   categoryId: 0,
   content: '',
-  version: '1.0.0'
+  version: '1.0.0',
+  description: '',
+  tagIds: []
 })
+
+const selectedTags = ref<Tag[]>([])
 
 const md = new MarkdownIt()
 
@@ -112,6 +117,8 @@ const handleSubmit = async () => {
 
   loading.value = true
   try {
+    // Sync tag IDs
+    form.value.tagIds = selectedTags.value.map(t => t.id)
     // Create tool first
     const response = await api.post('/tools', form.value)
     const toolId = response.data.data.id
@@ -148,6 +155,9 @@ const handleReset = () => {
   form.value.categoryId = categories.value[0]?.id || 0
   form.value.content = ''
   form.value.version = '1.0.0'
+  form.value.description = ''
+  form.value.tagIds = []
+  selectedTags.value = []
   previewContent.value = ''
   selectedFiles.value = []
 }
@@ -204,6 +214,24 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">💬</span>
+              简短描述
+            </label>
+            <div class="input-wrapper">
+              <input
+                v-model="form.description"
+                type="text"
+                class="form-input"
+                placeholder="一句话介绍这个工具（选填）"
+                maxlength="200"
+              />
+              <span class="char-count">{{ (form.description || '').length }}/200</span>
+            </div>
+          </div>
+
           <!-- Category -->
           <div class="form-group">
             <label class="form-label">
@@ -239,6 +267,15 @@ onMounted(() => {
               <span class="char-count">{{ form.version.length }}/50</span>
             </div>
             <div class="input-hint">使用语义化版本号格式，如 1.0.0、2.1.3-alpha</div>
+          </div>
+
+          <!-- Tags -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🏷️</span>
+              标签
+            </label>
+            <TagSelector v-model="selectedTags" tagType="TOOL" />
           </div>
 
           <!-- Content -->

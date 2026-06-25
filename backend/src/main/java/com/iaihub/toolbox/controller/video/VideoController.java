@@ -45,9 +45,10 @@ public class VideoController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "tagIds", required = false) java.util.List<Long> tagIds,
             @AuthenticationPrincipal User currentUser) {
 
-        Video video = videoService.uploadVideo(file, title, description, currentUser.getId());
+        Video video = videoService.uploadVideo(file, title, description, currentUser.getId(), tagIds);
 
         VideoResponse response = VideoResponse.builder()
                 .id(video.getId())
@@ -205,6 +206,45 @@ public class VideoController {
     public ResponseEntity<ApiResponse<Void>> pinVideo(@PathVariable Long id) {
         videoService.pinVideo(id);
         return ResponseEntity.ok(ApiResponse.success("置顶成功", null));
+    }
+
+    /**
+     * 上传视频封面
+     */
+    @PostMapping("/{id}/cover")
+    public ResponseEntity<ApiResponse<Void>> uploadCover(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User currentUser) {
+
+        videoService.uploadCover(id, currentUser.getId(), file);
+        return ResponseEntity.ok(ApiResponse.success("封面上传成功", null));
+    }
+
+    /**
+     * 获取视频封面图片
+     */
+    @GetMapping("/{id}/cover-image")
+    public void getCoverImage(
+            @PathVariable Long id,
+            HttpServletResponse response) throws IOException {
+
+        java.nio.file.Path filePath = videoService.getCoverFilePath(id);
+        String contentType = filePath.toString().endsWith(".png") ? "image/png" : "image/jpeg";
+
+        response.setContentType(contentType);
+        response.setContentLengthLong(java.nio.file.Files.size(filePath));
+        response.setHeader("Cache-Control", "public, max-age=86400");
+
+        try (java.io.InputStream is = java.nio.file.Files.newInputStream(filePath);
+             OutputStream os = response.getOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                os.write(buffer, 0, read);
+            }
+            os.flush();
+        }
     }
 
     @DeleteMapping("/{id}/pin")

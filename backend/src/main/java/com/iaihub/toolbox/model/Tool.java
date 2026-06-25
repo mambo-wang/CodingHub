@@ -43,6 +43,9 @@ public class Tool {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(length = 200)
+    private String description;
+
     @Column(nullable = false, length = 50)
     @Builder.Default
     private String version = "1.0.0";

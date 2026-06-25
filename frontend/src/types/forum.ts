@@ -1,3 +1,5 @@
+import type { Tag } from './index'
+
 export interface ForumPost {
   id: number;
   title: string;
@@ -13,6 +15,7 @@ export interface ForumPost {
   commentCount: number;
   score?: number;
   pinned?: boolean;
+  tags?: Tag[];
   createdAt: string;
   updatedAt: string;
   isFavorited?: boolean;

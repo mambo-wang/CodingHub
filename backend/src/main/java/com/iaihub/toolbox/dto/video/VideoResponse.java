@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -30,4 +31,5 @@ public class VideoResponse {
     private Boolean userFavorited;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<com.iaihub.toolbox.dto.tag.TagDTO> tags;
 }

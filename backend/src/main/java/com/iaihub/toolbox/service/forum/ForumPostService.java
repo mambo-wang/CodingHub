@@ -2,13 +2,16 @@ package com.iaihub.toolbox.service.forum;
 
 import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostDTO;
+import com.iaihub.toolbox.dto.tag.TagDTO;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.forum.*;
+import com.iaihub.toolbox.model.tag.Tag;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.forum.*;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.repository.tag.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class ForumPostService {
     private final ForumCategoryRepository categoryRepository;
     private final ForumPostTagRepository postTagRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
 
     public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, String sortBy, Pageable pageable) {
         Page<ForumPost> posts;
@@ -100,6 +104,7 @@ public class ForumPostService {
                 pt.setPostId(post.getId());
                 pt.setTagId(tagId);
                 postTagRepository.save(pt);
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
             }
         }
 
@@ -120,6 +125,25 @@ public class ForumPostService {
         post.setTitle(request.title());
         post.setContent(request.content());
         post.setCategoryId(request.categoryId());
+
+        // Handle tag replacement
+        if (request.tagIds() != null) {
+            // Remove old tag associations and decrement usage
+            List<ForumPostTag> oldTags = postTagRepository.findByPostId(postId);
+            for (ForumPostTag pt : oldTags) {
+                tagRepository.findById(pt.getTagId()).ifPresent(Tag::decrementUsage);
+            }
+            postTagRepository.deleteByPostId(postId);
+
+            // Add new tag associations and increment usage
+            for (Long tagId : request.tagIds()) {
+                ForumPostTag pt = new ForumPostTag();
+                pt.setPostId(postId);
+                pt.setTagId(tagId);
+                postTagRepository.save(pt);
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+            }
+        }
 
         post = postRepository.save(post);
         return toDTO(post);
@@ -152,6 +176,12 @@ public class ForumPostService {
             .map(u -> u.getNickname())
             .orElse(null);
 
+        List<TagDTO> tags = postTagRepository.findByPostId(post.getId()).stream()
+            .map(pt -> tagRepository.findById(pt.getTagId()).orElse(null))
+            .filter(java.util.Objects::nonNull)
+            .map(t -> new TagDTO(t.getId(), t.getName(), t.getTagType().name(), t.getUsageCount()))
+            .toList();
+
         return new ForumPostDTO(
             post.getId(), post.getTitle(), post.getContent(),
             post.getAuthorId(), authorName,
@@ -160,7 +190,8 @@ public class ForumPostService {
             post.getViewCount(), post.getLikeCount(), post.getCommentCount(),
             post.getCreatedAt(), post.getUpdatedAt(),
             post.getScore() != null ? post.getScore() : java.math.BigDecimal.ZERO,
-            post.getPinned() != null ? post.getPinned() : false
+            post.getPinned() != null ? post.getPinned() : false,
+            tags
         );
     }
 }

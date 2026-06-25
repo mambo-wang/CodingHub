@@ -2,6 +2,7 @@ package com.iaihub.toolbox.service.video;
 
 import com.iaihub.toolbox.config.VideoStorageConfig;
 import com.iaihub.toolbox.dto.PageResponse;
+import com.iaihub.toolbox.dto.tag.TagDTO;
 import com.iaihub.toolbox.dto.video.VideoListItem;
 import com.iaihub.toolbox.dto.video.VideoResponse;
 import com.iaihub.toolbox.dto.video.VideoUpdateRequest;
@@ -9,11 +10,16 @@ import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
+import com.iaihub.toolbox.model.tag.Tag;
+import com.iaihub.toolbox.model.tag.TagType;
+import com.iaihub.toolbox.model.tag.VideoTag;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.UnifiedLikeRepository;
 import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
+import com.iaihub.toolbox.repository.tag.TagRepository;
+import com.iaihub.toolbox.repository.tag.VideoTagRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,12 +49,14 @@ public class VideoService {
     private final UnifiedLikeRepository unifiedLikeRepository;
     private final UnifiedFavoriteRepository unifiedFavoriteRepository;
     private final VideoStorageConfig videoStorageConfig;
+    private final TagRepository tagRepository;
+    private final VideoTagRepository videoTagRepository;
 
     /**
      * 5.1 上传视频
      */
     @Transactional
-    public Video uploadVideo(MultipartFile file, String title, String description, Long uploaderId) {
+    public Video uploadVideo(MultipartFile file, String title, String description, Long uploaderId, java.util.List<Long> tagIds) {
         // 验证 MP4 格式
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".mp4")) {
@@ -101,7 +109,17 @@ public class VideoService {
 
         // 更新文件路径为最终路径
         video.setFilePath(relativePath);
-        return videoRepository.save(video);
+        video = videoRepository.save(video);
+
+        // Handle tag associations
+        if (tagIds != null && !tagIds.isEmpty()) {
+            for (Long tagId : tagIds) {
+                videoTagRepository.save(new VideoTag(video.getId(), tagId));
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+            }
+        }
+
+        return video;
     }
 
     /**
@@ -188,6 +206,22 @@ public class VideoService {
             video.setDescription(request.getDescription());
         }
 
+        // Handle tag replacement
+        if (request.getTagIds() != null) {
+            // Remove old tag associations and decrement usage
+            java.util.List<VideoTag> oldTags = videoTagRepository.findByVideoId(id);
+            for (VideoTag vt : oldTags) {
+                tagRepository.findById(vt.getTagId()).ifPresent(Tag::decrementUsage);
+            }
+            videoTagRepository.deleteByVideoId(id);
+
+            // Add new tag associations and increment usage
+            for (Long tagId : request.getTagIds()) {
+                videoTagRepository.save(new VideoTag(id, tagId));
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+            }
+        }
+
         video = videoRepository.save(video);
         return toVideoResponse(video, false, false);
     }
@@ -268,6 +302,73 @@ public class VideoService {
     }
 
     /**
+     * 上传视频封面
+     */
+    @Transactional
+    public void uploadCover(Long videoId, Long userId, MultipartFile file) {
+        Video video = videoRepository.findByIdAndStatus(videoId, VideoStatus.NORMAL)
+                .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+
+        boolean isOwner = video.getUploaderId().equals(userId);
+        User user = userRepository.findById(userId).orElse(null);
+        boolean isAdmin = user != null && (user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
+        }
+
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png"))) {
+            throw new IllegalArgumentException("仅支持 JPEG 或 PNG 格式");
+        }
+
+        // Validate file size (max 5MB)
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("封面文件大小不能超过 5MB");
+        }
+
+        // Save cover file
+        String extension = contentType.equals("image/jpeg") ? ".jpg" : ".png";
+        String coverFileName = videoId + extension;
+        Path coverDir = Paths.get(videoStorageConfig.getUploadBaseDir(), "uploads", "covers");
+        try {
+            Files.createDirectories(coverDir);
+            Path coverFile = coverDir.resolve(coverFileName);
+            Files.copy(file.getInputStream(), coverFile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("保存封面文件失败", e);
+            throw new RuntimeException("保存封面文件失败");
+        }
+
+        // Update video coverUrl
+        String coverUrl = "/api/v1/videos/" + videoId + "/cover-image";
+        video.setCoverUrl(coverUrl);
+        videoRepository.save(video);
+    }
+
+    /**
+     * 获取封面图片路径
+     */
+    public Path getCoverFilePath(Long videoId) {
+        Video video = videoRepository.findByIdAndStatus(videoId, VideoStatus.NORMAL)
+                .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+
+        if (video.getCoverUrl() == null || video.getCoverUrl().isBlank()) {
+            throw new ResourceNotFoundException("视频未设置封面");
+        }
+
+        // Try jpg first, then png
+        Path coverDir = Paths.get(videoStorageConfig.getUploadBaseDir(), "uploads", "covers");
+        Path jpgPath = coverDir.resolve(videoId + ".jpg");
+        Path pngPath = coverDir.resolve(videoId + ".png");
+
+        if (Files.exists(jpgPath)) return jpgPath;
+        if (Files.exists(pngPath)) return pngPath;
+
+        throw new ResourceNotFoundException("封面文件不存在");
+    }
+
+    /**
      * 将 Video 实体转换为 VideoListItem DTO
      */
     private VideoListItem toVideoListItem(Video video) {
@@ -275,6 +376,12 @@ public class VideoService {
         String uploaderName = uploader != null ? uploader.getUsername() : "Unknown";
         String uploaderNickname = uploader != null ? uploader.getNickname() : null;
         String uploaderAvatarUrl = uploader != null ? uploader.getAvatarUrl() : null;
+
+        java.util.List<TagDTO> tags = videoTagRepository.findByVideoId(video.getId()).stream()
+                .map(vt -> tagRepository.findById(vt.getTagId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(t -> new TagDTO(t.getId(), t.getName(), t.getTagType().name(), t.getUsageCount()))
+                .toList();
 
         return VideoListItem.builder()
                 .id(video.getId())
@@ -291,6 +398,7 @@ public class VideoService {
                 .createdAt(video.getCreatedAt())
                 .score(video.getScore() != null ? video.getScore() : java.math.BigDecimal.ZERO)
                 .pinned(video.getPinned() != null ? video.getPinned() : false)
+                .tags(tags)
                 .build();
     }
 
@@ -302,6 +410,12 @@ public class VideoService {
         String uploaderName = uploader != null ? uploader.getUsername() : "Unknown";
         String uploaderNickname = uploader != null ? uploader.getNickname() : null;
         String uploaderAvatarUrl = uploader != null ? uploader.getAvatarUrl() : null;
+
+        java.util.List<TagDTO> tags = videoTagRepository.findByVideoId(video.getId()).stream()
+                .map(vt -> tagRepository.findById(vt.getTagId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(t -> new TagDTO(t.getId(), t.getName(), t.getTagType().name(), t.getUsageCount()))
+                .toList();
 
         return VideoResponse.builder()
                 .id(video.getId())
@@ -321,6 +435,7 @@ public class VideoService {
                 .userFavorited(userFavorited)
                 .createdAt(video.getCreatedAt())
                 .updatedAt(video.getUpdatedAt())
+                .tags(tags)
                 .build();
     }
 }

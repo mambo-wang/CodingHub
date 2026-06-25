@@ -50,6 +50,7 @@ db:
 			name VARCHAR(100) NOT NULL, \
 			category_id BIGINT NOT NULL, \
 			content TEXT NOT NULL, \
+			description VARCHAR(200) DEFAULT NULL, \
 			uploader_id BIGINT NOT NULL, \
 			status ENUM('NORMAL', 'DELETED') NOT NULL DEFAULT 'NORMAL', \
 			view_count INT DEFAULT 0, \
@@ -86,6 +87,23 @@ db:
 			CONSTRAINT fk_tool_like_tool FOREIGN KEY (tool_id) REFERENCES tool(id) ON DELETE CASCADE, \
 			CONSTRAINT fk_tool_like_user FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE \
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
+		-- 统一标签表 \
+		CREATE TABLE IF NOT EXISTS tag ( \
+			id BIGINT AUTO_INCREMENT PRIMARY KEY, \
+			name VARCHAR(50) NOT NULL, \
+			tag_type VARCHAR(20) NOT NULL COMMENT 'TOOL, FORUM, VIDEO', \
+			usage_count INT NOT NULL DEFAULT 0, \
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+			UNIQUE KEY uk_name_type (name, tag_type) \
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
+		-- 工具标签关联表 \
+		CREATE TABLE IF NOT EXISTS tool_tag ( \
+			tool_id BIGINT NOT NULL, \
+			tag_id BIGINT NOT NULL, \
+			PRIMARY KEY (tool_id, tag_id), \
+			CONSTRAINT fk_tool_tag_tool FOREIGN KEY (tool_id) REFERENCES tool(id) ON DELETE CASCADE, \
+			CONSTRAINT fk_tool_tag_tag FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE \
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
 		-- 论坛分类表 \
 		CREATE TABLE IF NOT EXISTS forum_category ( \
 			id BIGINT PRIMARY KEY AUTO_INCREMENT, \
@@ -94,7 +112,7 @@ db:
 			sort_order INT DEFAULT 0, \
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP \
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
-		-- 论坛标签表 \
+		-- 论坛标签表(保留兼容) \
 		CREATE TABLE IF NOT EXISTS forum_tag ( \
 			id BIGINT PRIMARY KEY AUTO_INCREMENT, \
 			name VARCHAR(50) NOT NULL UNIQUE, \
@@ -123,13 +141,21 @@ db:
 			CONSTRAINT fk_forum_post_author FOREIGN KEY (author_id) REFERENCES user(id), \
 			CONSTRAINT fk_forum_post_category FOREIGN KEY (category_id) REFERENCES forum_category(id) \
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
-		-- 帖子标签关联表 \
+		-- 帖子标签关联表（关联统一tag表） \
 		CREATE TABLE IF NOT EXISTS forum_post_tag ( \
 			post_id BIGINT NOT NULL, \
 			tag_id BIGINT NOT NULL, \
 			PRIMARY KEY (post_id, tag_id), \
 			CONSTRAINT fk_forum_post_tag_post FOREIGN KEY (post_id) REFERENCES forum_post(id) ON DELETE CASCADE, \
-			CONSTRAINT fk_forum_post_tag_tag FOREIGN KEY (tag_id) REFERENCES forum_tag(id) ON DELETE CASCADE \
+			CONSTRAINT fk_forum_post_tag_tag FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE \
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
+		-- 微课标签关联表 \
+		CREATE TABLE IF NOT EXISTS video_tag ( \
+			video_id BIGINT NOT NULL, \
+			tag_id BIGINT NOT NULL, \
+			PRIMARY KEY (video_id, tag_id), \
+			CONSTRAINT fk_video_tag_video FOREIGN KEY (video_id) REFERENCES video(id) ON DELETE CASCADE, \
+			CONSTRAINT fk_video_tag_tag FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE \
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
 		-- 论坛评论表 \
 		CREATE TABLE IF NOT EXISTS forum_comment ( \

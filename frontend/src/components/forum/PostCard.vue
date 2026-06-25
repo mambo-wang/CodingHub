@@ -28,8 +28,14 @@
       <Pin v-else :size="14" />
     </button>
     <div class="card-badges">
-      <ArrowUp v-if="post.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
-      <Flame v-if="isHot" class="badge-hot" :size="16" aria-hidden="true" />
+      <span v-if="post.pinned" class="badge-pill badge-pinned">
+        <ArrowUp :size="12" aria-hidden="true" />
+        <span>置顶</span>
+      </span>
+      <span v-if="isHot" class="badge-pill badge-hot">
+        <Flame :size="12" aria-hidden="true" />
+        <span>热门</span>
+      </span>
     </div>
     <div class="card-content">
       <div class="card-header">
@@ -377,36 +383,59 @@ const toggleFavorite = async () => {
 .card-badges {
   position: absolute;
   top: 12px;
-  left: 12px;
+  left: 16px;
   display: flex;
   gap: 6px;
   z-index: 2;
 }
 
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+
+.badge-pill:hover {
+  transform: translateY(-1px);
+}
+
 .badge-pinned {
-  color: var(--color-pinned, #8b5cf6);
-  transition: transform 0.2s ease;
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .badge-pinned:hover {
-  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
 }
 
 .badge-hot {
-  color: var(--color-hot, #F59E0B);
-  transition: color 0.2s ease;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-hot:hover {
-  color: #FBBF24;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
 }
 
 [data-theme="light"] .badge-pinned {
-  color: var(--color-pinned, #7c3aed);
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.15);
 }
 
 [data-theme="light"] .badge-hot {
-  color: var(--color-hot, #D97706);
+  background: rgba(217, 119, 6, 0.08);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.15);
 }
 
 .btn-icon-pin {
@@ -448,7 +477,7 @@ const toggleFavorite = async () => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .badge-pinned:hover {
+  .badge-pill:hover {
     transform: none;
   }
 }

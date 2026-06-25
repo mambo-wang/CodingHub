@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import SortTab from '@/components/common/SortTab.vue'
+import TagBadge from '@/components/common/TagBadge.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -422,8 +423,14 @@ onMounted(() => {
               @click="goToDetail(tool.id)"
             >
               <div class="tool-card-badges">
-                <ArrowUp v-if="tool.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
-                <Flame v-if="hotTop5Ids.has(tool.id)" class="badge-hot" :size="16" aria-hidden="true" />
+                <span v-if="tool.pinned" class="badge-pill badge-pinned">
+                  <ArrowUp :size="12" aria-hidden="true" />
+                  <span>置顶</span>
+                </span>
+                <span v-if="hotTop5Ids.has(tool.id)" class="badge-pill badge-hot">
+                  <Flame :size="12" aria-hidden="true" />
+                  <span>热门</span>
+                </span>
               </div>
               <div class="tool-card-inner">
                 <div class="tool-category-tag">
@@ -431,6 +438,11 @@ onMounted(() => {
                   <span>{{ tool.categoryName }}</span>
                 </div>
                 <h3 class="tool-name">{{ tool.name }}</h3>
+                <p v-if="tool.description" class="tool-description">{{ tool.description }}</p>
+                <div v-if="tool.tags && tool.tags.length > 0" class="tool-tags">
+                  <TagBadge v-for="tag in tool.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+                  <span v-if="tool.tags.length > 3" class="tags-more">+{{ tool.tags.length - 3 }}</span>
+                </div>
                 <div class="tool-footer">
                   <div class="tool-uploader">
                     <AuthorBadge
@@ -844,19 +856,24 @@ onMounted(() => {
 .btn-icon-delete:hover { color: var(--color-destructive); border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent); }
 
 .tool-card-badges { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; z-index: 2; }
-.badge-pinned { color: var(--color-pinned, #8b5cf6); transition: transform 0.2s ease; }
-.badge-pinned:hover { transform: scale(1.1); }
-.badge-hot { color: var(--color-hot, #F59E0B); transition: color 0.2s ease; }
-.badge-hot:hover { color: #FBBF24; }
-[data-theme="light"] .badge-pinned { color: var(--color-pinned, #7c3aed); }
-[data-theme="light"] .badge-hot { color: var(--color-hot, #D97706); }
+.badge-pill { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px 3px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: default; }
+.badge-pill:hover { transform: translateY(-1px); }
+.badge-pinned { background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); }
+.badge-pinned:hover { box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25); }
+.badge-hot { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+.badge-hot:hover { box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25); }
+[data-theme="light"] .badge-pinned { background: rgba(124, 58, 237, 0.08); color: #7c3aed; border-color: rgba(124, 58, 237, 0.15); }
+[data-theme="light"] .badge-hot { background: rgba(217, 119, 6, 0.08); color: #b45309; border-color: rgba(217, 119, 6, 0.15); }
 
 .btn-icon-pin-tool { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--bg-glass); color: var(--text-muted); cursor: pointer; transition: all 200ms ease; }
 .btn-icon-pin-tool:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
 .btn-icon-pin-tool:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); margin-bottom: 16px; }
-.tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; line-height: 1.3; }
+.tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
+.tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; }
+.tags-more { font-size: 11px; color: var(--text-muted); }
 .tool-footer { display: flex; justify-content: space-between; align-items: center; }
 .tool-uploader { display: flex; align-items: center; gap: 8px; }
 .tool-date { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }

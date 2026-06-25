@@ -18,4 +18,6 @@ public class VideoUpdateRequest {
     private String title;
 
     private String description;
+
+    private java.util.List<Long> tagIds;
 }

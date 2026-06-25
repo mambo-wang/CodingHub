@@ -1,7 +1,10 @@
 package com.iaihub.toolbox.dto.forum;
 
+import com.iaihub.toolbox.dto.tag.TagDTO;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ForumPostDTO(
     Long id,
@@ -18,5 +21,6 @@ public record ForumPostDTO(
     LocalDateTime createdAt,
     LocalDateTime updatedAt,
     BigDecimal score,
-    Boolean pinned
+    Boolean pinned,
+    List<TagDTO> tags
 ) {}

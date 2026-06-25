@@ -57,9 +57,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/stream").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/comments").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/cover-image").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/hot-top5").permitAll()
                 // Forum public endpoints
                 .requestMatchers(HttpMethod.GET, "/api/forum/posts/hot-top5").permitAll()
+                // Tag public endpoints
+                .requestMatchers(HttpMethod.GET, "/api/v1/tags").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tags/hot").permitAll()
                 // Unified interactions - likes and comments (public, supports anonymous)
                 .requestMatchers(HttpMethod.GET, "/api/v1/interactions/likes/status").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/interactions/likes").permitAll()

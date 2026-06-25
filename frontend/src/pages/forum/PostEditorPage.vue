@@ -29,6 +29,11 @@
     </div>
 
     <div class="form-group">
+      <label>标签</label>
+      <TagSelector v-model="selectedTags" tagType="FORUM" />
+    </div>
+
+    <div class="form-group">
       <label>内容（Markdown）</label>
       <textarea
         v-model="content"
@@ -50,6 +55,8 @@ import { useRouter, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useForumStore } from '@/stores/forum';
 import forumService from '@/services/forum';
+import type { Tag } from '@/types';
+import TagSelector from '@/components/common/TagSelector.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -63,6 +70,7 @@ const categoryId = ref<number | ''>('');
 const content = ref('');
 const errorMessage = ref('');
 const loading = ref(false);
+const selectedTags = ref<Tag[]>([]);
 
 onMounted(async () => {
   await forumStore.fetchCategories();
@@ -72,6 +80,9 @@ onMounted(async () => {
       title.value = post.title;
       categoryId.value = post.categoryId;
       content.value = post.content;
+      if (post.tags) {
+        selectedTags.value = post.tags;
+      }
     } catch (e) {
       errorMessage.value = '加载帖子失败';
     }
@@ -96,7 +107,8 @@ const publish = async () => {
     const data = {
       title: title.value,
       content: content.value,
-      categoryId: categoryId.value as number
+      categoryId: categoryId.value as number,
+      tagIds: selectedTags.value.map(t => t.id)
     };
     if (isEdit.value) {
       await forumService.updatePost(Number(route.params.id), data);

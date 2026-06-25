@@ -101,8 +101,14 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
         </div>
         <span class="duration-badge">{{ formatDuration(video.duration) }}</span>
         <div class="card-badges">
-          <ArrowUp v-if="video.pinned" class="badge-pinned" :size="16" aria-hidden="true" />
-          <Flame v-if="isHot" class="badge-hot" :size="16" aria-hidden="true" />
+          <span v-if="video.pinned" class="badge-pill badge-pinned">
+            <ArrowUp :size="12" aria-hidden="true" />
+            <span>置顶</span>
+          </span>
+          <span v-if="isHot" class="badge-pill badge-hot">
+            <Flame :size="12" aria-hidden="true" />
+            <span>热门</span>
+          </span>
         </div>
       </div>
 
@@ -361,7 +367,7 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   .video-card:hover .cover-img {
     transform: none;
   }
-  .badge-pinned:hover {
+  .badge-pill:hover {
     transform: none;
   }
 }
@@ -375,30 +381,55 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   z-index: 2;
 }
 
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+
+.badge-pill:hover {
+  transform: translateY(-1px);
+}
+
 .badge-pinned {
-  color: var(--color-pinned, #8b5cf6);
-  transition: transform 0.2s ease;
+  background: rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 .badge-pinned:hover {
-  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
 }
 
 .badge-hot {
-  color: var(--color-hot, #F59E0B);
-  transition: color 0.2s ease;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .badge-hot:hover {
-  color: #FBBF24;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
 }
 
 [data-theme="light"] .badge-pinned {
-  color: var(--color-pinned, #7c3aed);
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.18);
 }
 
 [data-theme="light"] .badge-hot {
-  color: var(--color-hot, #D97706);
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.18);
 }
 
 .btn-icon-pin {

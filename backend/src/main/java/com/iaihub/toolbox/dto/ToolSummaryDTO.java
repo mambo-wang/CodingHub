@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,6 +18,7 @@ public class ToolSummaryDTO {
     private Long id;
     private String name;
     private String version;
+    private String description;
     private String categoryName;
     private String categoryIcon;
     private Long uploaderId;
@@ -28,4 +30,5 @@ public class ToolSummaryDTO {
     private Integer viewCount;
     private Integer likeCount;
     private Integer commentCount;
+    private List<com.iaihub.toolbox.dto.tag.TagDTO> tags;
 }

@@ -26,6 +26,19 @@
           ></textarea>
         </div>
 
+        <div class="form-group">
+          <label>标签</label>
+          <TagSelector v-model="selectedTags" tagType="VIDEO" />
+        </div>
+
+        <VideoCoverPicker
+          :videoSrc="`/api/v1/videos/${videoId}/stream`"
+          :coverUrl="currentCoverUrl"
+          @cover-capture="(blob) => { coverBlob = blob; coverFile = null }"
+          @cover-upload="(file) => { coverFile = file; coverBlob = null }"
+          @cover-remove="() => { coverBlob = null; coverFile = null }"
+        />
+
         <div class="form-actions">
           <button @click="router.back()" class="cancel-btn">取消</button>
           <button @click="save" class="save-btn" :disabled="saving">
@@ -42,6 +55,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Loader2 } from '@lucide/vue'
 import { videoService } from '@/services/video'
+import type { Tag } from '@/types'
+import TagSelector from '@/components/common/TagSelector.vue'
+import VideoCoverPicker from '@/components/video/VideoCoverPicker.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,13 +67,22 @@ const description = ref('')
 const errorMessage = ref('')
 const loading = ref(true)
 const saving = ref(false)
+const selectedTags = ref<Tag[]>([])
+const coverBlob = ref<Blob | null>(null)
+const coverFile = ref<File | null>(null)
+const currentCoverUrl = ref<string | null>(null)
+const videoId = ref(0)
 
 onMounted(async () => {
   try {
-    const videoId = Number(route.params.id)
-    const video = await videoService.getVideoDetail(videoId)
+    videoId.value = Number(route.params.id)
+    const video = await videoService.getVideoDetail(videoId.value)
     title.value = video.title
     description.value = video.description || ''
+    currentCoverUrl.value = video.coverUrl || null
+    if (video.tags) {
+      selectedTags.value = video.tags
+    }
   } catch (e) {
     errorMessage.value = '加载视频信息失败'
   } finally {
@@ -73,11 +98,20 @@ const save = async () => {
   }
   saving.value = true
   try {
-    const videoId = Number(route.params.id)
-    await videoService.updateVideo(videoId, {
+    const tagIds = selectedTags.value.map(t => t.id)
+    await videoService.updateVideo(videoId.value, {
       title: title.value,
-      description: description.value || undefined
+      description: description.value || undefined,
+      tagIds: tagIds.length > 0 ? tagIds : undefined
     })
+
+    // Upload cover if changed
+    if (coverBlob.value) {
+      await videoService.uploadCover(videoId.value, coverBlob.value)
+    } else if (coverFile.value) {
+      await videoService.uploadCover(videoId.value, coverFile.value)
+    }
+
     router.push(`/videos/${route.params.id}`)
   } catch (e: any) {
     errorMessage.value = e.response?.data?.message || '保存失败，请重试'

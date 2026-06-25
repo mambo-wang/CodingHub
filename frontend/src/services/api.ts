@@ -209,4 +209,17 @@ export const postFavoriteApi = {
   }
 };
 
+// Tag API
+export const tagApi = {
+  getTags: (type: string) => {
+    return api.get('/tags', { params: { type } }).then(res => res.data.data)
+  },
+  getHotTags: (type: string, limit: number = 10) => {
+    return api.get('/tags/hot', { params: { type, limit } }).then(res => res.data.data)
+  },
+  createTag: (name: string, type: string) => {
+    return api.post('/tags', { name, type }).then(res => res.data.data)
+  }
+}
+
 export default api

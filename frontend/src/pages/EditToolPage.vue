@@ -5,7 +5,8 @@ import MarkdownIt from 'markdown-it'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api, { fileUploadApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
-import type { Category, ToolDetail, ToolFile, UpdateToolRequest } from '@/types'
+import type { Category, ToolDetail, ToolFile, UpdateToolRequest, Tag } from '@/types'
+import TagSelector from '@/components/common/TagSelector.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,7 +25,8 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 // 工具附件已放开格式限制：不再维护 allowedExtensions 白名单，仅按大小预检
 const maxFileSize = 50 * 1024 * 1024
 
-const form = ref<UpdateToolRequest>({ name: '', categoryId: 0, content: '', version: '' })
+const form = ref<UpdateToolRequest>({ name: '', categoryId: 0, content: '', version: '', description: '', tagIds: [] })
+const selectedTags = ref<Tag[]>([])
 
 const md = new MarkdownIt()
 
@@ -59,9 +61,16 @@ const fetchTool = async () => {
     form.value.name = tool.name
     form.value.content = tool.content
     form.value.version = tool.version || '1.0.0'
+    form.value.description = tool.description || ''
 
     const category = categories.value.find(c => c.name === tool.categoryName)
     if (category) form.value.categoryId = category.id
+
+    // Load existing tags
+    if (tool.tags) {
+      selectedTags.value = tool.tags
+      form.value.tagIds = tool.tags.map(t => t.id)
+    }
 
     previewContent.value = md.render(form.value.content || '')
   } catch {
@@ -129,6 +138,7 @@ const handleSubmit = async () => {
 
   submitting.value = true
   try {
+    form.value.tagIds = selectedTags.value.map(t => t.id)
     await api.put(`/tools/${toolId.value}`, form.value)
 
     if (newFiles.value.length > 0) {
@@ -192,6 +202,11 @@ onMounted(async () => {
           </div>
 
           <div class="form-group">
+            <label class="form-label">简短描述</label>
+            <input v-model="form.description" type="text" class="form-input" placeholder="一句话介绍这个工具（选填）" maxlength="200" />
+          </div>
+
+          <div class="form-group">
             <label class="form-label">分类</label>
             <div class="select-wrapper">
               <select v-model="form.categoryId" class="form-select">
@@ -205,6 +220,11 @@ onMounted(async () => {
             <label class="form-label">🏷️ 版本号</label>
             <input v-model="form.version" type="text" class="form-input" placeholder="如 1.0.0" maxlength="50" />
             <div class="input-hint">使用语义化版本号格式，如 1.0.0、2.1.3-beta</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">标签</label>
+            <TagSelector v-model="selectedTags" tagType="TOOL" />
           </div>
 
           <div class="form-group">

@@ -4,6 +4,9 @@ import { useRouter } from 'vue-router'
 import { ArrowLeft, Upload, CheckCircle, XCircle, Loader2, Video } from '@lucide/vue'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
+import type { Tag } from '@/types'
+import TagSelector from '@/components/common/TagSelector.vue'
+import VideoCoverPicker from '@/components/video/VideoCoverPicker.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,6 +29,10 @@ const progress = ref(0)
 const error = ref('')
 const uploadSuccess = ref(false)
 const uploadedVideoId = ref<number | null>(null)
+const selectedTags = ref<Tag[]>([])
+const videoSrc = ref<string | null>(null)
+const coverBlob = ref<Blob | null>(null)
+const coverFile = ref<File | null>(null)
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
@@ -57,6 +64,11 @@ const handleFile = (file: File) => {
   }
   selectedFile.value = file
   error.value = ''
+  // Create video object URL for cover picker
+  if (videoSrc.value) URL.revokeObjectURL(videoSrc.value)
+  videoSrc.value = URL.createObjectURL(file)
+  coverBlob.value = null
+  coverFile.value = null
   // Auto-fill title from filename if title is empty
   if (!title.value) {
     title.value = file.name.replace(/\.mp4$/i, '')
@@ -108,16 +120,25 @@ const handleUpload = async () => {
   progress.value = 0
 
   try {
+    const tagIds = selectedTags.value.map(t => t.id)
     const result = await videoService.uploadVideo(
       selectedFile.value,
       title.value.trim(),
       description.value.trim() || undefined,
+      tagIds.length > 0 ? tagIds : undefined,
       (percent) => {
         progress.value = percent
       }
     )
     uploadSuccess.value = true
     uploadedVideoId.value = result.id
+
+    // Upload cover if set
+    if (coverBlob.value) {
+      await videoService.uploadCover(result.id, coverBlob.value)
+    } else if (coverFile.value) {
+      await videoService.uploadCover(result.id, coverFile.value)
+    }
 
     // Redirect after a short delay
     setTimeout(() => {
@@ -236,6 +257,22 @@ const goBack = () => {
           ></textarea>
           <span class="char-count">{{ description.length }} / 2000</span>
         </div>
+
+        <!-- Tags -->
+        <div class="form-group">
+          <label class="form-label">标签</label>
+          <TagSelector v-model="selectedTags" tagType="VIDEO" />
+        </div>
+
+        <!-- Cover Picker -->
+        <VideoCoverPicker
+          v-if="videoSrc"
+          :videoSrc="videoSrc"
+          :coverUrl="null"
+          @cover-capture="(blob) => { coverBlob = blob; coverFile = null }"
+          @cover-upload="(file) => { coverFile = file; coverBlob = null }"
+          @cover-remove="() => { coverBlob = null; coverFile = null }"
+        />
 
         <!-- Progress Bar -->
         <div v-if="uploading" class="progress-section">

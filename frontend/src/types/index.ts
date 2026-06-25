@@ -16,10 +16,18 @@ export interface Category {
   sortOrder: number
 }
 
+export interface Tag {
+  id: number
+  name: string
+  tagType: string
+  usageCount: number
+}
+
 export interface ToolSummary {
   id: number
   name: string
   version?: string
+  description?: string
   categoryName: string
   categoryIcon: string
   uploaderId: number
@@ -31,6 +39,7 @@ export interface ToolSummary {
   viewCount?: number
   likeCount?: number
   commentCount?: number
+  tags?: Tag[]
   createdAt: string
 }
 
@@ -38,6 +47,7 @@ export interface ToolDetail {
   id: number
   name: string
   version?: string
+  description?: string
   categoryName: string
   categoryIcon: string
   content: string
@@ -45,6 +55,7 @@ export interface ToolDetail {
   uploaderUsername: string
   uploaderNickname?: string
   uploaderAvatarUrl?: string | null
+  tags?: Tag[]
   createdAt: string
   updatedAt: string
 }
@@ -80,6 +91,8 @@ export interface CreateToolRequest {
   categoryId: number
   content: string
   version: string
+  description?: string
+  tagIds?: number[]
 }
 
 export interface UpdateToolRequest {
@@ -87,6 +100,8 @@ export interface UpdateToolRequest {
   categoryId: number
   content: string
   version?: string
+  description?: string
+  tagIds?: number[]
 }
 
 export interface ToolFile {

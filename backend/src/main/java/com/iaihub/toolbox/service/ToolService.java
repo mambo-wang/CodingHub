@@ -1,6 +1,7 @@
 package com.iaihub.toolbox.service;
 
 import com.iaihub.toolbox.dto.*;
+import com.iaihub.toolbox.dto.tag.TagDTO;
 import com.iaihub.toolbox.exception.DuplicateResourceException;
 import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
@@ -8,9 +9,13 @@ import com.iaihub.toolbox.model.Category;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.User;
+import com.iaihub.toolbox.model.tag.Tag;
+import com.iaihub.toolbox.model.tag.ToolTag;
 import com.iaihub.toolbox.repository.CategoryRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.repository.tag.TagRepository;
+import com.iaihub.toolbox.repository.tag.ToolTagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +23,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +35,8 @@ public class ToolService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ToolFileService toolFileService;
+    private final TagRepository tagRepository;
+    private final ToolTagRepository toolTagRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ToolSummaryDTO> getTools(Long categoryId, String keyword, String sortBy, int page, int size) {
@@ -93,12 +103,21 @@ public class ToolService {
                 .name(request.getName())
                 .category(category)
                 .content(request.getContent())
+                .description(request.getDescription())
                 .version(request.getVersion())
                 .uploader(uploader)
                 .status(Tool.Status.NORMAL)
                 .build();
 
         tool = toolRepository.save(tool);
+
+        // Handle tag associations
+        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            for (Long tagId : request.getTagIds()) {
+                toolTagRepository.save(new ToolTag(tool.getId(), tagId));
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+            }
+        }
 
         // Re-fetch with relations to avoid lazy init issues
         tool = toolRepository.findByIdAndStatusNormalWithRelations(tool.getId())
@@ -141,11 +160,31 @@ public class ToolService {
             tool.setContent(request.getContent());
         }
 
+        if (request.getDescription() != null) {
+            tool.setDescription(request.getDescription());
+        }
+
         if (newName != null) {
             tool.setName(newName);
         }
         if (request.getVersion() != null && !request.getVersion().isBlank()) {
             tool.setVersion(request.getVersion());
+        }
+
+        // Handle tag replacement
+        if (request.getTagIds() != null) {
+            // Remove old tag associations and decrement usage
+            List<ToolTag> oldTags = toolTagRepository.findByToolId(id);
+            for (ToolTag tt : oldTags) {
+                tagRepository.findById(tt.getTagId()).ifPresent(Tag::decrementUsage);
+            }
+            toolTagRepository.deleteByToolId(id);
+
+            // Add new tag associations and increment usage
+            for (Long tagId : request.getTagIds()) {
+                toolTagRepository.save(new ToolTag(id, tagId));
+                tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+            }
         }
 
         tool = toolRepository.save(tool);
@@ -196,10 +235,16 @@ public class ToolService {
     private ToolSummaryDTO toSummaryDTO(Tool tool) {
         Hibernate.initialize(tool.getCategory());
         Hibernate.initialize(tool.getUploader());
+        List<TagDTO> tags = toolTagRepository.findByToolId(tool.getId()).stream()
+                .map(tt -> tagRepository.findById(tt.getTagId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(t -> new TagDTO(t.getId(), t.getName(), t.getTagType().name(), t.getUsageCount()))
+                .toList();
         return ToolSummaryDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
                 .version(tool.getVersion())
+                .description(tool.getDescription())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
                 .uploaderId(tool.getUploader().getId())
@@ -211,16 +256,23 @@ public class ToolService {
                 .viewCount(tool.getViewCount() != null ? tool.getViewCount() : 0)
                 .likeCount(tool.getLikeCount() != null ? tool.getLikeCount() : 0)
                 .commentCount(tool.getCommentCount() != null ? tool.getCommentCount() : 0)
+                .tags(tags)
                 .build();
     }
 
     private ToolDetailDTO toDetailDTO(Tool tool) {
         Hibernate.initialize(tool.getCategory());
         Hibernate.initialize(tool.getUploader());
+        List<TagDTO> tags = toolTagRepository.findByToolId(tool.getId()).stream()
+                .map(tt -> tagRepository.findById(tt.getTagId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .map(t -> new TagDTO(t.getId(), t.getName(), t.getTagType().name(), t.getUsageCount()))
+                .toList();
         return ToolDetailDTO.builder()
                 .id(tool.getId())
                 .name(tool.getName())
                 .version(tool.getVersion())
+                .description(tool.getDescription())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
                 .content(tool.getContent())
@@ -233,6 +285,7 @@ public class ToolService {
                 .likeCount(tool.getLikeCount() != null ? tool.getLikeCount() : 0)
                 .commentCount(tool.getCommentCount() != null ? tool.getCommentCount() : 0)
                 .score(tool.getScore() != null ? tool.getScore() : java.math.BigDecimal.ZERO)
+                .tags(tags)
                 .build();
     }
 }

@@ -17,12 +17,16 @@ export const videoService = {
     file: File,
     title: string,
     description?: string,
+    tagIds?: number[],
     onProgress?: (percent: number) => void
   ): Promise<VideoDetail> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('title', title)
     if (description) formData.append('description', description)
+    if (tagIds && tagIds.length > 0) {
+      tagIds.forEach(id => formData.append('tagIds', String(id)))
+    }
 
     const response = await api.post('/videos', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -66,6 +70,17 @@ export const videoService = {
   async updateVideo(id: number, data: VideoUpdateRequest): Promise<VideoDetail> {
     const response = await api.put(`/videos/${id}`, data)
     return response.data.data
+  },
+
+  /**
+   * Upload cover image for a video
+   */
+  async uploadCover(videoId: number, coverFile: Blob): Promise<void> {
+    const formData = new FormData()
+    formData.append('file', coverFile, 'cover.png')
+    await api.post(`/videos/${videoId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
   },
 
   /**
