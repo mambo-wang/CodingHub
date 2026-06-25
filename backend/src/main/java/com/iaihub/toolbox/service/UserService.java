@@ -175,11 +175,60 @@ public class UserService {
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
                 .build();
+    }
+
+    @Transactional
+    public UserDTO updateProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (request.getNickname() != null && !request.getNickname().isBlank()) {
+            // Check uniqueness if nickname is actually changing
+            if (!request.getNickname().equals(user.getNickname())) {
+                if (userRepository.existsByNickname(request.getNickname())) {
+                    throw new DuplicateResourceException("该昵称已被使用");
+                }
+                user.setNickname(request.getNickname());
+            }
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        return UserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .role(user.getRole().name())
+                .status(user.getStatus().name())
+                .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                .build();
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("旧密码不正确");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     @Transactional

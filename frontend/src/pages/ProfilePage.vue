@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
-import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2 } from '@lucide/vue'
+import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2, Save, Lock, User as UserIcon } from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -18,6 +18,25 @@ const error = ref('')
 const success = ref(false)
 const successTimer = ref<number | null>(null)
 
+// === Profile editing ===
+const profileForm = ref({
+  nickname: '',
+  bio: ''
+})
+const profileSaving = ref(false)
+const profileError = ref('')
+const profileSuccess = ref(false)
+
+// === Password change ===
+const passwordForm = ref({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const passwordSaving = ref(false)
+const passwordError = ref('')
+const passwordSuccess = ref(false)
+
 const hasAvatar = computed(() => !!currentUser.value?.avatarUrl)
 
 onMounted(async () => {
@@ -30,6 +49,8 @@ onMounted(async () => {
     const response = await api.get('/users/me')
     if (response.data?.data) {
       authStore.setUser(response.data.data)
+      profileForm.value.nickname = response.data.data.nickname || ''
+      profileForm.value.bio = response.data.data.bio || ''
     }
   } catch (e) {
     // 静默失败，使用现有数据
@@ -121,6 +142,59 @@ const handleRemove = async () => {
     error.value = e?.response?.data?.message || '移除失败, 请重试'
   } finally {
     removing.value = false
+  }
+}
+
+const handleSaveProfile = async () => {
+  profileSaving.value = true
+  profileError.value = ''
+  profileSuccess.value = false
+  try {
+    await api.put('/users/me/profile', {
+      nickname: profileForm.value.nickname,
+      bio: profileForm.value.bio
+    })
+    if (authStore.user) {
+      authStore.user.nickname = profileForm.value.nickname
+      authStore.setUser(authStore.user)
+    }
+    profileSuccess.value = true
+    if (successTimer.value) window.clearTimeout(successTimer.value)
+    successTimer.value = window.setTimeout(() => { profileSuccess.value = false }, 2000)
+  } catch (e: any) {
+    profileError.value = e?.response?.data?.message || '保存失败, 请重试'
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+const handleChangePassword = async () => {
+  passwordError.value = ''
+  passwordSuccess.value = false
+
+  if (passwordForm.value.newPassword.length < 6) {
+    passwordError.value = '新密码至少 6 个字符'
+    return
+  }
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    passwordError.value = '两次输入的密码不一致'
+    return
+  }
+
+  passwordSaving.value = true
+  try {
+    await api.put('/users/me/password', {
+      oldPassword: passwordForm.value.oldPassword,
+      newPassword: passwordForm.value.newPassword
+    })
+    passwordSuccess.value = true
+    passwordForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
+    if (successTimer.value) window.clearTimeout(successTimer.value)
+    successTimer.value = window.setTimeout(() => { passwordSuccess.value = false }, 2000)
+  } catch (e: any) {
+    passwordError.value = e?.response?.data?.message || '修改密码失败, 请重试'
+  } finally {
+    passwordSaving.value = false
   }
 }
 
@@ -247,6 +321,140 @@ const goBack = () => router.back()
               </Transition>
             </div>
           </div>
+
+        <!-- Profile Editing Card -->
+        <div class="edit-card glass-card">
+          <div class="edit-card-header">
+            <UserIcon :size="20" class="edit-card-icon" />
+            <h3 class="edit-card-title">编辑资料</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profile-nickname">昵称</label>
+            <input
+              id="profile-nickname"
+              v-model="profileForm.nickname"
+              type="text"
+              class="form-input"
+              placeholder="请输入昵称"
+              maxlength="50"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profile-bio">
+              个人简介
+              <span class="char-count">{{ profileForm.bio.length }} / 500</span>
+            </label>
+            <textarea
+              id="profile-bio"
+              v-model="profileForm.bio"
+              class="form-textarea"
+              placeholder="介绍一下自己..."
+              maxlength="500"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button
+              class="btn btn-primary"
+              :disabled="profileSaving"
+              @click="handleSaveProfile"
+            >
+              <Loader2 v-if="profileSaving" :size="16" class="spin" />
+              <Save v-else :size="16" />
+              <span>{{ profileSaving ? '保存中...' : '保存资料' }}</span>
+            </button>
+          </div>
+
+          <div v-if="profileError" class="alert alert-error" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>{{ profileError }}</span>
+          </div>
+
+          <Transition name="fade">
+            <div v-if="profileSuccess" class="alert alert-success" role="status">
+              <CheckCircle2 :size="16" />
+              <span>资料已更新</span>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Password Change Card -->
+        <div class="edit-card glass-card">
+          <div class="edit-card-header">
+            <Lock :size="20" class="edit-card-icon" />
+            <h3 class="edit-card-title">修改密码</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="old-password">当前密码</label>
+            <input
+              id="old-password"
+              v-model="passwordForm.oldPassword"
+              type="password"
+              class="form-input"
+              placeholder="请输入当前密码"
+              autocomplete="current-password"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="new-password">新密码</label>
+            <input
+              id="new-password"
+              v-model="passwordForm.newPassword"
+              type="password"
+              class="form-input"
+              placeholder="至少 6 个字符"
+              minlength="6"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirm-password">确认新密码</label>
+            <input
+              id="confirm-password"
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              class="form-input"
+              placeholder="再次输入新密码"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <div class="form-actions">
+            <button
+              class="btn btn-primary"
+              :disabled="passwordSaving || !passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword"
+              @click="handleChangePassword"
+            >
+              <Loader2 v-if="passwordSaving" :size="16" class="spin" />
+              <Lock v-else :size="16" />
+              <span>{{ passwordSaving ? '修改中...' : '修改密码' }}</span>
+            </button>
+          </div>
+
+          <div v-if="passwordError" class="alert alert-error" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <span>{{ passwordError }}</span>
+          </div>
+
+          <Transition name="fade">
+            <div v-if="passwordSuccess" class="alert alert-success" role="status">
+              <CheckCircle2 :size="16" />
+              <span>密码已更新</span>
+            </div>
+          </Transition>
+        </div>
         </div>
       </div>
     </div>
@@ -540,6 +748,116 @@ const goBack = () => router.back()
 }
 .fade-enter-active, .fade-leave-active { transition: all 0.2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-4px); }
+
+/* Edit cards */
+.edit-card {
+  padding: 28px 32px;
+  border-radius: 16px;
+}
+
+.edit-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.edit-card-icon {
+  color: var(--accent-1);
+}
+
+.edit-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.form-textarea:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.form-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Light theme form elements */
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-textarea {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .form-textarea:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

@@ -2,9 +2,11 @@ package com.iaihub.toolbox.controller;
 
 import com.iaihub.toolbox.dto.ApiResponse;
 import com.iaihub.toolbox.dto.AvatarUploadResponse;
+import com.iaihub.toolbox.dto.ChangePasswordRequest;
 import com.iaihub.toolbox.dto.PageResponse;
 import com.iaihub.toolbox.dto.PublicUserDTO;
 import com.iaihub.toolbox.dto.ToolSummaryDTO;
+import com.iaihub.toolbox.dto.UpdateProfileRequest;
 import com.iaihub.toolbox.dto.UserDTO;
 import com.iaihub.toolbox.exception.AvatarValidationException;
 import com.iaihub.toolbox.model.User;
@@ -63,6 +65,22 @@ public class UserController {
         }
         userService.deleteAvatar(currentUser.getId());
         return ApiResponse.success("头像已移除", null);
+    }
+
+    @PutMapping("/me/profile")
+    public ResponseEntity<ApiResponse<UserDTO>> updateProfile(
+            @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        UserDTO updated = userService.updateProfile(currentUser.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success(updated));
+    }
+
+    @PutMapping("/me/password")
+    public ApiResponse<Void> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        userService.changePassword(currentUser.getId(), request);
+        return ApiResponse.success("密码修改成功", null);
     }
 
     @GetMapping("/{id}")

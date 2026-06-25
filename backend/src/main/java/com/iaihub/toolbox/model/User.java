@@ -44,6 +44,9 @@ public class User {
     @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
 
+    @Column(length = 500)
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

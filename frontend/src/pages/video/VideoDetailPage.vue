@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Eye, Heart, MessageCircle, Loader2, Clock, Pencil, Trash2 } from '@lucide/vue'
+import { ArrowLeft, Eye, Heart, MessageCircle, Loader2, Clock, Pencil, Trash2, Send } from '@lucide/vue'
+import { ElMessage } from 'element-plus'
 import { videoService } from '@/services/video'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/services/api'
 import VideoPlayer from '@/components/video/VideoPlayer.vue'
+import DanmakuPlayer from '@/components/video/DanmakuPlayer.vue'
 import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
 import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
 import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue'
@@ -28,6 +31,42 @@ const canModify = computed(() => {
 
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
+
+// === Danmaku ===
+const videoPlayerRef = ref<InstanceType<typeof VideoPlayer> | null>(null)
+const danmakuInput = ref('')
+const danmakuSending = ref(false)
+
+const currentVideoTime = computed(() => {
+  return videoPlayerRef.value?.currentTime ?? 0
+})
+
+const videoDuration = computed(() => {
+  return videoPlayerRef.value?.duration ?? 0
+})
+
+const handleSendDanmaku = async () => {
+  if (!authStore.isLoggedIn) {
+    router.push(`/login?redirect=${route.fullPath}`)
+    return
+  }
+  const content = danmakuInput.value.trim()
+  if (!content || !video.value) return
+
+  danmakuSending.value = true
+  try {
+    await api.post(`/videos/${video.value.id}/danmaku`, {
+      content,
+      timeSeconds: currentVideoTime.value
+    })
+    danmakuInput.value = ''
+    ElMessage.success('弹幕已发送')
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || '发送弹幕失败')
+  } finally {
+    danmakuSending.value = false
+  }
+}
 
 const handleEdit = () => {
   if (video.value) router.push(`/videos/${video.value.id}/edit`)
@@ -156,7 +195,46 @@ const goBack = () => {
       <!-- Video Detail -->
       <div v-else-if="video" class="detail-content">
         <div class="player-section">
-          <VideoPlayer :src="streamUrl" :title="video.title" />
+          <div class="player-wrapper">
+            <VideoPlayer ref="videoPlayerRef" :src="streamUrl" :title="video.title" />
+            <DanmakuPlayer
+              v-if="video"
+              :video-id="video.id"
+              :current-time="currentVideoTime"
+              :duration="videoDuration"
+            />
+          </div>
+        </div>
+
+        <!-- Danmaku Input Bar -->
+        <div class="danmaku-bar glass-card">
+          <template v-if="authStore.isLoggedIn">
+            <input
+              v-model="danmakuInput"
+              type="text"
+              class="danmaku-input"
+              placeholder="发送弹幕..."
+              maxlength="100"
+              :disabled="danmakuSending"
+              @keydown.enter="handleSendDanmaku"
+            />
+            <button
+              class="danmaku-send-btn"
+              :disabled="danmakuSending || !danmakuInput.trim()"
+              @click="handleSendDanmaku"
+            >
+              <Send :size="14" />
+              <span>发送弹幕</span>
+            </button>
+          </template>
+          <template v-else>
+            <div class="danmaku-login-prompt">
+              <span>登录后即可发送弹幕</span>
+              <button class="danmaku-login-btn" @click="router.push(`/login?redirect=${route.fullPath}`)">
+                去登录
+              </button>
+            </div>
+          </template>
         </div>
 
         <div class="info-section glass-card">
@@ -387,6 +465,110 @@ const goBack = () => {
 .player-section {
   border-radius: 16px;
   overflow: hidden;
+}
+
+.player-wrapper {
+  position: relative;
+}
+
+/* Danmaku Bar */
+.danmaku-bar {
+  padding: 12px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.danmaku-input {
+  flex: 1;
+  padding: 8px 14px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.danmaku-input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.danmaku-input::placeholder {
+  color: var(--text-muted);
+}
+
+.danmaku-input:disabled {
+  opacity: 0.5;
+}
+
+.danmaku-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.danmaku-send-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.danmaku-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.danmaku-login-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.danmaku-login-btn {
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.danmaku-login-btn:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(6, 182, 212, 0.35));
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+/* Light theme danmaku input */
+[data-theme="light"] .danmaku-input {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .danmaku-input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 .info-section {

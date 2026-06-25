@@ -422,20 +422,20 @@ onMounted(() => {
               class="tool-card glass-card"
               @click="goToDetail(tool.id)"
             >
-              <div class="tool-card-badges">
-                <span v-if="tool.pinned" class="badge-pill badge-pinned">
-                  <ArrowUp :size="12" aria-hidden="true" />
-                  <span>置顶</span>
-                </span>
-                <span v-if="hotTop5Ids.has(tool.id)" class="badge-pill badge-hot">
-                  <Flame :size="12" aria-hidden="true" />
-                  <span>热门</span>
-                </span>
-              </div>
               <div class="tool-card-inner">
-                <div class="tool-category-tag">
-                  <span class="cat-icon">{{ tool.categoryIcon }}</span>
-                  <span>{{ tool.categoryName }}</span>
+                <div class="tool-card-header">
+                  <div class="tool-category-tag">
+                    <span class="cat-icon">{{ tool.categoryIcon }}</span>
+                    <span>{{ tool.categoryName }}</span>
+                  </div>
+                  <span v-if="tool.pinned" class="badge-pill badge-pinned">
+                    <ArrowUp :size="12" aria-hidden="true" />
+                    <span>置顶</span>
+                  </span>
+                  <span v-if="hotTop5Ids.has(tool.id)" class="badge-pill badge-hot">
+                    <Flame :size="12" aria-hidden="true" />
+                    <span>热门</span>
+                  </span>
                 </div>
                 <h3 class="tool-name">{{ tool.name }}</h3>
                 <p v-if="tool.description" class="tool-description">{{ tool.description }}</p>
@@ -855,7 +855,7 @@ onMounted(() => {
 .btn-icon-edit:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
 .btn-icon-delete:hover { color: var(--color-destructive); border-color: color-mix(in srgb, var(--color-destructive) 30%, transparent); }
 
-.tool-card-badges { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; z-index: 2; }
+.tool-card-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .badge-pill { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px 3px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: default; }
 .badge-pill:hover { transform: translateY(-1px); }
 .badge-pinned { background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); }
@@ -869,7 +869,7 @@ onMounted(() => {
 .btn-icon-pin-tool:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
 .btn-icon-pin-tool:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); margin-bottom: 16px; }
+.tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); }
 .tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
 .tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; }

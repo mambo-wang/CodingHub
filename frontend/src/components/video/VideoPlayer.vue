@@ -11,6 +11,8 @@ const videoRef = ref<HTMLVideoElement | null>(null)
 const loading = ref(true)
 const error = ref('')
 const retryCount = ref(0)
+const currentTime = ref(0)
+const duration = ref(0)
 const MAX_RETRIES = 3
 const RETRY_DELAYS = [1000, 3000, 5000] // exponential backoff
 
@@ -79,6 +81,20 @@ const onPlaying = () => {
   }
 }
 
+const onTimeUpdate = () => {
+  if (videoRef.value) {
+    currentTime.value = videoRef.value.currentTime
+  }
+}
+
+const onDurationChange = () => {
+  if (videoRef.value) {
+    duration.value = videoRef.value.duration
+  }
+}
+
+defineExpose({ currentTime, duration })
+
 const reloadVideo = () => {
   const videoEl = videoRef.value
   if (!videoEl) return
@@ -140,6 +156,8 @@ onBeforeUnmount(() => {
         @error="onError"
         @stalled="onStalled"
         @playing="onPlaying"
+        @timeupdate="onTimeUpdate"
+        @durationchange="onDurationChange"
       >
         您的浏览器不支持视频播放
       </video>

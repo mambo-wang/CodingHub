@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { Sun, Moon, User, LogOut } from '@lucide/vue'
 import UserAvatar from './UserAvatar.vue'
+import NotificationBell from './common/NotificationBell.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -92,6 +93,7 @@ const goToUserList = () => router.push('/admin/users')
         <template v-if="isLoggedIn">
           <button v-if="isSuperAdmin" class="nav-btn" @click="goToApprovals">审批管理</button>
           <button v-if="isAdmin" class="nav-btn" @click="goToUserList">用户管理</button>
+          <NotificationBell />
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
             <Moon v-if="isDark" :size="18" />
             <Sun v-else :size="18" />

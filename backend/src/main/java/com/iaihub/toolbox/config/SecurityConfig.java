@@ -40,7 +40,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/like-status").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/hot-top5").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/tools/{id}/comments").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories").permitAll()
                 // File endpoints (must be before /api/v1/tools/**)
                 .requestMatchers(HttpMethod.GET, "/api/v1/tools/{toolId}/files").permitAll()
@@ -56,7 +55,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/stream").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/comments").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}/cover-image").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/hot-top5").permitAll()
                 // Forum public endpoints
@@ -81,6 +79,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/users/*").hasRole("SUPER_ADMIN")
                 // Admin user management (ADMIN and SUPER_ADMIN)
                 .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                // Notification endpoints (require auth)
+                .requestMatchers("/api/v1/notifications/**").authenticated()
+                // Danmaku - GET is public, POST requires auth
+                .requestMatchers(HttpMethod.GET, "/api/v1/videos/{videoId}/danmaku").permitAll()
                 // Protected endpoints
                 .requestMatchers("/api/v1/videos/**").authenticated()
                 .requestMatchers("/api/v1/tools/**").authenticated()
