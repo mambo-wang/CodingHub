@@ -1,12 +1,9 @@
 import api from './api'
 import type {
   VideoDetail,
-  VideoComment,
-  VideoInteractionResponse,
   VideoPageResponse,
   VideoUpdateRequest
 } from '@/types/video'
-import type { PageResponse } from '@/types'
 import type { AxiosProgressEvent } from 'axios'
 
 export const videoService = {
@@ -95,46 +92,6 @@ export const videoService = {
    */
   async getMyVideos(page: number = 0, size: number = 20): Promise<VideoPageResponse> {
     const response = await api.get('/videos/my', { params: { page, size } })
-    return response.data.data
-  },
-
-  /**
-   * Toggle like (like/unlike)
-   */
-  async toggleLike(id: number): Promise<VideoInteractionResponse> {
-    const response = await api.post(`/videos/${id}/like`)
-    return response.data.data
-  },
-
-  /**
-   * Toggle favorite (favorite/unfavorite)
-   */
-  async toggleFavorite(id: number): Promise<VideoInteractionResponse> {
-    const response = await api.post(`/videos/${id}/favorite`)
-    return response.data.data
-  },
-
-  /**
-   * Get comments (paginated)
-   */
-  async getComments(id: number, page: number = 0, size: number = 20): Promise<PageResponse<VideoComment>> {
-    const response = await api.get(`/videos/${id}/comments`, { params: { page, size } })
-    return response.data.data
-  },
-
-  /**
-   * Add comment
-   */
-  async addComment(id: number, content: string): Promise<VideoComment> {
-    const response = await api.post(`/videos/${id}/comments`, { content })
-    return response.data.data
-  },
-
-  /**
-   * Get my favorites (paginated)
-   */
-  async getMyFavorites(page: number = 0, size: number = 20): Promise<VideoPageResponse> {
-    const response = await api.get('/videos/my/favorites', { params: { page, size } })
     return response.data.data
   },
 

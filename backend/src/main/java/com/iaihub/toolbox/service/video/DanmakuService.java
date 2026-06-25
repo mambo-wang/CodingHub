@@ -22,7 +22,7 @@ public class DanmakuService {
     private final UserRepository userRepository;
 
     public List<DanmakuDTO> getDanmakuByVideoId(Long videoId) {
-        return danmakuRepository.findByVideoIdOrderByTimeSecondsAsc(videoId)
+        return danmakuRepository.findByVideoIdWithUser(videoId)
                 .stream()
                 .map(this::toDTO)
                 .toList();

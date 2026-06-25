@@ -9,38 +9,8 @@ export interface ToolDetailVO extends ToolDetailDTO {
   isLiked?: boolean;
 }
 
-export interface Comment {
-  id: number;
-  content: string;
-  username: string;
-  createdAt: string;
-}
-
 export async function getToolDetail(id: number): Promise<ToolDetailVO> {
   const response = await api.get<{code: number; message: string; data: ToolDetailVO}>(`/tools/${id}`);
-  return response.data.data;
-}
-
-export async function likeTool(id: number): Promise<void> {
-  await api.post(`/tools/${id}/like`);
-}
-
-export async function unlikeTool(id: number): Promise<void> {
-  await api.delete(`/tools/${id}/like`);
-}
-
-export async function getLikeStatus(id: number): Promise<boolean> {
-  const response = await api.get<{code: number; message: string; data: boolean}>(`/tools/${id}/like-status`);
-  return response.data.data;
-}
-
-export async function getComments(id: number): Promise<Comment[]> {
-  const response = await api.get<{code: number; message: string; data: Comment[]}>(`/tools/${id}/comments`);
-  return response.data.data || [];
-}
-
-export async function addComment(id: number, content: string): Promise<Comment> {
-  const response = await api.post<{code: number; message: string; data: Comment}>(`/tools/${id}/comments`, { content });
   return response.data.data;
 }
 

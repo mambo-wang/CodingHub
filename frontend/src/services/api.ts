@@ -185,30 +185,6 @@ export const fileUploadApi = {
   }
 }
 
-// Post Favorite API
-export const postFavoriteApi = {
-  addFavorite: (postId: number) => {
-    return api.post(`/post-favorites/${postId}`).then(res => res.data);
-  },
-  removeFavorite: (postId: number) => {
-    return api.delete(`/post-favorites/${postId}`).then(res => res.data);
-  },
-  getMyFavorites: () => {
-    return api.get('/post-favorites/posts').then(res => res.data);
-  },
-  checkFavorite: (postId: number) => {
-    return api.get(`/post-favorites/check/${postId}`).then(res => res.data);
-  },
-  toggleFavorite: async (postId: number) => {
-    const checkRes = await postFavoriteApi.checkFavorite(postId);
-    if (checkRes.data) {
-      return postFavoriteApi.removeFavorite(postId);
-    } else {
-      return postFavoriteApi.addFavorite(postId);
-    }
-  }
-};
-
 // Tag API
 export const tagApi = {
   getTags: (type: string) => {
