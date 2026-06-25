@@ -27,22 +27,25 @@
       <PinOff v-if="post.pinned" :size="14" />
       <Pin v-else :size="14" />
     </button>
-    <div class="card-badges">
-      <span v-if="post.pinned" class="badge-pill badge-pinned">
-        <ArrowUp :size="12" aria-hidden="true" />
-        <span>置顶</span>
-      </span>
-      <span v-if="isHot" class="badge-pill badge-hot">
-        <Flame :size="12" aria-hidden="true" />
-        <span>热门</span>
-      </span>
-    </div>
     <div class="card-content">
       <div class="card-header">
         <span class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
           {{ post.categoryName }}
         </span>
-        <h3 class="post-title">{{ post.title }}</h3>
+        <span v-if="post.pinned" class="badge-pill badge-pinned">
+          <ArrowUp :size="12" aria-hidden="true" />
+          <span>置顶</span>
+        </span>
+        <span v-if="isHot" class="badge-pill badge-hot">
+          <Flame :size="12" aria-hidden="true" />
+          <span>热门</span>
+        </span>
+      </div>
+      <h3 class="post-title">{{ post.title }}</h3>
+      <p v-if="post.content" class="post-preview">{{ contentPreview }}</p>
+      <div v-if="post.tags && post.tags.length > 0" class="post-tags">
+        <TagBadge v-for="tag in post.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+        <span v-if="post.tags.length > 3" class="tags-more">+{{ post.tags.length - 3 }}</span>
       </div>
       <div class="card-meta">
         <div class="author-info">
@@ -89,6 +92,7 @@ import { useAuthStore } from '@/stores/auth';
 import { interactionApi } from '@/services/interaction';
 import forumService from '@/services/forum';
 import AuthorBadge from '@/components/AuthorBadge.vue';
+import TagBadge from '@/components/common/TagBadge.vue';
 
 const props = withDefaults(defineProps<{ post: ForumPost; deletable?: boolean; editable?: boolean; isHot?: boolean }>(), {
   deletable: false,
@@ -135,6 +139,18 @@ const categoryColors: Record<number, string> = {
 
 const getCategoryColor = (categoryId: number) => categoryColors[categoryId] || '#7C3AED';
 const getCategoryBg = (categoryId: number) => `${categoryColors[categoryId] || '#7C3AED'}15`;
+
+const contentPreview = computed(() => {
+  if (!props.post.content) return '';
+  const plain = props.post.content
+    .replace(/#{1,6}\s/g, '')
+    .replace(/[*_~`]/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '')
+    .replace(/\n+/g, ' ')
+    .trim();
+  return plain.length > 50 ? plain.slice(0, 50) + '…' : plain;
+});
 
 const goToDetail = () => {
   router.push(`/forum/posts/${props.post.id}`);
@@ -209,7 +225,7 @@ const toggleFavorite = async () => {
 .card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .category-tag {
@@ -230,6 +246,28 @@ const toggleFavorite = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.post-preview {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tags-more {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .card-meta {
@@ -378,15 +416,6 @@ const toggleFavorite = async () => {
 
 .btn-icon-delete:active {
   transform: scale(0.95);
-}
-
-.card-badges {
-  position: absolute;
-  top: 12px;
-  left: 16px;
-  display: flex;
-  gap: 6px;
-  z-index: 2;
 }
 
 .badge-pill {

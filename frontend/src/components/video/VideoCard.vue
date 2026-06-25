@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { Eye, Heart, MessageCircle, Play, Pencil, Trash2, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import UserAvatar from '@/components/UserAvatar.vue'
+import TagBadge from '@/components/common/TagBadge.vue'
 import type { VideoListItem } from '@/types/video'
 import { useAuthStore } from '@/stores/auth'
 import { videoService } from '@/services/video'
@@ -147,6 +148,11 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
       <div class="video-info">
         <h3 class="video-title">{{ video.title }}</h3>
 
+        <div v-if="video.tags && video.tags.length > 0" class="video-tags">
+          <TagBadge v-for="tag in video.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+          <span v-if="video.tags.length > 3" class="tags-more">+{{ video.tags.length - 3 }}</span>
+        </div>
+
         <div class="video-stats">
           <span class="stat-item">
             <Eye :size="14" aria-hidden="true" />
@@ -257,6 +263,18 @@ const displayName = computed(() => props.video.uploaderNickname || props.video.u
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.video-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tags-more {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .video-stats {

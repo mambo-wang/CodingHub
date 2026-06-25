@@ -12,6 +12,7 @@ import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
 import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
 import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
+import TagBadge from '@/components/common/TagBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import type { CommentResponse } from '@/services/interaction'
 import type { VideoDetail } from '@/types/video'
@@ -252,6 +253,10 @@ const goBack = () => {
               <Clock :size="14" aria-hidden="true" />
               {{ formatDuration(video.duration) }}
             </span>
+          </div>
+
+          <div v-if="video.tags && video.tags.length > 0" class="video-tags">
+            <TagBadge v-for="tag in video.tags" :key="tag.id" :tag="tag" />
           </div>
 
           <div class="video-stats">
@@ -589,6 +594,13 @@ const goBack = () => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.video-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 16px;
 }
 

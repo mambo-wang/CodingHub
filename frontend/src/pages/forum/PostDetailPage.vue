@@ -32,6 +32,9 @@
             <span class="separator">·</span>
             <span>{{ formatDate(post.createdAt) }}</span>
           </div>
+          <div v-if="post.tags && post.tags.length > 0" class="post-tags">
+            <TagBadge v-for="tag in post.tags" :key="tag.id" :tag="tag" />
+          </div>
         </div>
 
         <div class="post-stats">
@@ -122,6 +125,7 @@ import UnifiedCommentSection from '@/components/common/UnifiedCommentSection.vue
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue';
 import type { CommentResponse } from '@/services/interaction';
 import AuthorBadge from '@/components/AuthorBadge.vue';
+import TagBadge from '@/components/common/TagBadge.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -358,6 +362,14 @@ const formatCount = (count: number) => {
   gap: 10px;
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.post-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .author-info {
