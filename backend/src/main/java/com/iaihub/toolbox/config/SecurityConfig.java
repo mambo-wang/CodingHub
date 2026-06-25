@@ -48,9 +48,9 @@ public class SecurityConfig {
                 // Avatar static resources & public user profile (no auth needed)
                 .requestMatchers(HttpMethod.GET, "/api/v1/static/avatars/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/{id}").permitAll()
-                // MCP endpoints (无认证)
-                .requestMatchers("/mcp/**").permitAll()
+                // MCP endpoints (streamable-http + SSE, 无认证)
                 .requestMatchers("/sse").permitAll()
+                .requestMatchers("/mcp/**").permitAll()
                 // Video public endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{id}").permitAll()

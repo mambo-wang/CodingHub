@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const copySuccess = ref(false)
 const copiedTip = ref<number | null>(null)
@@ -64,22 +64,35 @@ const copySkillTip = async (index: number) => {
 
 // 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpConfig = {
-  "mcpServers": {
-    "CodingHub-mcp": {
-      "type": "sse",
-      "url": `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-      "description": "CodingHub MCP Server",
-      "disabled": false
+const mcpTransportType = ref<'streamableHttp' | 'sse'>('streamableHttp')
+const mcpConfigs = {
+  streamableHttp: {
+    "mcpServers": {
+      "CodingHub-mcp": {
+        "type": "streamableHttp",
+        "url": `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
+        "description": "CodingHub MCP Server (Streamable HTTP)",
+        "disabled": false
+      }
+    }
+  },
+  sse: {
+    "mcpServers": {
+      "CodingHub-mcp": {
+        "type": "sse",
+        "url": `http://${window.location.hostname}:${mcpBackendPort}/sse`,
+        "description": "CodingHub MCP Server (SSE)",
+        "disabled": false
+      }
     }
   }
 }
 
-const mcpConfigJson = JSON.stringify(mcpConfig, null, 2)
+const mcpConfigJson = computed(() => JSON.stringify(mcpConfigs[mcpTransportType.value], null, 2))
 
 const copyConfig = async () => {
   try {
-    await copyToClipboard(mcpConfigJson)
+    await copyToClipboard(mcpConfigJson.value)
     copySuccess.value = true
     setTimeout(() => { copySuccess.value = false }, 2000)
   } catch (e) {
@@ -126,6 +139,14 @@ const mcpTools = [
 
         <div class="config-card">
           <div class="config-label">MCP 配置</div>
+          <div class="transport-tabs">
+            <button class="transport-tab" :class="{ active: mcpTransportType === 'streamableHttp' }" @click="mcpTransportType = 'streamableHttp'">
+              Streamable HTTP
+            </button>
+            <button class="transport-tab" :class="{ active: mcpTransportType === 'sse' }" @click="mcpTransportType = 'sse'">
+              SSE（兼容旧客户端）
+            </button>
+          </div>
           <pre class="config-code">{{ mcpConfigJson }}</pre>
           <button class="copy-btn" :class="{ success: copySuccess }" @click="copyConfig">
             <svg v-if="!copySuccess" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -349,6 +370,37 @@ const mcpTools = [
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 12px;
+}
+
+.transport-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.transport-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.transport-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.transport-tab.active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #8b5cf6;
+  font-weight: 500;
 }
 
 .config-code {

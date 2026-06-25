@@ -69,19 +69,30 @@ const formattedFileSize = (bytes: number): string => {
 
 // MCP config
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpConfig = {
-  "CodingHub-mcp": {
-    type: "sse",
-    url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-    description: "CodingHub MCP Server",
-    disabled: false
+const mcpTransportType = ref<'streamableHttp' | 'sse'>('streamableHttp')
+const mcpConfigs = {
+  streamableHttp: {
+    "CodingHub-mcp": {
+      type: "streamableHttp",
+      url: `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
+      description: "CodingHub MCP Server (Streamable HTTP)",
+      disabled: false
+    }
+  },
+  sse: {
+    "CodingHub-mcp": {
+      type: "sse",
+      url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
+      description: "CodingHub MCP Server (SSE)",
+      disabled: false
+    }
   }
 }
-const mcpConfigJson = JSON.stringify(mcpConfig, null, 2)
+const mcpConfigJson = computed(() => JSON.stringify(mcpConfigs[mcpTransportType.value], null, 2))
 
 const copyMcpConfig = async () => {
   try {
-    await navigator.clipboard.writeText(mcpConfigJson)
+    await navigator.clipboard.writeText(mcpConfigJson.value)
     copySuccess.value = true
     setTimeout(() => { copySuccess.value = false }, 2000)
   } catch (error) {
@@ -532,7 +543,7 @@ onMounted(() => {
         <div class="mcp-modal glass-card">
           <div class="mcp-modal-header">
             <div class="mcp-modal-title">
-              <span class="mcp-badge">SSE</span>
+              <span class="mcp-badge">MCP</span>
               MCP 配置
             </div>
             <button class="mcp-modal-close" @click="showMcpModal = false">
@@ -542,7 +553,15 @@ onMounted(() => {
             </button>
           </div>
           <div class="mcp-modal-body">
-            <p class="mcp-modal-desc">将以下配置添加到 CodeBuddy 的 MCP 配置中：</p>
+            <div class="mcp-transport-tabs">
+              <button class="mcp-transport-tab" :class="{ active: mcpTransportType === 'streamableHttp' }" @click="mcpTransportType = 'streamableHttp'">
+                Streamable HTTP
+              </button>
+              <button class="mcp-transport-tab" :class="{ active: mcpTransportType === 'sse' }" @click="mcpTransportType = 'sse'">
+                SSE（兼容旧客户端）
+              </button>
+            </div>
+            <p class="mcp-modal-desc">将以下配置添加到 MCP 客户端的配置文件中：</p>
             <pre class="mcp-code-block">{{ mcpConfigJson }}</pre>
           </div>
           <div class="mcp-modal-footer">
@@ -920,6 +939,10 @@ onMounted(() => {
 .mcp-modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 8px; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; }
 .mcp-modal-close:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
 .mcp-modal-body { padding: 24px; }
+.mcp-transport-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.mcp-transport-tab { flex: 1; padding: 8px 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+.mcp-transport-tab:hover { background: rgba(255, 255, 255, 0.06); color: var(--text-primary); }
+.mcp-transport-tab.active { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--accent-1); font-weight: 500; }
 .mcp-modal-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
 .mcp-code-block { padding: 16px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 13px; color: #ffffff; line-height: 1.6; overflow-x: auto; white-space: pre; }
 .mcp-modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; }
