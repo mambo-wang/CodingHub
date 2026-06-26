@@ -1,0 +1,453 @@
+"""Shared business logic layer for MCP tools and REST API.
+
+This module owns the VectorStore singleton and exposes structured
+operations (returning dicts) that both the MCP tools and the HTTP
+API can consume.
+"""
+
+import fnmatch
+import hashlib
+import logging
+import os
+from pathlib import Path
+
+from core.chunker import chunk_text, semantic_chunk_text, structural_chunk_text
+from core.vector_store import VectorStore
+
+logger = logging.getLogger(__name__)
+
+# ── Singleton ────────────────────────────────────────────────
+_store: VectorStore | None = None
+_markitdown = None
+
+# Default text file extensions
+DEFAULT_TEXT_EXTENSIONS = {
+    ".md", ".markdown", ".txt", ".text", ".log",
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".kt",
+    ".go", ".rs", ".rb", ".php", ".c", ".cpp", ".h", ".hpp",
+    ".css", ".scss", ".html", ".htm", ".xml", ".yaml", ".yml",
+    ".json", ".toml", ".ini", ".cfg", ".conf",
+    ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd",
+    ".sql", ".r", ".m", ".swift", ".dart", ".lua",
+    ".csv", ".tsv", ".env",
+}
+
+BINARY_EXTENSIONS = {
+    ".pdf", ".docx", ".pptx", ".xlsx", ".xls",
+}
+
+ALL_EXTENSIONS = DEFAULT_TEXT_EXTENSIONS | BINARY_EXTENSIONS
+
+
+def get_store() -> VectorStore:
+    """Get or create the VectorStore singleton."""
+    global _store
+    if _store is None:
+        _store = VectorStore()
+    return _store
+
+
+def _get_markitdown():
+    """Get or create the MarkItDown converter singleton."""
+    global _markitdown
+    if _markitdown is None:
+        from markitdown import MarkItDown
+        _markitdown = MarkItDown()
+    return _markitdown
+
+
+# ── File reading ─────────────────────────────────────────────
+
+def read_file_content(filepath: str) -> tuple[str | None, str | None]:
+    """Read file content, handling both text and binary document formats.
+
+    Returns:
+        (content, error) tuple. One of them is always None.
+    """
+    ext = Path(filepath).suffix.lower()
+
+    if ext in BINARY_EXTENSIONS:
+        try:
+            md = _get_markitdown()
+            result = md.convert(filepath)
+            content = result.text_content if result.text_content else ""
+            if not content.strip():
+                return None, f"No text extracted from {ext} file: {filepath}"
+            return content, None
+        except Exception as e:
+            return None, f"Error converting {ext} file: {e}"
+    else:
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+            if not content.strip():
+                return None, f"File is empty: {filepath}"
+            return content, None
+        except Exception as e:
+            return None, f"Error reading file: {e}"
+
+
+# ── File hashing ─────────────────────────────────────────────
+
+def _compute_file_hash(filepath: str) -> str:
+    """Compute SHA256 hash of file content for change detection."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _get_registry_hash(filepath: str, collection: str) -> str | None:
+    """Read the stored file_hash from the registry, or None if not found."""
+    store = get_store()
+    registry_path = os.path.join(store._collection_path(collection), "_registry.json")
+    if not os.path.exists(registry_path):
+        return None
+    try:
+        import json
+        with open(registry_path, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+        abs_path = os.path.normpath(os.path.abspath(filepath))
+        return registry.get(abs_path, {}).get("file_hash")
+    except Exception:
+        return None
+
+
+# ── Config resolution ────────────────────────────────────────
+
+def _resolve_config(collection: str, **overrides) -> dict:
+    """Resolve final config: explicit params > collection config > defaults.
+
+    Only overrides with non-None values take effect.
+    """
+    store = get_store()
+    config = store.get_collection_config(collection)
+    for key, value in overrides.items():
+        if value is not None:
+            config[key] = value
+    return config
+
+
+# ── Operations ───────────────────────────────────────────────
+
+def ingest_file(
+    filepath: str,
+    collection: str = "default",
+    chunk_size: int | None = None,
+    force: bool = False,
+    chunk_mode: str | None = None,
+) -> dict:
+    """Import a single file into the knowledge base.
+
+    Args:
+        filepath: Path to the file.
+        collection: Target collection.
+        chunk_size: Max characters per chunk. None = use collection config.
+        force: If True, re-import even if file hasn't changed.
+        chunk_mode: Chunking strategy - "recursive" or "semantic".
+            None = use collection config.
+
+    Returns:
+        {"status": "ok", "filepath": str, "chunks": int}
+        {"status": "skipped", "filepath": str, "reason": "unchanged"}
+        or {"status": "error", "error": str}
+    """
+    config = _resolve_config(collection, chunk_size=chunk_size,
+                             chunk_mode=chunk_mode)
+    chunk_size = config["chunk_size"]
+    chunk_mode = config["chunk_mode"]
+
+    filepath = os.path.abspath(filepath)
+
+    if not os.path.isfile(filepath):
+        return {"status": "error", "error": f"File not found: {filepath}"}
+
+    # Change detection: skip if file hasn't changed
+    current_hash = _compute_file_hash(filepath)
+    if not force:
+        stored_hash = _get_registry_hash(filepath, collection)
+        if stored_hash and stored_hash == current_hash:
+            logger.info(f"Skipping unchanged file: {filepath}")
+            return {"status": "skipped", "filepath": filepath, "reason": "unchanged"}
+
+    content, error = read_file_content(filepath)
+    if error:
+        return {"status": "error", "error": error}
+
+    store = get_store()
+    # Idempotent: delete existing chunks first
+    store.delete_document(filepath, collection=collection)
+
+    if chunk_mode == "semantic":
+        chunks = semantic_chunk_text(content, filepath=filepath,
+                                     chunk_size=chunk_size)
+    elif chunk_mode == "structural":
+        chunks = structural_chunk_text(content, filepath=filepath,
+                                       chunk_size=chunk_size)
+    else:
+        chunks = chunk_text(content, filepath=filepath, chunk_size=chunk_size)
+    if not chunks:
+        return {"status": "error", "error": f"No chunks created from: {filepath}"}
+
+    count = store.ingest_chunks(chunks, collection=collection)
+    store.register_document(filepath, chunk_count=count, collection=collection,
+                            file_hash=current_hash)
+
+    return {"status": "ok", "filepath": filepath, "chunks": count}
+
+
+def ingest_content(
+    content: str,
+    filename: str,
+    collection: str = "default",
+    chunk_size: int | None = None,
+    chunk_mode: str | None = None,
+) -> dict:
+    """Import text content (from file upload) into the knowledge base.
+
+    Args:
+        content: The text content to ingest.
+        filename: Original filename (used for doc_id and source tracking).
+        collection: Target collection.
+        chunk_size: Max characters per chunk. None = use collection config.
+        chunk_mode: Chunking strategy - "recursive" or "semantic".
+            None = use collection config.
+
+    Returns:
+        {"status": "ok", "filename": str, "chunks": int}
+        or {"status": "error", "error": str}
+    """
+    config = _resolve_config(collection, chunk_size=chunk_size,
+                             chunk_mode=chunk_mode)
+    chunk_size = config["chunk_size"]
+    chunk_mode = config["chunk_mode"]
+
+    if not content or not content.strip():
+        return {"status": "error", "error": "Empty content"}
+
+    store = get_store()
+    # Use a separate uploads directory to avoid conflicting with zvec collection path
+    upload_dir = os.path.join(store.data_dir, "_uploads", collection)
+    os.makedirs(upload_dir, exist_ok=True)
+    virtual_path = os.path.join(upload_dir, filename)
+
+    # Idempotent: delete existing chunks
+    store.delete_document(virtual_path, collection=collection)
+
+    if chunk_mode == "semantic":
+        chunks = semantic_chunk_text(content, filepath=virtual_path,
+                                     chunk_size=chunk_size)
+    elif chunk_mode == "structural":
+        chunks = structural_chunk_text(content, filepath=virtual_path,
+                                       chunk_size=chunk_size)
+    else:
+        chunks = chunk_text(content, filepath=virtual_path, chunk_size=chunk_size)
+    if not chunks:
+        return {"status": "error", "error": "No chunks could be created"}
+
+    count = store.ingest_chunks(chunks, collection=collection)
+    store.register_document(virtual_path, chunk_count=count, collection=collection)
+
+    return {"status": "ok", "filename": filename, "chunks": count}
+
+
+def delete_document(
+    filepath: str,
+    collection: str = "default",
+) -> dict:
+    """Delete a document and all its chunks.
+
+    Returns:
+        {"status": "ok", "filepath": str, "deleted": int}
+    """
+    store = get_store()
+    deleted = store.delete_document(filepath, collection=collection)
+    store.unregister_document(filepath, collection=collection)
+    return {"status": "ok", "filepath": filepath, "deleted": deleted}
+
+
+def delete_collection(collection: str) -> dict:
+    """Delete an entire collection and all its documents.
+
+    Returns:
+        {"status": "ok", "collection": str, "deleted": True}
+        or {"status": "error", "error": str}
+    """
+    if not collection or not collection.strip():
+        return {"status": "error", "error": "Collection name is required"}
+
+    store = get_store()
+    result = store.delete_collection(collection)
+    if result["deleted"]:
+        return {"status": "ok", "collection": collection, "deleted": True}
+    return {"status": "error", "error": f"Collection not found: {collection}"}
+
+
+def list_collections() -> list[dict]:
+    """List all collections with document counts and descriptions.
+
+    Returns:
+        [{"name": str, "doc_count": int, "description": str}, ...]
+    """
+    store = get_store()
+    names = store.list_collections()
+    result = []
+    for name in names:
+        docs = store.list_documents(collection=name)
+        config = store.get_collection_config(name)
+        result.append({
+            "name": name,
+            "doc_count": len(docs),
+            "description": config.get("description", ""),
+        })
+    return result
+
+
+def list_documents(collection: str = "default") -> list[dict]:
+    """List all documents in a collection.
+
+    Returns:
+        [{"source": str, "chunk_count": int}, ...]
+    """
+    store = get_store()
+    return store.list_documents(collection=collection)
+
+
+def search(
+    query: str,
+    top_k: int = 5,
+    collection: str = "default",
+    rerank: bool | None = None,
+    filter: str = "",
+    expand_context: int = 0,
+) -> list[dict]:
+    """Search the knowledge base.
+
+    Args:
+        query: Search query string.
+        top_k: Number of results to return.
+        collection: Collection to search.
+        rerank: Whether to apply cross-encoder reranking.
+            None = use collection config default.
+        filter: Glob pattern to filter by source file path (e.g. "*.md", "**/docs/*").
+            Empty string means no filtering.
+        expand_context: Number of neighboring chunks to include before and after
+            each result for broader context. 0 = no expansion (default).
+
+    Returns:
+        List of result dicts with keys:
+        id, score, text, source, chunk_index
+        (plus rerank_score if rerank=True)
+    """
+    from core.chunker import compute_doc_id
+    from core.reranker import RerankerService
+
+    # Resolve rerank from collection config if not specified
+    if rerank is None:
+        config = _resolve_config(collection)
+        rerank = config.get("rerank", False)
+
+    store = get_store()
+
+    # Fetch more candidates when filtering or reranking
+    if filter or rerank:
+        fetch_k = max(top_k * 5, 20)
+    else:
+        fetch_k = top_k
+
+    results = store.search(query, top_k=fetch_k, collection=collection)
+
+    if not results:
+        return []
+
+    # Apply source path filter (glob pattern)
+    if filter:
+        results = [
+            r for r in results
+            if fnmatch.fnmatch(r.get("source", ""), filter)
+        ]
+
+    # Apply reranking if requested
+    if rerank and len(results) > 1:
+        reranker = RerankerService()
+        results = reranker.rerank(query, results, top_n=top_k)
+    else:
+        results = results[:top_k]
+
+    # Context expansion: include neighboring chunks for broader context
+    if expand_context > 0 and results:
+        expanded = []
+        seen_ids = set()
+
+        for r in results:
+            source = r.get("source", "")
+            chunk_index = r.get("chunk_index", 0)
+            doc_id = compute_doc_id(source)
+
+            neighbors = store.fetch_neighbors(
+                source=source,
+                chunk_index=chunk_index,
+                doc_id=doc_id,
+                n_before=expand_context,
+                n_after=expand_context,
+                collection=collection,
+            )
+
+            # Merge original + neighbors, deduplicate, sort by chunk_index
+            all_chunks = {r["id"]: r}
+            for n in neighbors:
+                if n["id"] not in all_chunks:
+                    all_chunks[n["id"]] = n
+
+            sorted_chunks = sorted(all_chunks.values(), key=lambda c: c.get("chunk_index", 0))
+            expanded_text = "\n\n".join(c["text"] for c in sorted_chunks if c.get("text"))
+
+            expanded_result = dict(r)
+            expanded_result["text"] = expanded_text
+            expanded.append(expanded_result)
+            seen_ids.add(r["id"])
+
+        results = expanded
+
+    return results
+
+
+# ── Collection Configuration ─────────────────────────────────
+
+def get_collection_config(collection: str = "default") -> dict:
+    """Get the configuration for a collection.
+
+    Returns:
+        Dict with keys: chunk_mode, chunk_size, chunk_overlap, rerank, description.
+    """
+    store = get_store()
+    return store.get_collection_config(collection)
+
+
+def set_collection_config(
+    collection: str = "default",
+    chunk_mode: str | None = None,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+    rerank: bool | None = None,
+    description: str | None = None,
+) -> dict:
+    """Set configuration values for a collection (only non-None values are applied).
+
+    Returns:
+        The full updated config dict.
+    """
+    store = get_store()
+    updates = {}
+    if chunk_mode is not None:
+        updates["chunk_mode"] = chunk_mode
+    if chunk_size is not None:
+        updates["chunk_size"] = chunk_size
+    if chunk_overlap is not None:
+        updates["chunk_overlap"] = chunk_overlap
+    if rerank is not None:
+        updates["rerank"] = rerank
+    if description is not None:
+        updates["description"] = description
+    return store.set_collection_config(collection, updates)
