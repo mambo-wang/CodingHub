@@ -183,6 +183,26 @@ db:
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP, \
 			CONSTRAINT fk_forum_like_post FOREIGN KEY (post_id) REFERENCES forum_post(id) ON DELETE CASCADE \
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
+		-- 留言板表 \
+		CREATE TABLE IF NOT EXISTS feedback_message ( \
+			id BIGINT AUTO_INCREMENT PRIMARY KEY, \
+			content TEXT NOT NULL, \
+			nickname VARCHAR(50) NULL, \
+			contact VARCHAR(100) NULL, \
+			category VARCHAR(20) NOT NULL DEFAULT 'SUGGESTION', \
+			user_id BIGINT NULL, \
+			ip_hash VARCHAR(64) NULL, \
+			status VARCHAR(20) NOT NULL DEFAULT 'NORMAL', \
+			admin_reply TEXT NULL, \
+			replied_by BIGINT NULL, \
+			replied_at DATETIME NULL, \
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, \
+			INDEX idx_feedback_status_created (status, created_at DESC), \
+			INDEX idx_feedback_category_status (category, status, created_at DESC), \
+			CONSTRAINT fk_feedback_user FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL, \
+			CONSTRAINT fk_feedback_replied_by FOREIGN KEY (replied_by) REFERENCES user(id) ON DELETE SET NULL \
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci; \
 		-- 初始化工具分类数据 \
 		INSERT IGNORE INTO category (name, icon, sort_order) VALUES \
 			('Skill', 'Wrench', 1), \

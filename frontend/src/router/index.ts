@@ -137,6 +137,11 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['ADMIN', 'SUPER_ADMIN'] }
   },
   {
+    path: '/feedback',
+    name: 'Feedback',
+    component: () => import('@/pages/feedback/FeedbackPage.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')

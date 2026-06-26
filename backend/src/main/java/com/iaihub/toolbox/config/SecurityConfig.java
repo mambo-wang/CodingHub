@@ -83,6 +83,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/notifications/**").authenticated()
                 // Danmaku - GET is public, POST requires auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{videoId}/danmaku").permitAll()
+                // Feedback - GET and POST are public, admin operations use @PreAuthorize
+                .requestMatchers(HttpMethod.GET, "/api/v1/feedback").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
                 // Protected endpoints
                 .requestMatchers("/api/v1/videos/**").authenticated()
                 .requestMatchers("/api/v1/tools/**").authenticated()

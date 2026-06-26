@@ -57,6 +57,7 @@ const toggleTheme = () => themeStore.toggleTheme()
 const goToQuickStart = () => router.push('/quickstart')
 const goToAbout = () => router.push('/about')
 const goToVideos = () => router.push('/videos')
+const goToFeedback = () => router.push('/feedback')
 const goToApprovals = () => router.push('/admin/approvals')
 const goToUserList = () => router.push('/admin/users')
 </script>
@@ -86,6 +87,7 @@ const goToUserList = () => router.push('/admin/users')
         <button class="nav-btn" @click="goHome">工具广场</button>
         <button class="nav-btn" @click="goToForum">论坛</button>
         <button class="nav-btn" @click="goToVideos">微课</button>
+        <button class="nav-btn" @click="goToFeedback">留言板</button>
         <button class="nav-btn" @click="goToOverview">热榜</button>
         <button class="nav-btn" @click="goToQuickStart">快速开始</button>
         <button class="nav-btn" @click="goToAbout">关于</button>
