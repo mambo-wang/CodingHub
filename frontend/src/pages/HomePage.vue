@@ -449,10 +449,12 @@ onMounted(() => {
                   </span>
                 </div>
                 <h3 class="tool-name">{{ tool.name }}</h3>
-                <p v-if="tool.description" class="tool-description">{{ tool.description }}</p>
-                <div v-if="tool.tags && tool.tags.length > 0" class="tool-tags">
-                  <TagBadge v-for="tag in tool.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
-                  <span v-if="tool.tags.length > 3" class="tags-more">+{{ tool.tags.length - 3 }}</span>
+                <p class="tool-description">{{ tool.description || '\u00A0' }}</p>
+                <div class="tool-tags">
+                  <template v-if="tool.tags && tool.tags.length > 0">
+                    <TagBadge v-for="tag in tool.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+                    <span v-if="tool.tags.length > 3" class="tags-more">+{{ tool.tags.length - 3 }}</span>
+                  </template>
                 </div>
                 <div class="tool-footer">
                   <div class="tool-uploader">
@@ -890,8 +892,8 @@ onMounted(() => {
 
 .tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); }
 .tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
-.tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tool-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; }
+.tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; min-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; min-height: 26px; }
 .tags-more { font-size: 11px; color: var(--text-muted); }
 .tool-footer { display: flex; justify-content: space-between; align-items: center; }
 .tool-uploader { display: flex; align-items: center; gap: 8px; }
