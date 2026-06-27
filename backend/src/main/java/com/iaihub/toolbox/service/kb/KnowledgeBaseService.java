@@ -151,7 +151,7 @@ public class KnowledgeBaseService {
                 request.getQuery(),
                 request.getTopK(),
                 request.getRerank(),
-                request.getExpandContext() != null ? request.getExpandContext() : 0
+                request.getExpandContext() != null ? request.getExpandContext() : 1
         );
 
         return results.stream().map(r -> KbSearchResultResponse.builder()

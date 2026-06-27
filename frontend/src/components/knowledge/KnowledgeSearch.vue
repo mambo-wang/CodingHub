@@ -24,6 +24,7 @@ const handleSearch = async () => {
       query: query.value.trim(),
       topK: topK.value,
       rerank: rerank.value,
+      expandContext: 1,
     })
   } catch (e) {
     console.error('Search failed:', e)

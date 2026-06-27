@@ -80,7 +80,7 @@ const doUpload = async (file: File) => {
       />
       <div v-if="uploading" class="upload-progress">
         <Loader2 :size="28" class="spin" />
-        <span class="progress-text">{{ progress }}%</span>
+        <span class="progress-text">{{ progress >= 90 ? '处理中...' : progress + '%' }}</span>
       </div>
       <div v-else-if="uploadSuccess" class="upload-status success">
         <CheckCircle :size="28" />

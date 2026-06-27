@@ -21,5 +21,5 @@ public class KbSearchRequest {
     private Boolean rerank;
 
     @Builder.Default
-    private Integer expandContext = 0;
+    private Integer expandContext = 1;
 }

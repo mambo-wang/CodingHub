@@ -80,8 +80,9 @@ export const knowledgeService = {
       timeout: 900000,
       onUploadProgress: (progressEvent: AxiosProgressEvent) => {
         if (progressEvent.total && onProgress) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          onProgress(percent)
+          // HTTP 传输只占 0-90%，服务端处理（转换+embedding）是剩余的 10%
+          const rawPercent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(Math.min(rawPercent, 90))
         }
       }
     })

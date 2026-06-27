@@ -412,7 +412,7 @@ public class IaihubToolHandler {
                     .query(query)
                     .topK(topK != null ? topK : 5)
                     .rerank(rerank)
-                    .expandContext(expandContext != null ? expandContext : 0)
+                    .expandContext(expandContext != null ? expandContext : 1)
                     .build();
             List<KbSearchResultResponse> results = knowledgeBaseService.search(kbId, request);
             String json = toJson(new KbSearchResponse(results));
