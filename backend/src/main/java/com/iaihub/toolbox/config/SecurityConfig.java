@@ -83,10 +83,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/notifications/**").authenticated()
                 // Danmaku - GET is public, POST requires auth
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos/{videoId}/danmaku").permitAll()
+                // Knowledge base - public read endpoints
+                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}/documents").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}/config").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/knowledge/{id}/search").permitAll()
                 // Feedback - GET and POST are public, admin operations use @PreAuthorize
                 .requestMatchers(HttpMethod.GET, "/api/v1/feedback").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
                 // Protected endpoints
+                .requestMatchers("/api/v1/knowledge/**").authenticated()
                 .requestMatchers("/api/v1/videos/**").authenticated()
                 .requestMatchers("/api/v1/tools/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()

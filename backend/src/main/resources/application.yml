@@ -45,6 +45,8 @@ app:
   super-admin:
     username: admin
     password: Cloud@1234
+  rag:
+    base-url: http://localhost:8000
 
 logging:
   level:

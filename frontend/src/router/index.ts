@@ -137,6 +137,28 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['ADMIN', 'SUPER_ADMIN'] }
   },
   {
+    path: '/knowledge',
+    name: 'KnowledgeList',
+    component: () => import('@/pages/knowledge/KnowledgeListPage.vue')
+  },
+  {
+    path: '/knowledge/create',
+    name: 'KnowledgeCreate',
+    component: () => import('@/pages/knowledge/KnowledgeEditorPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/knowledge/:id/edit',
+    name: 'KnowledgeEdit',
+    component: () => import('@/pages/knowledge/KnowledgeEditorPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/knowledge/:id',
+    name: 'KnowledgeDetail',
+    component: () => import('@/pages/knowledge/KnowledgeDetailPage.vue')
+  },
+  {
     path: '/feedback',
     name: 'Feedback',
     component: () => import('@/pages/feedback/FeedbackPage.vue')
