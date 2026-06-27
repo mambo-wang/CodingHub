@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/static/avatars/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/{id}").permitAll()
                 // MCP endpoints (streamable-http + SSE, 无认证)
-                .requestMatchers("/sse").permitAll()
+                .requestMatchers("/sse/**").permitAll()
                 .requestMatchers("/mcp/**").permitAll()
                 // Video public endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos").permitAll()

@@ -71,7 +71,7 @@ public class McpSdkServerConfig {
     public HttpServletSseServerTransportProvider sseTransportProvider(McpJsonMapper mcpJsonMapper) {
         return HttpServletSseServerTransportProvider.builder()
                 .jsonMapper(mcpJsonMapper)
-                .messageEndpoint("/mcp/message")
+                .messageEndpoint("/sse/message")
                 .sseEndpoint("/sse")
                 .build();
     }
@@ -79,7 +79,7 @@ public class McpSdkServerConfig {
     @Bean
     public ServletRegistrationBean<HttpServletSseServerTransportProvider> sseServletBean(
             HttpServletSseServerTransportProvider transportProvider) {
-        return new ServletRegistrationBean<>(transportProvider, "/sse");
+        return new ServletRegistrationBean<>(transportProvider, "/sse", "/sse/message");
     }
 
     // ── McpServer 实例 ────────────────────────────────────────────
