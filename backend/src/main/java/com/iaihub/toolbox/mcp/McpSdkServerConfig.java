@@ -505,16 +505,19 @@ public class McpSdkServerConfig {
                 });
 
         registerTool(server, "h3_coding_hub_kb_upload_document", """
-                获取知识库文档上传的 REST API 信息。客户端使用 HTTP Multipart POST 请求直接上传文件。
-                上传需要 JWT 认证，客户端需先通过其他方式获取 token。
+                获取知识库文档上传的 REST API 信息。
                 
-                REST API 详情：
-                - URL: POST {server_base_url}/api/v1/knowledge/{kbId}/documents
-                - Content-Type: multipart/form-data
-                - 表单字段:
-                  - file: 文件（必填，单个文件）
-                - 限制: 单文件最大 50MB
-                - 认证: 需要 Authorization: Bearer <token> 头
+                MCP 协议不直接支持二进制文件传输。要上传文件到知识库，请使用 REST API。
+                本工具返回上传端点 URL、支持的文件类型、认证方式和 curl 示例。
+                
+                支持的文件类型：md, txt, pdf, docx, pptx, xlsx, py, js, ts, java, go 等
+                限制：单文件最大 50MB
+                认证：需要 Authorization: Bearer <token> 头（通过 POST /api/v1/auth/login 获取）
+                
+                工作流程：
+                1. 先调用 h3_coding_hub_kb_create 创建知识库，获取 kbId
+                2. 调用本工具获取上传接口信息
+                3. 通过 HTTP Multipart POST 上传文件（参考返回的 curlExample）
                 """,
                 """
                 {

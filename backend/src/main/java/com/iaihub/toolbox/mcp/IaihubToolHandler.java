@@ -797,6 +797,9 @@ public class IaihubToolHandler {
         public String formFields;
         public String limits;
         public String requiresAuth;
+        public String[] supportedFileTypes;
+        public String curlExample;
+        public String explanation;
         public String instruction;
         public KbUploadDocumentInfoResponse(Long kbId, String kbName, String uploadUrl, String httpMethod,
                                             String contentType, String formFields, String limits, String requiresAuth) {
@@ -808,10 +811,19 @@ public class IaihubToolHandler {
             this.formFields = formFields;
             this.limits = limits;
             this.requiresAuth = requiresAuth;
+            this.supportedFileTypes = new String[]{
+                "md", "txt", "pdf", "docx", "pptx", "xlsx", "py", "js", "ts", "java", "go"
+            };
+            this.curlExample = "curl -X POST \"{server_base_url}" + uploadUrl + "\" \\\n"
+                    + "  -H \"Authorization: Bearer <token>\" \\\n"
+                    + "  -F \"file=@/path/to/document.pdf\"";
+            this.explanation = "MCP 协议不直接支持二进制文件传输。"
+                    + "请通过 REST API 上传文件到知识库。";
             this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
                     + "，Content-Type 设为 " + contentType
                     + "，表单字段: " + formFields
-                    + "。" + requiresAuth;
+                    + "。" + requiresAuth
+                    + "。先通过 POST /api/v1/auth/login 获取 token。";
         }
     }
 }
