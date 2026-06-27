@@ -40,11 +40,11 @@ CodingHub (ai-tool-square) 是一个全栈 Web 应用，提供 AI 工具/资源�
 
 ```mermaid
 flowchart TD
-    L4["L4 - Controller / MCP<br/>controller/(18), mcp/(4)"]
-    L3["L3 - Service<br/>service/(15)"]
-    L2["L2 - Repository<br/>repository/(17)"]
-    L1["L1 - Model / DTO<br/>model/(21), dto/(43)"]
-    L0["L0 - Config / Util / Exception<br/>config(6), util(3), exception(9)"]
+    L4["L4 - Controller / MCP<br/>controller/(22), mcp/(4)"]
+    L3["L3 - Service<br/>service/(22)"]
+    L2["L2 - Repository<br/>repository/(26)"]
+    L1["L1 - Model / DTO<br/>model/(35), dto/(61)"]
+    L0["L0 - Config / Util / Exception<br/>config(7), util(2), exception(9)"]
     L4 --> L3
     L4 --> L1
     L3 --> L2
@@ -59,25 +59,25 @@ flowchart TD
 
 ### 2.2 包结构总览
 
-| 包 | 核心 | forum/ | video/ | 合计 | 职责 |
-|----|------|--------|--------|------|------|
-| controller/ | 11 | 5 | 2 | 18 | REST API endpoints |
-| service/ | 8 | 5 | 2 | 15 | 业务逻辑 |
-| repository/ | 7 | 6 | 4 | 17 | JPA 数据访问 |
-| model/ | 9 | 7 | 5 | 21 | JPA 实体 + enum |
-| dto/ | 29 | 7 | 7 | 43 | 请求/响应 DTO |
-| config/ | 6 | - | - | 6 | Security, JWT, MCP, Upload |
-| exception/ | 9 | - | - | 9 | GlobalExceptionHandler + 业务异常 |
-| util/ | 3 | - | - | 3 | JwtUtil, XssSanitizer, AvatarUtil |
-| mcp/ | 4 | - | - | 4 | MCP SDK 配置 + 11 工具实现 |
+| 包 | 核心 | forum/ | video/ | feedback/ | kb/ | notification/ | tag/ | 合计 |
+|----|------|--------|--------|-----------|-----|--------------|------|------|
+| controller/ | 11 | 5 | 2 | 1 | 1 | 1 | 1 | 22 |
+| service/ | 11 | 5 | 2 | 1 | 1 | 1 | 1 | 22 |
+| repository/ | 9 | 6 | 4 | 1 | 2 | 1 | 3 | 26 |
+| model/ | 12 | 7 | 5 | 2 | 3 | 2 | 4 | 35 |
+| dto/ | 34 | 7 | 7 | 3 | 7 | 1 | 2 | 61 |
+| config/ | 7 | - | - | - | - | - | - | 7 |
+| exception/ | 9 | - | - | - | - | - | - | 9 |
+| util/ | 2 | - | - | - | - | - | - | 2 |
+| mcp/ | 4 | - | - | - | - | - | - | 4 |
 
-**核心 controller**: AuthController, ToolController, ToolFileController, CategoryController, UserController, AdminController, OverviewController, McpController, PostFavoriteController, AvatarStaticController, StaticController
+**核心 controller**: AuthController, ToolController, ToolFileController, CategoryController, UserController, AdminController, OverviewController, McpController, PostFavoriteController, AvatarStaticController, StaticController, UnifiedInteractionController
 
-**核心 service**: ToolService, CategoryService, ToolFileService, UserService, OverviewServiceImpl, McpSearchService, PostFavoriteService
+**核心 service**: ToolService, CategoryService, ToolFileService, UserService, OverviewServiceImpl, McpSearchService, PostFavoriteService, UnifiedCommentService, UnifiedFavoriteService, UnifiedLikeService, RagApiClient
 
-**核心 model**: User, Tool, Category, ToolFile, ToolLike, ToolComment, PostFavorite, Role(enum), AccountStatus(enum)
+**核心 model**: User, Tool, Category, ToolFile, ToolLike, ToolComment, PostFavorite, UnifiedComment, UnifiedFavorite, UnifiedLike, TargetType, Role(enum), AccountStatus(enum)
 
-**config 组件**: SecurityConfig, JwtAuthenticationFilter, McpServerConfig, DataInitializer, UploadConfig, VideoStorageConfig
+**config 组件**: SecurityConfig, JwtAuthenticationFilter, McpServerConfig, DataInitializer, UploadConfig, VideoStorageConfig, RagConfig
 
 ## 3. 前端架构
 
@@ -102,12 +102,16 @@ flowchart TD
 
 ### 3.2 目录总览
 
-| 目录 | 核心 | admin/ | forum/ | video/ | 合计 |
-|------|------|--------|--------|--------|------|
-| pages/ | 12 | 2 | 5 | 4 | 23 |
-| components/ | 9 | - | 8 | 3 | 21 (+1 common/) |
+| 目录 | 核心 | admin/ | forum/ | video/ | knowledge/ | feedback/ | 合计 |
+|------|------|--------|--------|--------|------------|-----------|------|
+| pages/ | 11 | 2 | 6 | 6 | 3 | 1 | 29 |
+| components/ | 7 | - | 7 | 4 | 5 | 2 | 25 (+9 common/) |
 
-**其他目录**: services/(5): api.ts, tool.ts, forum.ts, video.ts, overview.ts | stores/(3): auth.ts, forum.ts, theme.ts | types/(5): index.ts, tool.ts, forum.ts, video.ts, overview.ts | composables/(1): useContentPermissions.ts
+**其他目录**:
+- services/(9): api.ts, tool.ts, forum.ts, video.ts, overview.ts, feedback.ts, knowledge.ts, notification.ts, interaction.ts
+- stores/(3): auth.ts, forum.ts, theme.ts
+- types/(7): index.ts, tool.ts, forum.ts, video.ts, overview.ts, feedback.ts, knowledge.ts
+- composables/(2): useContentPermissions.ts, useInteraction.ts
 
 **路由守卫**: `meta.requiresAuth` 检查登录状态; `meta.roles` 检查角色 (如 admin 页面要求 `['SUPER_ADMIN']`)
 
@@ -124,10 +128,16 @@ erDiagram
     USER ||--o{ VIDEO : uploads
     USER ||--o{ VIDEO_LIKE : likes
     USER ||--o{ VIDEO_FAVORITE : favorites
+    USER ||--o{ NOTIFICATION : receives
+    USER ||--o{ FEEDBACK_MESSAGE : submits
     CATEGORY ||--o{ TOOL : classifies
     TOOL ||--o{ TOOL_FILE : has
     TOOL ||--o{ TOOL_LIKE : has
     TOOL ||--o{ TOOL_COMMENT : has
+    TOOL ||--o{ TOOL_TAG : tagged
+    TAG ||--o{ TOOL_TAG : tags
+    TAG ||--o{ VIDEO_TAG : tags
+    TAG ||--o{ FORUM_POST_TAG : tags
     FORUM_CATEGORY ||--o{ FORUM_POST : categorizes
     FORUM_POST ||--o{ FORUM_POST_TAG : tagged
     FORUM_TAG ||--o{ FORUM_POST_TAG : tags
@@ -138,14 +148,22 @@ erDiagram
     VIDEO ||--o{ VIDEO_COMMENT : comments
     VIDEO ||--o{ VIDEO_LIKE : likes
     VIDEO ||--o{ VIDEO_FAVORITE : favorites
+    VIDEO ||--o{ DANMAKU : has
+    KNOWLEDGE_BASE ||--o{ KB_DOCUMENT : contains
 
     USER { int id PK, string email UK, string password, string username, string role, string accountStatus, string avatar }
     TOOL { int id PK, string name, int categoryId FK, string content, int uploaderId FK, string version, string status, int viewCount, float score }
     CATEGORY { int id PK, string name UK, string icon, int sortOrder }
     TOOL_FILE { int id PK, int toolId FK, string filePath, string originalName, int fileSize, string contentType }
+    TAG { int id PK, string name, string tagType, int usageCount }
     FORUM_POST { int id PK, string title, string content, int authorId FK, int categoryId FK, string status, int viewCount, float score }
     FORUM_COMMENT { int id PK, int postId FK, int authorId, int parentId, int rootId, string content }
     VIDEO { int id PK, string title, int uploaderId FK, string videoPath, string coverPath, string status, int viewCount }
+    DANMAKU { int id PK, int videoId FK, string content, int time, string color }
+    NOTIFICATION { int id PK, int userId FK, string type, string content, boolean read }
+    FEEDBACK_MESSAGE { int id PK, string content, string nickname, string category, int userId FK, string status, string adminReply }
+    KNOWLEDGE_BASE { int id PK, string name, string description }
+    KB_DOCUMENT { int id PK, int kbId FK, string title, string content }
 ```
 
 ## 5. API 设计
@@ -229,17 +247,70 @@ erDiagram
 | GET | /api/v1/admin/users | 全部用户列表 | ADMIN+ |
 | PUT | /api/v1/admin/users/{id}/status | 修改用户状态 | ADMIN+ |
 
-### 5.7 MCP (11 tools via SSE)
+### 5.7 知识库
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | /api/v1/knowledge | 知识库列表 (分页/排序) | 否 |
+| GET | /api/v1/knowledge/{id} | 知识库详情 | 否 |
+| POST | /api/v1/knowledge | 创建知识库 | USER+ |
+| PUT | /api/v1/knowledge/{id} | 更新知识库 | isOwner |
+| DELETE | /api/v1/knowledge/{id} | 删除知识库 | isOwner \|\| isAdmin |
+| POST | /api/v1/knowledge/{id}/search | 语义搜索知识库内容 | 否 |
+
+### 5.8 留言反馈
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | /api/v1/feedback | 留言列表 (分页/分类筛选) | 否 |
+| POST | /api/v1/feedback | 提交留言 | 否 |
+| PUT | /api/v1/feedback/{id}/reply | 管理员回复 | ADMIN+ |
+| DELETE | /api/v1/feedback/{id} | 删除留言 | ADMIN+ |
+
+### 5.9 通知
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | /api/v1/notifications | 我的通知列表 | USER+ |
+| GET | /api/v1/notifications/unread-count | 未读通知计数 | USER+ |
+| PUT | /api/v1/notifications/{id}/read | 标记已读 | USER+ |
+| PUT | /api/v1/notifications/read-all | 全部标记已读 | USER+ |
+
+### 5.10 统一标签
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | /api/v1/tags | 标签列表 (按类型筛选) | 否 |
+| GET | /api/v1/tags/hot | 热门标签 | 否 |
+| POST | /api/v1/tags | 创建标签 | 否 |
+
+### 5.11 统一互动
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | /api/v1/interactions/likes | 切换点赞/取消 | 否* |
+| GET | /api/v1/interactions/likes/status | 点赞状态 | 否* |
+| POST | /api/v1/interactions/comments | 添加评论 | 否* |
+| GET | /api/v1/interactions/comments | 评论列表 | 否 |
+| DELETE | /api/v1/interactions/comments/{id} | 删除评论 | isOwner \|\| isAdmin |
+| POST | /api/v1/interactions/favorites | 切换收藏 | USER+ |
+| GET | /api/v1/interactions/favorites | 我的收藏 | USER+ |
+| GET | /api/v1/interactions/favorites/status | 收藏状态 | USER+ |
+
+> *点赞和评论支持匿名 (IP 哈希或无登录 userName)。
+
+### 5.12 MCP (17 tools via SSE)
 
 SSE 入口: `GET /mcp/sse` | 消息: `POST /mcp/message`
 
 | 工具 | 说明 | 认证 |
 |------|------|------|
-| tool_search / tool_get / tool_files / tool_download | 搜索/详情/文件/下载 | 否 |
-| post_search / post_get | 搜索帖子/帖子详情 | 否 |
-| tool_create / tool_modify | 创建/修改工具 (自动版本递增) | username+password |
-| post_create | 创建帖子 | username+password |
-| tool_file_upload / tool_file_delete | 上传信息/删除文件 | username+password |
+| h3_coding_hub_tool_search / tool_get / tool_files / tool_download | 搜索/详情/文件/下载 | 否 |
+| h3_coding_hub_post_search / post_get | 搜索帖子/帖子详情 | 否 |
+| h3_coding_hub_tool_create / tool_modify | 创建/修改工具 | username+password |
+| h3_coding_hub_post_create | 创建帖子 | username+password |
+| h3_coding_hub_tool_file_upload / tool_file_delete | 上传/删除文件 | username+password |
+| h3_coding_hub_kb_list / kb_search / kb_create / kb_update / kb_delete / kb_upload_document | 知识库 CRUD + 搜索 | kb_create/update/delete 需认证 |
 
 ## 6. 安全机制
 
@@ -334,26 +405,34 @@ sequenceDiagram
 
 | 表名 | 关键字段 | 索引 |
 |------|----------|------|
-| user | email(UK), password, username, role, accountStatus, avatar | idx_email |
+| user | email(UK), password, username, role, accountStatus, avatar, nickname | idx_email |
 | category | name(UK), icon, sortOrder | - |
-| tool | name, categoryId(FK), uploaderId(FK), status, version, viewCount, likeCount, score | idx_category, idx_uploader, uk_uploader_name |
+| tool | name, categoryId(FK), uploaderId(FK), status, version, viewCount, likeCount, score | idx_category, idx_uploader, uk_uploader_name, idx_score |
 | tool_file | toolId(FK), filePath, originalName, fileSize, contentType | - |
 | tool_like | toolId(FK), userId(FK) | uk(tool_id, user_id) |
 | tool_comment | toolId(FK), userId(FK), content | - |
 
-### 8.2 论坛表 (7)
+### 8.2 统一标签表 (3)
+
+| 表名 | 关键字段 | 说明 |
+|------|----------|------|
+| tag | name, tagType(TOOL/FORUM/VIDEO), usageCount | 统一标签, uk(name, tagType) |
+| tool_tag | toolId(FK), tagId(FK) | 工具-标签关联(复合PK) |
+| video_tag | videoId(FK), tagId(FK) | 视频-标签关联(复合PK) |
+
+### 8.3 论坛表 (7)
 
 | 表名 | 关键字段 | 说明 |
 |------|----------|------|
 | forum_category | name(UK), description, sortOrder | 帖子分类 |
-| forum_tag | name(UK), postCount, isSystem | 帖子标签 |
+| forum_tag | name(UK), postCount, isSystem | 遗留论坛标签(兼容) |
 | forum_post | title, content, authorId(FK), categoryId(FK), status, score | 帖子 (NORMAL/DELETED/HIDDEN) |
-| forum_post_tag | postId + tagId (复合 PK) | 多对多关联 |
+| forum_post_tag | postId(FK) + tagId(FK) (复合PK) | 帖子-统一标签关联 |
 | forum_comment | postId(FK), authorId, parentId, rootId, content | 嵌套评论 |
 | forum_like | postId, commentId, userId, ipHash | 支持匿名 |
 | post_favorite | postId(FK), userId(FK) | 帖子收藏 |
 
-### 8.3 微课表 (4)
+### 8.4 微课表 (5)
 
 | 表名 | 关键字段 | 说明 |
 |------|----------|------|
@@ -361,6 +440,26 @@ sequenceDiagram
 | video_comment | videoId(FK), userId(FK), content | 视频评论 |
 | video_like | videoId(FK), userId(FK) | 点赞 |
 | video_favorite | videoId(FK), userId(FK) | 收藏 |
+| danmaku | videoId(FK), content, time, color, type | 弹幕 |
+
+### 8.5 知识库表 (2)
+
+| 表名 | 关键字段 | 说明 |
+|------|----------|------|
+| knowledge_base | name, description, ownerId(FK), status | RAG 知识库 |
+| kb_document | kbId(FK), title, content, filePath, fileType | 知识库文档 |
+
+### 8.6 通知表 (1)
+
+| 表名 | 关键字段 | 说明 |
+|------|----------|------|
+| notification | userId(FK), type(LIKE/COMMENT/SYSTEM), content, isRead | 用户通知 |
+
+### 8.7 留言表 (1)
+
+| 表名 | 关键字段 | 说明 |
+|------|----------|------|
+| feedback_message | content, nickname, contact, category, userId(FK), status, adminReply | 留言反馈 |
 
 > 完整建表 SQL 见 `Makefile` 的 `db` target。
 

@@ -58,36 +58,50 @@ make lint-deps
 ## 3. 项目结构
 
 ```
-iaihub/
-├── backend/           # Java Spring Boot 后端
+CodingHub/
+├── backend/                     # Java Spring Boot 后端
 │   └── src/main/java/com/iaihub/toolbox/
-│       ├── controller/   # REST API
-│       ├── service/     # 业务逻辑
-│       ├── repository/   # 数据访问
-│       ├── model/        # 实体
-│       ├── dto/          # 数据传输对象
-│       ├── config/       # 配置 (Security, JWT, Upload)
-│       ├── exception/    # 异常处理
-│       ├── util/         # 工具类
-│       └── modules/      # 功能模块
-│           ├── tool/        # 工具广场 (核心)
-│           ├── forum/       # 论坛模块
-│           ├── video/       # 视频模块
-│           ├── mcp/         # MCP 协议集成
-│           ├── admin/       # 后台管理
-│           └── overview/    # 概览/统计
-├── frontend/          # Vue 3 前端
+│       ├── controller/           # REST API (11 核心 + 11 子模块)
+│       │   ├── forum/            #   论坛模块
+│       │   ├── video/            #   微课模块
+│       │   ├── feedback/         #   留言反馈
+│       │   ├── kb/               #   知识库
+│       │   ├── notification/     #   通知
+│       │   └── tag/              #   统一标签
+│       ├── service/              # 业务逻辑 (22)
+│       ├── repository/           # JPA 数据访问 (26)
+│       ├── model/                # JPA 实体 (35)
+│       ├── dto/                  # 数据传输对象 (61)
+│       ├── config/               # 配置 (7): Security, JWT, MCP, Upload, RAG
+│       ├── exception/            # 异常处理 (9)
+│       ├── util/                 # 工具类 (2)
+│       └── mcp/                  # MCP 协议 (4 文件, 17 tools)
+│   └── src/main/resources/db/migration/  # Flyway 迁移 (V1~V9)
+├── frontend/                     # Vue 3 前端
 │   └── src/
-│       ├── components/   # 组件
-│       ├── pages/        # 页面
-│       ├── services/     # API 调用
-│       ├── stores/       # 状态管理
-│       ├── router/       # 路由
-│       └── types/        # 类型定义
-├── docs/               # 文档
-├── harness/            # Agent 基础设施
-├── specs/              # 功能规格说明
-└── Makefile            # 快速命令
+│       ├── components/           # 组件 (34)
+│       │   ├── common/           #   通用 (ConfirmDialog, NotificationBell, 互动组件等)
+│       │   ├── forum/            #   论坛组件
+│       │   ├── video/            #   视频组件
+│       │   ├── feedback/         #   留言组件
+│       │   └── knowledge/        #   知识库组件
+│       ├── pages/                # 页面 (29)
+│       │   ├── admin/            #   管理页面
+│       │   ├── forum/            #   论坛页面
+│       │   ├── video/            #   微课页面
+│       │   ├── knowledge/        #   知识库页面
+│       │   └── feedback/         #   留言反馈页面
+│       ├── services/             # API 调用 (9)
+│       ├── stores/               # 状态管理 (3): auth, forum, theme
+│       ├── router/               # Vue Router
+│       ├── types/                # 类型定义 (7)
+│       └── composables/          # 组合式函数 (2)
+├── design-system/               # 设计系统规范 (双主题)
+├── docs/                        # 文档
+├── harness/                     # Agent 基础设施
+├── specs/                       # 功能规格说明
+├── scripts/                     # Lint + 迁移脚本
+└── Makefile                     # 快速命令
 ```
 
 ## 4. API 开发
