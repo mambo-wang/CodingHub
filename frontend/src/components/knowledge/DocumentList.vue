@@ -2,10 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { FileText, Trash2, Loader2 } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
-import type { KbDocument } from '@/types/knowledge'
+import type { RagDocument } from '@/types/knowledge'
 
 const props = defineProps<{
-  kbId: number
+  documentsUrl: string
   isOwner: boolean
 }>()
 
@@ -13,34 +13,14 @@ const emit = defineEmits<{
   (e: 'refreshed'): void
 }>()
 
-const documents = ref<KbDocument[]>([])
+const documents = ref<RagDocument[]>([])
 const loading = ref(true)
-const deletingId = ref<number | null>(null)
-
-const formatFileSize = (bytes: number): string => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-const formatRelativeTime = (dateStr: string): string => {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const minutes = Math.floor(diff / (1000 * 60))
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  return `${days}天前`
-}
+const deletingSource = ref<string | null>(null)
 
 const loadDocuments = async () => {
   loading.value = true
   try {
-    documents.value = await knowledgeService.getDocuments(props.kbId)
+    documents.value = await knowledgeService.getDocuments(props.documentsUrl)
   } catch (e) {
     console.error('Failed to load documents:', e)
   } finally {
@@ -48,17 +28,17 @@ const loadDocuments = async () => {
   }
 }
 
-const handleDelete = async (docId: number) => {
+const handleDelete = async (source: string) => {
   if (!confirm('确定要删除这个文档吗？')) return
-  deletingId.value = docId
+  deletingSource.value = source
   try {
-    await knowledgeService.deleteDocument(props.kbId, docId)
-    documents.value = documents.value.filter(d => d.id !== docId)
+    await knowledgeService.deleteDocument(props.documentsUrl, source)
+    documents.value = documents.value.filter(d => d.source !== source)
     emit('refreshed')
   } catch (e) {
     console.error('Failed to delete document:', e)
   } finally {
-    deletingId.value = null
+    deletingSource.value = null
   }
 }
 
@@ -80,27 +60,24 @@ defineExpose({ loadDocuments })
     </div>
 
     <div v-else class="doc-items">
-      <div v-for="doc in documents" :key="doc.id" class="doc-item glass-card">
+      <div v-for="doc in documents" :key="doc.source" class="doc-item glass-card">
         <div class="doc-icon">
           <FileText :size="20" />
         </div>
         <div class="doc-info">
-          <span class="doc-name">{{ doc.originalName }}</span>
+          <span class="doc-name">{{ doc.source }}</span>
           <div class="doc-meta">
-            <span>{{ formatFileSize(doc.fileSize) }}</span>
-            <span v-if="doc.chunkCount != null">{{ doc.chunkCount }} 个分块</span>
-            <span v-if="doc.uploaderNickname">{{ doc.uploaderNickname }}</span>
-            <span>{{ formatRelativeTime(doc.createdAt) }}</span>
+            <span v-if="doc.chunk_count != null">{{ doc.chunk_count }} 个分块</span>
           </div>
         </div>
         <button
           v-if="isOwner"
           class="btn-delete"
-          :disabled="deletingId === doc.id"
-          @click="handleDelete(doc.id)"
+          :disabled="deletingSource === doc.source"
+          @click="handleDelete(doc.source)"
           aria-label="删除文档"
         >
-          <Loader2 v-if="deletingId === doc.id" :size="16" class="spin" />
+          <Loader2 v-if="deletingSource === doc.source" :size="16" class="spin" />
           <Trash2 v-else :size="16" />
         </button>
       </div>

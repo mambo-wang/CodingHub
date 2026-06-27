@@ -5,7 +5,7 @@ import { knowledgeService } from '@/services/knowledge'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
-  kbId: number
+  documentsUrl: string
 }>()
 
 const emit = defineEmits<{
@@ -45,7 +45,7 @@ const doUpload = async (file: File) => {
   uploadError.value = ''
 
   try {
-    await knowledgeService.uploadDocument(props.kbId, file, (p) => {
+    await knowledgeService.uploadDocument(props.documentsUrl, file, (p) => {
       progress.value = p
     })
     uploadSuccess.value = true

@@ -18,6 +18,8 @@ const form = ref({
   chunkSize: 800,
   chunkOverlap: 50,
   rerank: true,
+  ragBaseUrl: '',
+  ragCollection: '',
 })
 
 const submitting = ref(false)
@@ -38,9 +40,11 @@ onMounted(async () => {
       const kb = await knowledgeService.getDetail(kbId.value)
       form.value.name = kb.name
       form.value.description = kb.description || ''
-      // Load config
+      form.value.ragBaseUrl = kb.ragBaseUrl
+      form.value.ragCollection = kb.ragCollection
+      // Load config from RAG directly
       try {
-        const config = await knowledgeService.getConfig(kbId.value)
+        const config = await knowledgeService.getConfig(kb.ragBaseUrl, kb.ragCollection)
         form.value.chunkMode = config.chunk_mode || 'structural'
         form.value.chunkSize = config.chunk_size || 800
         form.value.chunkOverlap = config.chunk_overlap ?? 50
@@ -69,10 +73,10 @@ const handleSubmit = async () => {
         name: form.value.name.trim(),
         description: form.value.description.trim() || undefined,
       })
-      await knowledgeService.updateConfig(kbId.value, {
-        chunkMode: form.value.chunkMode,
-        chunkSize: form.value.chunkSize,
-        chunkOverlap: form.value.chunkOverlap,
+      await knowledgeService.updateConfig(form.value.ragBaseUrl, form.value.ragCollection, {
+        chunk_mode: form.value.chunkMode,
+        chunk_size: form.value.chunkSize,
+        chunk_overlap: form.value.chunkOverlap,
         rerank: form.value.rerank,
         description: form.value.description.trim() || undefined,
       })

@@ -1,12 +1,12 @@
 import api from './api'
+import axios from 'axios'
 import type {
   KnowledgeBase,
-  KbDocument,
+  RagDocument,
   KbConfig,
   KbSearchResult,
   KbCreateRequest,
   KbUpdateRequest,
-  KbConfigRequest,
   KbSearchRequest,
   KbPageResponse
 } from '@/types/knowledge'
@@ -52,28 +52,32 @@ export const knowledgeService = {
     await api.delete(`/knowledge/${id}`)
   },
 
+  // ── 文档操作：直连 RAG 服务 ─────────────────────────────────
+
   /**
-   * Get documents in a knowledge base
+   * 获取文档列表（直连 RAG）
+   * @param documentsUrl KB 详情中的 documentsUrl
    */
-  async getDocuments(kbId: number): Promise<KbDocument[]> {
-    const response = await api.get(`/knowledge/${kbId}/documents`)
-    return response.data.data
+  async getDocuments(documentsUrl: string): Promise<RagDocument[]> {
+    const response = await axios.get(documentsUrl)
+    return response.data
   },
 
   /**
-   * Upload a document to a knowledge base
+   * 上传文档（直连 RAG，无需认证）
+   * @param documentsUrl KB 详情中的 documentsUrl
    */
   async uploadDocument(
-    kbId: number,
+    documentsUrl: string,
     file: File,
     onProgress?: (percent: number) => void
-  ): Promise<KbDocument> {
+  ): Promise<{ status: string; filename: string; chunks: number }> {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await api.post(`/knowledge/${kbId}/documents`, formData, {
+    const response = await axios.post(documentsUrl, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 600000,
+      timeout: 900000,
       onUploadProgress: (progressEvent: AxiosProgressEvent) => {
         if (progressEvent.total && onProgress) {
           const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -81,36 +85,49 @@ export const knowledgeService = {
         }
       }
     })
-    return response.data.data
+    return response.data
   },
 
   /**
-   * Delete a document from a knowledge base
+   * 删除文档（直连 RAG）
+   * @param documentsUrl KB 详情中的 documentsUrl
+   * @param filepath 文档路径（RAG 返回的 source 字段）
    */
-  async deleteDocument(kbId: number, docId: number): Promise<void> {
-    await api.delete(`/knowledge/${kbId}/documents/${docId}`)
+  async deleteDocument(documentsUrl: string, filepath: string): Promise<void> {
+    await axios.delete(documentsUrl, {
+      data: { filepath },
+      timeout: 30000
+    })
   },
 
+  // ── 搜索：经 Java 代理 ─────────────────────────────────────
+
   /**
-   * Search within a knowledge base
+   * Search within a knowledge base (via Java proxy)
    */
   async search(kbId: number, data: KbSearchRequest): Promise<KbSearchResult[]> {
     const response = await api.post(`/knowledge/${kbId}/search`, data)
     return response.data.data
   },
 
+  // ── 配置操作：直连 RAG 服务 ─────────────────────────────────
+
   /**
-   * Get knowledge base RAG config
+   * 获取 RAG 配置（直连 RAG）
+   * @param ragBaseUrl KB 详情中的 ragBaseUrl
+   * @param ragCollection KB 详情中的 ragCollection
    */
-  async getConfig(kbId: number): Promise<KbConfig> {
-    const response = await api.get(`/knowledge/${kbId}/config`)
-    return response.data.data
+  async getConfig(ragBaseUrl: string, ragCollection: string): Promise<KbConfig> {
+    const response = await axios.get(`${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/config`)
+    return response.data
   },
 
   /**
-   * Update knowledge base RAG config
+   * 更新 RAG 配置（直连 RAG）
+   * @param ragBaseUrl KB 详情中的 ragBaseUrl
+   * @param ragCollection KB 详情中的 ragCollection
    */
-  async updateConfig(kbId: number, data: KbConfigRequest): Promise<void> {
-    await api.put(`/knowledge/${kbId}/config`, data)
+  async updateConfig(ragBaseUrl: string, ragCollection: string, data: Partial<KbConfig>): Promise<void> {
+    await axios.put(`${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/config`, data)
   }
 }

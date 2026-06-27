@@ -179,11 +179,11 @@ onMounted(loadKb)
           <KnowledgeSearch v-if="activeTab === 'search'" :kb-id="kb.id" />
 
           <div v-else-if="activeTab === 'documents'" class="documents-tab">
-            <DocumentUpload :kb-id="kb.id" @uploaded="handleDocumentUploaded" />
-            <DocumentList ref="docListRef" :kb-id="kb.id" :is-owner="isOwner" @refreshed="handleDocumentUploaded" />
+            <DocumentUpload :documents-url="kb.documentsUrl" @uploaded="handleDocumentUploaded" />
+            <DocumentList ref="docListRef" :documents-url="kb.documentsUrl" :is-owner="isOwner" @refreshed="handleDocumentUploaded" />
           </div>
 
-          <ConfigPanel v-else-if="activeTab === 'config'" :kb-id="kb.id" :is-owner="isOwner" />
+          <ConfigPanel v-else-if="activeTab === 'config'" :rag-base-url="kb.ragBaseUrl" :rag-collection="kb.ragCollection" :is-owner="isOwner" />
         </div>
       </template>
     </div>

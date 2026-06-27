@@ -5,6 +5,7 @@ designed to be called from web frontends (e.g. CodingHub).
 Uses starlette directly — no FastAPI dependency needed.
 """
 
+import asyncio
 import logging
 import os
 
@@ -143,8 +144,10 @@ async def upload_document(request: Request):
         with open(tmp_path, "wb") as f:
             f.write(raw)
 
-        result = service.ingest_file(tmp_path, collection=collection,
-                                      chunk_size=chunk_size, chunk_mode=chunk_mode)
+        result = await asyncio.to_thread(
+            service.ingest_file, tmp_path,
+            collection=collection, chunk_size=chunk_size, chunk_mode=chunk_mode,
+        )
     else:
         # Text file: decode and ingest directly
         try:
@@ -152,10 +155,10 @@ async def upload_document(request: Request):
         except Exception as e:
             return _error(f"Failed to decode file as UTF-8: {e}", 400)
 
-        result = service.ingest_content(
-            content, filename=filename,
-            collection=collection, chunk_size=chunk_size,
-            chunk_mode=chunk_mode,
+        result = await asyncio.to_thread(
+            service.ingest_content,
+            content, filename,
+            collection=collection, chunk_size=chunk_size, chunk_mode=chunk_mode,
         )
 
     if result.get("status") == "error":

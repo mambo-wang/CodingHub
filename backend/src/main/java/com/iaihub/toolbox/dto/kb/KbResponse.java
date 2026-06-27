@@ -22,5 +22,7 @@ public class KbResponse {
     private String ownerNickname;
     private Long documentCount;
     private String ragCollection;
+    private String ragBaseUrl;
+    private String documentsUrl;
     private LocalDateTime createdAt;
 }

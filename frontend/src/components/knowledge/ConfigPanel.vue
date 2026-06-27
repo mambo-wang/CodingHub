@@ -6,7 +6,8 @@ import { ElMessage } from 'element-plus'
 import type { KbConfig } from '@/types/knowledge'
 
 const props = defineProps<{
-  kbId: number
+  ragBaseUrl: string
+  ragCollection: string
   isOwner: boolean
 }>()
 
@@ -31,7 +32,7 @@ const chunkModeOptions = [
 const loadConfig = async () => {
   loading.value = true
   try {
-    const data = await knowledgeService.getConfig(props.kbId)
+    const data = await knowledgeService.getConfig(props.ragBaseUrl, props.ragCollection)
     config.value = data
     form.value = {
       chunkMode: data.chunk_mode || 'structural',
@@ -50,10 +51,10 @@ const loadConfig = async () => {
 const handleSave = async () => {
   saving.value = true
   try {
-    await knowledgeService.updateConfig(props.kbId, {
-      chunkMode: form.value.chunkMode,
-      chunkSize: form.value.chunkSize,
-      chunkOverlap: form.value.chunkOverlap,
+    await knowledgeService.updateConfig(props.ragBaseUrl, props.ragCollection, {
+      chunk_mode: form.value.chunkMode,
+      chunk_size: form.value.chunkSize,
+      chunk_overlap: form.value.chunkOverlap,
       rerank: form.value.rerank,
       description: form.value.description || undefined,
     })

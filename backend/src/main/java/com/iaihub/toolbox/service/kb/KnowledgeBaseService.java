@@ -6,26 +6,23 @@ import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
-import com.iaihub.toolbox.model.kb.KbDocument;
 import com.iaihub.toolbox.model.kb.KbStatus;
 import com.iaihub.toolbox.model.kb.KnowledgeBase;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.kb.KbDocumentRepository;
 import com.iaihub.toolbox.repository.kb.KnowledgeBaseRepository;
 import com.iaihub.toolbox.service.RagApiClient;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class KnowledgeBaseService {
 
@@ -33,6 +30,19 @@ public class KnowledgeBaseService {
     private final KbDocumentRepository kbDocumentRepository;
     private final UserRepository userRepository;
     private final RagApiClient ragApiClient;
+    private final String ragPublicUrl;
+
+    public KnowledgeBaseService(KnowledgeBaseRepository knowledgeBaseRepository,
+                                KbDocumentRepository kbDocumentRepository,
+                                UserRepository userRepository,
+                                RagApiClient ragApiClient,
+                                @Value("${app.rag.public-url}") String ragPublicUrl) {
+        this.knowledgeBaseRepository = knowledgeBaseRepository;
+        this.kbDocumentRepository = kbDocumentRepository;
+        this.userRepository = userRepository;
+        this.ragApiClient = ragApiClient;
+        this.ragPublicUrl = ragPublicUrl;
+    }
 
     // ── Knowledge Base CRUD ──────────────────────────────────
 
@@ -131,64 +141,7 @@ public class KnowledgeBaseService {
         ragApiClient.deleteCollection(kb.getRagCollection());
     }
 
-    // ── Document Management ──────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public List<KbDocumentResponse> listDocuments(Long kbId) {
-        findActiveKb(kbId); // verify exists
-        List<KbDocument> docs = kbDocumentRepository.findByKbIdAndStatusOrderByCreatedAtDesc(kbId, KbStatus.NORMAL);
-        return docs.stream().map(this::toDocResponse).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public KbDocumentResponse uploadDocument(Long kbId, MultipartFile file, User user) {
-        KnowledgeBase kb = findActiveKb(kbId);
-        checkOwnerOrAdmin(kb, user);
-
-        // Upload to RAG
-        Map<String, Object> result = ragApiClient.uploadDocument(
-                kb.getRagCollection(), file, null, null);
-
-        int chunks = 0;
-        if (result.containsKey("chunks")) {
-            chunks = ((Number) result.get("chunks")).intValue();
-        }
-
-        // Save to MySQL
-        KbDocument doc = KbDocument.builder()
-                .kbId(kbId)
-                .uploaderId(user.getId())
-                .originalName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed")
-                .fileSize(file.getSize())
-                .chunkCount(chunks)
-                .chunkMode(result.containsKey("chunk_mode") ? (String) result.get("chunk_mode") : null)
-                .status(KbStatus.NORMAL)
-                .build();
-        doc = kbDocumentRepository.save(doc);
-
-        return toDocResponse(doc);
-    }
-
-    @Transactional
-    public void deleteDocument(Long kbId, Long docId, User user) {
-        KnowledgeBase kb = findActiveKb(kbId);
-        checkOwnerOrAdmin(kb, user);
-
-        KbDocument doc = kbDocumentRepository.findByIdAndKbIdAndStatus(docId, kbId, KbStatus.NORMAL)
-                .orElseThrow(() -> new ResourceNotFoundException("文档不存在", docId));
-
-        doc.setStatus(KbStatus.DELETED);
-        kbDocumentRepository.save(doc);
-
-        // Delete from RAG (best effort)
-        try {
-            ragApiClient.deleteDocument(kb.getRagCollection(), doc.getOriginalName());
-        } catch (Exception e) {
-            log.warn("RAG deleteDocument failed (tolerated): {}", e.getMessage());
-        }
-    }
-
-    // ── Search ───────────────────────────────────────────────
+    // ── Search (via Java proxy) ────────────────────────────────
 
     public List<KbSearchResultResponse> search(Long kbId, KbSearchRequest request) {
         KnowledgeBase kb = findActiveKb(kbId);
@@ -208,36 +161,6 @@ public class KnowledgeBaseService {
                 .chunkIndex(r.get("chunkIndex") instanceof Number ? ((Number) r.get("chunkIndex")).intValue() : 0)
                 .build()
         ).collect(Collectors.toList());
-    }
-
-    // ── Config ───────────────────────────────────────────────
-
-    public Map<String, Object> getConfig(Long kbId) {
-        KnowledgeBase kb = findActiveKb(kbId);
-        return ragApiClient.getCollectionConfig(kb.getRagCollection());
-    }
-
-    @Transactional
-    public Map<String, Object> updateConfig(Long kbId, KbConfigRequest request, User user) {
-        KnowledgeBase kb = findActiveKb(kbId);
-        checkOwnerOrAdmin(kb, user);
-
-        Map<String, Object> config = new LinkedHashMap<>();
-        if (request.getChunkMode() != null) config.put("chunk_mode", request.getChunkMode());
-        if (request.getChunkSize() != null) config.put("chunk_size", request.getChunkSize());
-        if (request.getChunkOverlap() != null) config.put("chunk_overlap", request.getChunkOverlap());
-        if (request.getRerank() != null) config.put("rerank", request.getRerank());
-        if (request.getDescription() != null) config.put("description", request.getDescription());
-
-        Map<String, Object> result = ragApiClient.configureCollection(kb.getRagCollection(), config);
-
-        // Sync description to MySQL if changed
-        if (request.getDescription() != null) {
-            kb.setDescription(request.getDescription());
-            knowledgeBaseRepository.save(kb);
-        }
-
-        return result;
     }
 
     // ── Helpers ──────────────────────────────────────────────
@@ -270,24 +193,9 @@ public class KnowledgeBaseService {
                 .ownerNickname(ownerNickname)
                 .documentCount(docCount)
                 .ragCollection(kb.getRagCollection())
+                .ragBaseUrl(ragPublicUrl)
+                .documentsUrl(ragPublicUrl + "/api/collections/" + kb.getRagCollection() + "/documents")
                 .createdAt(kb.getCreatedAt())
-                .build();
-    }
-
-    private KbDocumentResponse toDocResponse(KbDocument doc) {
-        String uploaderNickname = userRepository.findById(doc.getUploaderId())
-                .map(u -> u.getNickname() != null ? u.getNickname() : u.getUsername())
-                .orElse("未知用户");
-
-        return KbDocumentResponse.builder()
-                .id(doc.getId())
-                .kbId(doc.getKbId())
-                .originalName(doc.getOriginalName())
-                .fileSize(doc.getFileSize())
-                .chunkCount(doc.getChunkCount())
-                .chunkMode(doc.getChunkMode())
-                .uploaderNickname(uploaderNickname)
-                .createdAt(doc.getCreatedAt())
                 .build();
     }
 }

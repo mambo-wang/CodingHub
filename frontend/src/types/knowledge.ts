@@ -6,7 +6,15 @@ export interface KnowledgeBase {
   ownerNickname: string | null
   documentCount: number
   ragCollection: string
+  ragBaseUrl: string
+  documentsUrl: string
   createdAt: string
+}
+
+/** RAG 服务返回的文档格式（直连 RAG 时使用） */
+export interface RagDocument {
+  source: string
+  chunk_count: number
 }
 
 export interface KbDocument {

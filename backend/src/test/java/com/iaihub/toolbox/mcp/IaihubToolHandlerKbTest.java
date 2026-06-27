@@ -2,7 +2,6 @@ package com.iaihub.toolbox.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iaihub.toolbox.dto.LoginResponse;
-import com.iaihub.toolbox.dto.kb.KbConfigRequest;
 import com.iaihub.toolbox.dto.kb.KbCreateRequest;
 import com.iaihub.toolbox.dto.kb.KbResponse;
 import com.iaihub.toolbox.dto.kb.KbSearchRequest;
@@ -28,7 +27,6 @@ import org.springframework.data.domain.PageImpl;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -166,40 +164,6 @@ class IaihubToolHandlerKbTest {
         String json = ((McpSchema.TextContent) result.content().get(0)).text();
         assertTrue(json.contains("updated-kb"));
         verify(knowledgeBaseService).updateKnowledgeBase(eq(1L), any(KbUpdateRequest.class), any(User.class));
-        verify(knowledgeBaseService, never()).updateConfig(anyLong(), any(KbConfigRequest.class), any(User.class));
-    }
-
-    @Test
-    void handleKbUpdate_configParams_success() {
-        mockLogin("wangbao", "123456", 1L, "USER");
-        KbResponse kbResponse = KbResponse.builder().id(1L).name("my-kb").build();
-        when(knowledgeBaseService.updateConfig(eq(1L), any(KbConfigRequest.class), any(User.class)))
-                .thenReturn(Map.of("chunk_size", 600));
-        when(knowledgeBaseService.getKnowledgeBase(1L)).thenReturn(kbResponse);
-
-        McpSchema.CallToolResult result = handler.handleKbUpdate(
-                1L, null, null, null, 600, null, null, "wangbao", "123456");
-
-        assertFalse(result.isError());
-        verify(knowledgeBaseService, never()).updateKnowledgeBase(anyLong(), any(KbUpdateRequest.class), any(User.class));
-        verify(knowledgeBaseService).updateConfig(eq(1L), any(KbConfigRequest.class), any(User.class));
-    }
-
-    @Test
-    void handleKbUpdate_bothNameAndConfig_success() {
-        mockLogin("wangbao", "123456", 1L, "USER");
-        KbResponse updated = KbResponse.builder().id(1L).name("renamed").build();
-        when(knowledgeBaseService.updateKnowledgeBase(eq(1L), any(KbUpdateRequest.class), any(User.class)))
-                .thenReturn(updated);
-        when(knowledgeBaseService.updateConfig(eq(1L), any(KbConfigRequest.class), any(User.class)))
-                .thenReturn(Map.of("chunk_size", 600));
-
-        McpSchema.CallToolResult result = handler.handleKbUpdate(
-                1L, "renamed", null, null, 600, null, null, "wangbao", "123456");
-
-        assertFalse(result.isError());
-        verify(knowledgeBaseService).updateKnowledgeBase(eq(1L), any(KbUpdateRequest.class), any(User.class));
-        verify(knowledgeBaseService).updateConfig(eq(1L), any(KbConfigRequest.class), any(User.class));
     }
 
     @Test
@@ -247,15 +211,19 @@ class IaihubToolHandlerKbTest {
 
     @Test
     void handleKbUploadDocument_success() {
-        KbResponse kb = KbResponse.builder().id(1L).name("my-kb").build();
+        KbResponse kb = KbResponse.builder()
+                .id(1L).name("my-kb")
+                .documentsUrl("http://localhost:8000/api/collections/my-kb/documents")
+                .build();
         when(knowledgeBaseService.getKnowledgeBase(1L)).thenReturn(kb);
 
         McpSchema.CallToolResult result = handler.handleKbUploadDocument(1L);
 
         assertFalse(result.isError());
         String json = ((McpSchema.TextContent) result.content().get(0)).text();
-        assertTrue(json.contains("/api/v1/knowledge/1/documents"));
+        assertTrue(json.contains("/api/collections/my-kb/documents"));
         assertTrue(json.contains("multipart/form-data"));
+        assertTrue(json.contains("无需认证"));
     }
 
     @Test

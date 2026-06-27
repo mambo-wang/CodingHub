@@ -86,8 +86,6 @@ public class SecurityConfig {
                 // Knowledge base - public read endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/knowledge").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}/documents").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/{id}/config").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/knowledge/{id}/search").permitAll()
                 // Feedback - GET and POST are public, admin operations use @PreAuthorize
                 .requestMatchers(HttpMethod.GET, "/api/v1/feedback").permitAll()

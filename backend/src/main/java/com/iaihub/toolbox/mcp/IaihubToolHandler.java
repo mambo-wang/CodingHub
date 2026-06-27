@@ -21,7 +21,6 @@ import com.iaihub.toolbox.dto.ToolSummaryDTO;
 import com.iaihub.toolbox.dto.UpdateToolRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostDTO;
-import com.iaihub.toolbox.dto.kb.KbConfigRequest;
 import com.iaihub.toolbox.dto.kb.KbCreateRequest;
 import com.iaihub.toolbox.dto.kb.KbResponse;
 import com.iaihub.toolbox.dto.kb.KbSearchRequest;
@@ -494,18 +493,6 @@ public class IaihubToolHandler {
                 response = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest, user);
             }
 
-            // 更新 RAG 配置参数
-            boolean hasConfigUpdate = chunkMode != null || chunkSize != null || chunkOverlap != null || rerank != null;
-            if (hasConfigUpdate) {
-                KbConfigRequest configRequest = KbConfigRequest.builder()
-                        .chunkMode(chunkMode)
-                        .chunkSize(chunkSize)
-                        .chunkOverlap(chunkOverlap)
-                        .rerank(rerank)
-                        .build();
-                knowledgeBaseService.updateConfig(kbId, configRequest, user);
-            }
-
             // 返回最新状态
             if (response == null) {
                 response = knowledgeBaseService.getKnowledgeBase(kbId);
@@ -555,12 +542,12 @@ public class IaihubToolHandler {
             String json = toJson(new KbUploadDocumentInfoResponse(
                     kbId,
                     kb.getName(),
-                    "/api/v1/knowledge/" + kbId + "/documents",
+                    kb.getDocumentsUrl(),
                     "POST",
                     "multipart/form-data",
                     "file (必填, 单个文件)",
-                    "50MB per file",
-                    "需要 JWT 认证（Authorization: Bearer <token>）"
+                    "1GB per file",
+                    "无需认证"
             ));
             return successResult(json);
         } catch (Exception e) {
@@ -814,16 +801,14 @@ public class IaihubToolHandler {
             this.supportedFileTypes = new String[]{
                 "md", "txt", "pdf", "docx", "pptx", "xlsx", "py", "js", "ts", "java", "go"
             };
-            this.curlExample = "curl -X POST \"{server_base_url}" + uploadUrl + "\" \\\n"
-                    + "  -H \"Authorization: Bearer <token>\" \\\n"
+            this.curlExample = "curl -X POST \"" + uploadUrl + "\" \\\n"
                     + "  -F \"file=@/path/to/document.pdf\"";
             this.explanation = "MCP 协议不直接支持二进制文件传输。"
-                    + "请通过 REST API 上传文件到知识库。";
+                    + "请直接向 RAG 服务上传文件到知识库，无需认证。";
             this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
                     + "，Content-Type 设为 " + contentType
                     + "，表单字段: " + formFields
-                    + "。" + requiresAuth
-                    + "。先通过 POST /api/v1/auth/login 获取 token。";
+                    + "。" + requiresAuth + "。";
         }
     }
 }
