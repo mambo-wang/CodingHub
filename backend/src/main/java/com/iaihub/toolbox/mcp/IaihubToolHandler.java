@@ -21,13 +21,22 @@ import com.iaihub.toolbox.dto.ToolSummaryDTO;
 import com.iaihub.toolbox.dto.UpdateToolRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostCreateRequest;
 import com.iaihub.toolbox.dto.forum.ForumPostDTO;
+import com.iaihub.toolbox.dto.kb.KbConfigRequest;
+import com.iaihub.toolbox.dto.kb.KbCreateRequest;
+import com.iaihub.toolbox.dto.kb.KbResponse;
+import com.iaihub.toolbox.dto.kb.KbSearchRequest;
+import com.iaihub.toolbox.dto.kb.KbSearchResultResponse;
+import com.iaihub.toolbox.dto.kb.KbUpdateRequest;
+import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * MCP 工具处理器 - 实现 SDK 工具处理接口
@@ -45,6 +54,12 @@ import java.util.List;
  *   <li>h3_coding_hub_tool_file_upload - 获取文件上传接口信息</li>
  *   <li>h3_coding_hub_tool_modify - 修改工具（需要认证）</li>
  *   <li>h3_coding_hub_tool_file_delete - 删除工具文件（需要认证）</li>
+ *   <li>h3_coding_hub_kb_list - 获取知识库列表</li>
+ *   <li>h3_coding_hub_kb_search - 语义搜索知识库内容</li>
+ *   <li>h3_coding_hub_kb_create - 创建知识库（需要认证）</li>
+ *   <li>h3_coding_hub_kb_update - 更新知识库（需要认证）</li>
+ *   <li>h3_coding_hub_kb_delete - 删除知识库（需要认证）</li>
+ *   <li>h3_coding_hub_kb_upload_document - 获取文档上传接口信息</li>
  * </ul>
  */
 @Component
@@ -57,6 +72,7 @@ public class IaihubToolHandler {
     private final ToolFileService toolFileService;
     private final ForumPostService postService;
     private final UserService userService;
+    private final KnowledgeBaseService knowledgeBaseService;
     private final ObjectMapper objectMapper;
 
     public IaihubToolHandler(McpSearchService searchService,
@@ -64,12 +80,14 @@ public class IaihubToolHandler {
                              ToolFileService toolFileService,
                              ForumPostService postService,
                              UserService userService,
+                             KnowledgeBaseService knowledgeBaseService,
                              ObjectMapper objectMapper) {
         this.searchService = searchService;
         this.toolService = toolService;
         this.toolFileService = toolFileService;
         this.postService = postService;
         this.userService = userService;
+        this.knowledgeBaseService = knowledgeBaseService;
         this.objectMapper = objectMapper;
     }
 
@@ -362,6 +380,196 @@ public class IaihubToolHandler {
     }
 
     /**
+     * 处理知识库列表
+     */
+    public McpSchema.CallToolResult handleKbList(Integer page, Integer size, String sortBy) {
+        logger.info("MCP kb list: page={}, size={}, sortBy={}", page, size, sortBy);
+        try {
+            int p = page != null ? page : 0;
+            int s = size != null ? size : 20;
+            Page<KbResponse> kbPage = knowledgeBaseService.listKnowledgeBases(p, s, sortBy);
+            String json = toJson(new KbListResponse(
+                    kbPage.getContent(),
+                    kbPage.getTotalElements(),
+                    kbPage.getTotalPages(),
+                    kbPage.getNumber(),
+                    kbPage.getSize()
+            ));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error listing knowledge bases", e);
+            return errorResult("获取知识库列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理知识库语义搜索
+     */
+    public McpSchema.CallToolResult handleKbSearch(Long kbId, String query, Integer topK,
+                                                    Boolean rerank, Integer expandContext) {
+        logger.info("MCP kb search: kbId={}, query={}, topK={}", kbId, query, topK);
+        try {
+            KbSearchRequest request = KbSearchRequest.builder()
+                    .query(query)
+                    .topK(topK != null ? topK : 5)
+                    .rerank(rerank)
+                    .expandContext(expandContext != null ? expandContext : 0)
+                    .build();
+            List<KbSearchResultResponse> results = knowledgeBaseService.search(kbId, request);
+            String json = toJson(new KbSearchResponse(results));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error searching knowledge base", e);
+            return errorResult("搜索知识库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理创建知识库（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handleKbCreate(String name, String description, String chunkMode,
+                                                    Integer chunkSize, Integer chunkOverlap, Boolean rerank,
+                                                    String username, String password) {
+        logger.info("MCP kb create: name={}, username={}", name, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            User user = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
+
+            KbCreateRequest request = KbCreateRequest.builder()
+                    .name(name)
+                    .description(description)
+                    .chunkMode(chunkMode)
+                    .chunkSize(chunkSize)
+                    .chunkOverlap(chunkOverlap)
+                    .rerank(rerank)
+                    .build();
+
+            KbResponse response = knowledgeBaseService.createKnowledgeBase(request, user);
+            String json = toJson(response);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error creating knowledge base via MCP", e);
+            return errorResult("创建知识库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理更新知识库（认证参数由 MCP 客户端传入）
+     * 支持同时更新名称/描述和 RAG 配置参数
+     */
+    public McpSchema.CallToolResult handleKbUpdate(Long kbId, String name, String description,
+                                                    String chunkMode, Integer chunkSize,
+                                                    Integer chunkOverlap, Boolean rerank,
+                                                    String username, String password) {
+        logger.info("MCP kb update: kbId={}, name={}, username={}", kbId, name, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            User user = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
+
+            KbResponse response = null;
+
+            // 更新名称/描述
+            boolean hasBasicUpdate = (name != null && !name.isBlank()) || (description != null && !description.isBlank());
+            if (hasBasicUpdate) {
+                KbUpdateRequest updateRequest = KbUpdateRequest.builder()
+                        .name(name != null && !name.isBlank() ? name : null)
+                        .description(description != null && !description.isBlank() ? description : null)
+                        .build();
+                response = knowledgeBaseService.updateKnowledgeBase(kbId, updateRequest, user);
+            }
+
+            // 更新 RAG 配置参数
+            boolean hasConfigUpdate = chunkMode != null || chunkSize != null || chunkOverlap != null || rerank != null;
+            if (hasConfigUpdate) {
+                KbConfigRequest configRequest = KbConfigRequest.builder()
+                        .chunkMode(chunkMode)
+                        .chunkSize(chunkSize)
+                        .chunkOverlap(chunkOverlap)
+                        .rerank(rerank)
+                        .build();
+                knowledgeBaseService.updateConfig(kbId, configRequest, user);
+            }
+
+            // 返回最新状态
+            if (response == null) {
+                response = knowledgeBaseService.getKnowledgeBase(kbId);
+            }
+
+            String json = toJson(response);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error updating knowledge base via MCP", e);
+            return errorResult("更新知识库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理删除知识库（认证参数由 MCP 客户端传入）
+     */
+    public McpSchema.CallToolResult handleKbDelete(Long kbId, String username, String password) {
+        logger.info("MCP kb delete: kbId={}, username={}", kbId, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            User user = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
+
+            knowledgeBaseService.deleteKnowledgeBase(kbId, user);
+            String json = toJson(new KbDeleteResponse(kbId, true));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error deleting knowledge base via MCP", e);
+            return errorResult("删除知识库失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理获取知识库文档上传信息
+     */
+    public McpSchema.CallToolResult handleKbUploadDocument(Long kbId) {
+        logger.info("MCP kb upload document info: kbId={}", kbId);
+        try {
+            KbResponse kb = knowledgeBaseService.getKnowledgeBase(kbId);
+            String json = toJson(new KbUploadDocumentInfoResponse(
+                    kbId,
+                    kb.getName(),
+                    "/api/v1/knowledge/" + kbId + "/documents",
+                    "POST",
+                    "multipart/form-data",
+                    "file (必填, 单个文件)",
+                    "50MB per file",
+                    "需要 JWT 认证（Authorization: Bearer <token>）"
+            ));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error getting kb upload document info", e);
+            return errorResult("获取文档上传信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 版本号最后一位自动递增
      * "1.0.0" → "1.0.1", "1.0.0-beta" → "1.0.1-beta", "1.0.alpha" → "1.0.alpha.1"
      */
@@ -542,6 +750,68 @@ public class IaihubToolHandler {
             this.toolId = toolId;
             this.fileId = fileId;
             this.deleted = deleted;
+        }
+    }
+
+    // ── KB DTO 类 ──────────────────────────────────────────────
+
+    private static class KbListResponse {
+        public List<KbResponse> knowledgeBases;
+        public long totalElements;
+        public int totalPages;
+        public int page;
+        public int size;
+        public KbListResponse(List<KbResponse> knowledgeBases, long totalElements, int totalPages, int page, int size) {
+            this.knowledgeBases = knowledgeBases;
+            this.totalElements = totalElements;
+            this.totalPages = totalPages;
+            this.page = page;
+            this.size = size;
+        }
+    }
+
+    private static class KbSearchResponse {
+        public List<KbSearchResultResponse> results;
+        public int count;
+        public KbSearchResponse(List<KbSearchResultResponse> results) {
+            this.results = results;
+            this.count = results.size();
+        }
+    }
+
+    private static class KbDeleteResponse {
+        public Long kbId;
+        public boolean deleted;
+        public KbDeleteResponse(Long kbId, boolean deleted) {
+            this.kbId = kbId;
+            this.deleted = deleted;
+        }
+    }
+
+    private static class KbUploadDocumentInfoResponse {
+        public Long kbId;
+        public String kbName;
+        public String uploadUrl;
+        public String httpMethod;
+        public String contentType;
+        public String formFields;
+        public String limits;
+        public String requiresAuth;
+        public String instruction;
+        public KbUploadDocumentInfoResponse(Long kbId, String kbName, String uploadUrl, String httpMethod,
+                                            String contentType, String formFields, String limits, String requiresAuth) {
+            this.kbId = kbId;
+            this.kbName = kbName;
+            this.uploadUrl = uploadUrl;
+            this.httpMethod = httpMethod;
+            this.contentType = contentType;
+            this.formFields = formFields;
+            this.limits = limits;
+            this.requiresAuth = requiresAuth;
+            this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
+                    + "，Content-Type 设为 " + contentType
+                    + "，表单字段: " + formFields
+                    + "。" + requiresAuth;
         }
     }
 }

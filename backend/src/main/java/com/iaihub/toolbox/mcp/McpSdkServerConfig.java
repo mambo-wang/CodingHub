@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
  *   <li><b>SSE</b>（/sse + /mcp/message）— 旧版传输，兼容不支持 streamable-http 的客户端</li>
  * </ul>
  *
- * <p>两个 McpServer 实例各自注册相同的 11 个工具，客户端通过任一传输协议均可调用。
+ * <p>两个 McpServer 实例各自注册相同的 17 个工具，客户端通过任一传输协议均可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -100,7 +100,7 @@ public class McpSdkServerConfig {
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 11 tools");
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 17 tools");
         return server;
     }
 
@@ -119,14 +119,14 @@ public class McpSdkServerConfig {
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (SSE, /sse) initialized with 11 tools");
+        logger.info("MCP Server (SSE, /sse) initialized with 17 tools");
         return server;
     }
 
     // ── 工具注册 ──────────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册相同的 11 个工具。
+     * 在所有 McpServer 实例上注册相同的 17 个工具。
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
@@ -368,6 +368,167 @@ public class McpSdkServerConfig {
                     String username = String.valueOf(args.get("username"));
                     String password = String.valueOf(args.get("password"));
                     return toolHandler.handleToolFileDelete(toolId, fileId, username, password);
+                });
+
+        // ── 知识库 MCP 工具 ──────────────────────────────────────
+
+        registerTool(server, "h3_coding_hub_kb_list", "获取知识库列表，支持分页和排序",
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "page":{"type":"integer","description":"页码，从0开始，默认0"},
+                        "size":{"type":"integer","description":"每页条数，默认20"},
+                        "sortBy":{"type":"string","description":"排序方式，可选 'hot'（按热度）或留空（按最新）"}
+                    }
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Integer page = args != null && args.containsKey("page") ? ((Number) args.get("page")).intValue() : 0;
+                    Integer size = args != null && args.containsKey("size") ? ((Number) args.get("size")).intValue() : 20;
+                    String sortBy = args != null && args.containsKey("sortBy") ? String.valueOf(args.get("sortBy")) : null;
+                    return toolHandler.handleKbList(page, size, sortBy);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_search", "对指定知识库执行语义搜索，返回相关片段",
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"},
+                        "query":{"type":"string","description":"搜索关键词"},
+                        "topK":{"type":"integer","description":"返回结果数量，默认5"},
+                        "rerank":{"type":"boolean","description":"是否启用重排序"},
+                        "expandContext":{"type":"integer","description":"上下文扩展块数，默认0"}
+                    },
+                    "required":["kbId","query"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    String query = String.valueOf(args.get("query"));
+                    Integer topK = args.containsKey("topK") ? ((Number) args.get("topK")).intValue() : null;
+                    Boolean rerank = args.containsKey("rerank") ? (Boolean) args.get("rerank") : null;
+                    Integer expandContext = args.containsKey("expandContext") ? ((Number) args.get("expandContext")).intValue() : null;
+                    return toolHandler.handleKbSearch(kbId, query, topK, rerank, expandContext);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_create", """
+                创建新知识库。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
+                创建成功后返回知识库ID，可使用该ID通过 h3_coding_hub_kb_upload_document 工具上传文档。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "name":{"type":"string","description":"知识库名称"},
+                        "description":{"type":"string","description":"知识库描述"},
+                        "chunkMode":{"type":"string","description":"分块模式，默认'structural'"},
+                        "chunkSize":{"type":"integer","description":"分块大小，默认800"},
+                        "chunkOverlap":{"type":"integer","description":"分块重叠，默认50"},
+                        "rerank":{"type":"boolean","description":"是否启用重排序，默认true"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["name","username","password"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    String name = String.valueOf(args.get("name"));
+                    String description = args.containsKey("description") ? String.valueOf(args.get("description")) : null;
+                    String chunkMode = args.containsKey("chunkMode") ? String.valueOf(args.get("chunkMode")) : null;
+                    Integer chunkSize = args.containsKey("chunkSize") ? ((Number) args.get("chunkSize")).intValue() : null;
+                    Integer chunkOverlap = args.containsKey("chunkOverlap") ? ((Number) args.get("chunkOverlap")).intValue() : null;
+                    Boolean rerank = args.containsKey("rerank") ? (Boolean) args.get("rerank") : null;
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleKbCreate(name, description, chunkMode, chunkSize, chunkOverlap, rerank, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_update", """
+                更新知识库，支持修改名称、描述和 RAG 配置参数（分块模式、分块大小等）。
+                需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
+                只更新传入的字段，未传入的字段保持不变。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"},
+                        "name":{"type":"string","description":"新的知识库名称"},
+                        "description":{"type":"string","description":"新的知识库描述"},
+                        "chunkMode":{"type":"string","description":"分块模式，如'structural'"},
+                        "chunkSize":{"type":"integer","description":"分块大小"},
+                        "chunkOverlap":{"type":"integer","description":"分块重叠"},
+                        "rerank":{"type":"boolean","description":"是否启用重排序"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["kbId","username","password"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    String name = args.containsKey("name") ? String.valueOf(args.get("name")) : null;
+                    String description = args.containsKey("description") ? String.valueOf(args.get("description")) : null;
+                    String chunkMode = args.containsKey("chunkMode") ? String.valueOf(args.get("chunkMode")) : null;
+                    Integer chunkSize = args.containsKey("chunkSize") ? ((Number) args.get("chunkSize")).intValue() : null;
+                    Integer chunkOverlap = args.containsKey("chunkOverlap") ? ((Number) args.get("chunkOverlap")).intValue() : null;
+                    Boolean rerank = args.containsKey("rerank") ? (Boolean) args.get("rerank") : null;
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleKbUpdate(kbId, name, description, chunkMode, chunkSize, chunkOverlap, rerank, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_delete", "删除知识库。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。",
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["kbId","username","password"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleKbDelete(kbId, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_upload_document", """
+                获取知识库文档上传的 REST API 信息。客户端使用 HTTP Multipart POST 请求直接上传文件。
+                上传需要 JWT 认证，客户端需先通过其他方式获取 token。
+                
+                REST API 详情：
+                - URL: POST {server_base_url}/api/v1/knowledge/{kbId}/documents
+                - Content-Type: multipart/form-data
+                - 表单字段:
+                  - file: 文件（必填，单个文件）
+                - 限制: 单文件最大 50MB
+                - 认证: 需要 Authorization: Bearer <token> 头
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"}
+                    },
+                    "required":["kbId"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    return toolHandler.handleKbUploadDocument(kbId);
                 });
     }
 
