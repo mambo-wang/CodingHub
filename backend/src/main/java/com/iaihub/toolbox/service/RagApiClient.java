@@ -158,4 +158,85 @@ public class RagApiClient {
             throw new RuntimeException("RAG 服务不可用: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * GET /api/collections/{name}/documents/status — 查询集合所有文档状态
+     */
+    public List<Map<String, Object>> getDocumentStatus(String collection) {
+        try {
+            String encodedName = URLEncoder.encode(collection, StandardCharsets.UTF_8);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/collections/" + encodedName + "/documents/status"))
+                    .GET()
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.error("RAG getDocumentStatus failed: {} - {}", response.statusCode(), response.body());
+                throw new RuntimeException("RAG 查询文档状态失败: " + response.body());
+            }
+
+            JsonNode node = objectMapper.readTree(response.body());
+            List<Map<String, Object>> results = new ArrayList<>();
+            if (node.isArray()) {
+                for (JsonNode item : node) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("id", item.has("id") ? item.get("id").asInt() : 0);
+                    result.put("filename", item.has("filename") ? item.get("filename").asText() : "");
+                    result.put("status", item.has("status") ? item.get("status").asText() : "UNKNOWN");
+                    result.put("chunkCount", item.has("chunk_count") ? item.get("chunk_count").asInt() : 0);
+                    result.put("errorMessage", item.has("error_message") ? item.get("error_message").asText(null) : null);
+                    result.put("createdAt", item.has("created_at") ? item.get("created_at").asText() : "");
+                    results.add(result);
+                }
+            }
+            return results;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("RAG getDocumentStatus error: {}", e.getMessage());
+            throw new RuntimeException("RAG 服务不可用: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * GET /api/collections/{name}/documents/{docId}/status — 查询单个文档状态
+     */
+    public Map<String, Object> getDocumentStatusById(String collection, int docId) {
+        try {
+            String encodedName = URLEncoder.encode(collection, StandardCharsets.UTF_8);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/collections/" + encodedName + "/documents/" + docId + "/status"))
+                    .GET()
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 404) {
+                throw new RuntimeException("文档不存在: id=" + docId);
+            }
+            if (response.statusCode() >= 400) {
+                log.error("RAG getDocumentStatusById failed: {} - {}", response.statusCode(), response.body());
+                throw new RuntimeException("RAG 查询文档状态失败: " + response.body());
+            }
+
+            JsonNode item = objectMapper.readTree(response.body());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("id", item.has("id") ? item.get("id").asInt() : 0);
+            result.put("filename", item.has("filename") ? item.get("filename").asText() : "");
+            result.put("status", item.has("status") ? item.get("status").asText() : "UNKNOWN");
+            result.put("chunkCount", item.has("chunk_count") ? item.get("chunk_count").asInt() : 0);
+            result.put("errorMessage", item.has("error_message") ? item.get("error_message").asText(null) : null);
+            result.put("createdAt", item.has("created_at") ? item.get("created_at").asText() : "");
+            return result;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("RAG getDocumentStatusById error: {}", e.getMessage());
+            throw new RuntimeException("RAG 服务不可用: " + e.getMessage(), e);
+        }
+    }
 }

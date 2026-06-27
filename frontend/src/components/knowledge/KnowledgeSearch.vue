@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Search, Loader2, FileText } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
+import InfoBanner from './InfoBanner.vue'
 import type { KbSearchResult } from '@/types/knowledge'
 
 const props = defineProps<{
@@ -14,6 +15,7 @@ const searching = ref(false)
 const searched = ref(false)
 const topK = ref(5)
 const rerank = ref(true)
+const hintVisible = ref(true)
 
 const handleSearch = async () => {
   if (!query.value.trim()) return
@@ -41,6 +43,12 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 <template>
   <div class="knowledge-search">
+    <InfoBanner
+      v-if="hintVisible"
+      message="本页面仅基于向量距离检索相关文档片段，建议使用 AI 编程助手接入 MCP 获得更智能的检索体验。"
+      @close="hintVisible = false"
+    />
+
     <div class="search-bar">
       <div class="search-input-wrap">
         <Search :size="18" class="search-icon" aria-hidden="true" />

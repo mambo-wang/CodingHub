@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Plus, BookOpen, Loader2, LayoutGrid, BookOpenText } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import { useAuthStore } from '@/stores/auth'
@@ -13,12 +13,20 @@ import type { KnowledgeBase } from '@/types/knowledge'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
+
+const isMyPage = computed(() => route.path === '/knowledge/my')
 
 const sidebarItems: SidebarNavItem[] = [
   { label: '全部知识库', icon: LayoutGrid, to: '/knowledge' },
   { label: '我的知识库', icon: BookOpenText, to: '/knowledge/my', requiresAuth: true },
 ]
+
+const pageTitle = computed(() => isMyPage.value ? '我的知识库' : '知识库')
+const pageSubtitle = computed(() => isMyPage.value
+  ? '你创建的知识库都在这里'
+  : '探索与管理知识库，语义搜索文档内容')
 
 const knowledgeBases = ref<KnowledgeBase[]>([])
 const loading = ref(true)
@@ -37,10 +45,16 @@ onMounted(async () => {
   await loadList()
 })
 
+// Reload when switching between /knowledge and /knowledge/my
+watch(isMyPage, () => {
+  loadList()
+})
+
 const loadList = async () => {
   loading.value = true
   try {
-    const data = await knowledgeService.getList(0, pageSize, sortBy.value)
+    const ownerId = isMyPage.value ? authStore.user?.id : undefined
+    const data = await knowledgeService.getList(0, pageSize, sortBy.value, ownerId)
     knowledgeBases.value = data.content
     totalPages.value = data.totalPages
     page.value = data.page
@@ -56,7 +70,8 @@ const loadMore = async () => {
   loadingMore.value = true
   try {
     const nextPage = page.value + 1
-    const data = await knowledgeService.getList(nextPage, pageSize, sortBy.value)
+    const ownerId = isMyPage.value ? authStore.user?.id : undefined
+    const data = await knowledgeService.getList(nextPage, pageSize, sortBy.value, ownerId)
     knowledgeBases.value = [...knowledgeBases.value, ...data.content]
     page.value = data.page
     totalPages.value = data.totalPages
@@ -125,9 +140,9 @@ const handleDialogCancel = () => {
         <div>
           <h1 class="page-title">
             <span class="title-icon">📚</span>
-            知识库
+            {{ pageTitle }}
           </h1>
-          <p class="page-subtitle">探索与管理知识库，语义搜索文档内容</p>
+          <p class="page-subtitle">{{ pageSubtitle }}</p>
         </div>
         <router-link v-if="isLoggedIn" to="/knowledge/create" class="create-btn" aria-label="创建知识库">
           <Plus :size="16" aria-hidden="true" />
@@ -155,8 +170,8 @@ const handleDialogCancel = () => {
       <!-- Empty State -->
       <div v-else-if="knowledgeBases.length === 0" class="empty-state">
         <BookOpen :size="48" aria-hidden="true" />
-        <p class="empty-title">暂无知识库</p>
-        <p class="empty-subtitle">还没有任何知识库，成为第一个创建者吧</p>
+        <p class="empty-title">{{ isMyPage ? '你还没有创建任何知识库' : '暂无知识库' }}</p>
+        <p class="empty-subtitle">{{ isMyPage ? '点击右上角按钮创建你的第一个知识库吧' : '还没有任何知识库，成为第一个创建者吧' }}</p>
       </div>
 
       <!-- Knowledge Grid -->

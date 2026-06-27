@@ -20,7 +20,6 @@ public class KbResponse {
     private String description;
     private Long ownerId;
     private String ownerNickname;
-    private Long documentCount;
     private String ragCollection;
     private String ragBaseUrl;
     private String documentsUrl;

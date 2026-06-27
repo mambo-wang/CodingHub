@@ -8,5 +8,6 @@ public record ForumPostCreateRequest(
     @NotBlank String title,
     @NotBlank String content,
     @NotNull Long categoryId,
-    List<Long> tagIds
+    List<Long> tagIds,
+    String visibility
 ) {}

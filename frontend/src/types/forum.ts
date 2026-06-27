@@ -15,6 +15,7 @@ export interface ForumPost {
   commentCount: number;
   score?: number;
   pinned?: boolean;
+  visibility?: string;
   tags?: Tag[];
   createdAt: string;
   updatedAt: string;
@@ -27,6 +28,7 @@ export interface ForumPostCreateRequest {
   content: string;
   categoryId: number;
   tagIds?: number[];
+  visibility?: string;
 }
 
 export interface ForumComment {

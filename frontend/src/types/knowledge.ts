@@ -4,28 +4,35 @@ export interface KnowledgeBase {
   description: string | null
   ownerId: number
   ownerNickname: string | null
-  documentCount: number
   ragCollection: string
   ragBaseUrl: string
   documentsUrl: string
   createdAt: string
 }
 
+/** Document processing status enum */
+export type DocumentStatus = 'UPLOADING' | 'CONVERTING' | 'CHUNKING' | 'EMBEDDING' | 'READY' | 'FAILED'
+
+/** RAG SQLite document metadata with processing status */
+export interface RagDocumentStatus {
+  id: number
+  collection: string
+  filename: string
+  filepath: string
+  file_size: number
+  uploader: string | null
+  status: DocumentStatus
+  chunk_count: number
+  chunk_mode: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
 /** RAG 服务返回的文档格式（直连 RAG 时使用） */
 export interface RagDocument {
   source: string
   chunk_count: number
-}
-
-export interface KbDocument {
-  id: number
-  kbId: number
-  originalName: string
-  fileSize: number
-  chunkCount: number | null
-  chunkMode: string | null
-  uploaderNickname: string | null
-  createdAt: string
 }
 
 export interface KbConfig {

@@ -14,8 +14,20 @@
     <div v-else-if="post" class="post-detail">
       <div class="post-card">
         <div class="post-header">
-          <div class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
-            {{ post.categoryName }}
+          <div class="post-header-top">
+            <div class="post-header-left">
+              <div class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
+                {{ post.categoryName }}
+              </div>
+              <span v-if="post.visibility === 'PRIVATE'" class="private-badge">
+                <Lock :size="12" />
+                私有
+              </span>
+            </div>
+            <button class="share-btn" @click="handleShare" title="复制链接">
+              <Share2 :size="18" />
+              分享
+            </button>
           </div>
           <h1 class="post-title">{{ post.title }}</h1>
           <div class="post-meta">
@@ -114,7 +126,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { User, Eye, MessageCircle, Heart, Trash2, Loader2, Pencil, ArrowLeft } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Trash2, Loader2, Pencil, ArrowLeft, Share2, Lock } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import { useAuthStore } from '@/stores/auth';
@@ -141,6 +153,25 @@ const canModify = computed(() => {
 
 const handleEdit = () => {
   if (post.value) router.push(`/forum/posts/${post.value.id}/edit`);
+};
+
+const handleShare = async () => {
+  const url = `${window.location.origin}/forum/posts/${post.value?.id}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    ElMessage.success('链接已复制到剪贴板');
+  } catch {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    ElMessage.success('链接已复制到剪贴板');
+  }
 };
 
 const goBack = () => {
@@ -338,6 +369,19 @@ const formatCount = (count: number) => {
   margin-bottom: 24px;
 }
 
+.post-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.post-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .category-tag {
   display: inline-block;
   padding: 4px 12px;
@@ -345,7 +389,39 @@ const formatCount = (count: number) => {
   font-size: 13px;
   font-weight: 500;
   color: var(--accent-1);
-  margin-bottom: 12px;
+}
+
+.private-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.share-btn:hover {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.08);
 }
 
 .post-title {

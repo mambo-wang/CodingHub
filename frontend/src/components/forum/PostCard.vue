@@ -32,6 +32,10 @@
         <span class="category-tag" :style="{ background: getCategoryBg(post.categoryId) }">
           {{ post.categoryName }}
         </span>
+        <span v-if="post.visibility === 'PRIVATE'" class="badge-pill badge-private">
+          <Lock :size="12" aria-hidden="true" />
+          <span>私有</span>
+        </span>
         <span v-if="post.pinned" class="badge-pill badge-pinned">
           <ArrowUp :size="12" aria-hidden="true" />
           <span>置顶</span>
@@ -85,7 +89,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue';
+import { User, Eye, MessageCircle, Heart, Bookmark, Trash2, Pencil, ArrowUp, Flame, Pin, PinOff, Lock } from '@lucide/vue';
 import type { ForumPost } from '@/types/forum';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
@@ -441,6 +445,16 @@ const toggleFavorite = async () => {
   border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
+.badge-private {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.badge-private:hover {
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
 .badge-pinned:hover {
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
 }
@@ -459,6 +473,12 @@ const toggleFavorite = async () => {
   background: rgba(124, 58, 237, 0.08);
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.15);
+}
+
+[data-theme="light"] .badge-private {
+  background: rgba(217, 119, 6, 0.08);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.15);
 }
 
 [data-theme="light"] .badge-hot {

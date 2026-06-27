@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Upload, Loader2, CheckCircle, XCircle } from '@lucide/vue'
+import { ref, computed, watch } from 'vue'
+import { Upload, Loader2, File, X } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import { ElMessage } from 'element-plus'
+import StatusBadge from './StatusBadge.vue'
+import type { DocumentStatus } from '@/types/knowledge'
 
 const props = defineProps<{
   documentsUrl: string
@@ -12,25 +14,37 @@ const emit = defineEmits<{
   (e: 'uploaded'): void
 }>()
 
+interface FileCard {
+  id: number
+  filename: string
+  status: DocumentStatus | 'SELECTED'
+  errorMessage?: string | null
+}
+
 const uploading = ref(false)
 const progress = ref(0)
-const uploadSuccess = ref(false)
-const uploadError = ref('')
+const fileCards = ref<FileCard[]>([])
+const selectedFiles = ref<File[]>([])
+let nextFileId = 0
 
-const handleFileSelect = async (event: Event) => {
+const hasSelectedFiles = computed(() => selectedFiles.value.length > 0)
+const hasProcessingFiles = computed(() =>
+  fileCards.value.some(c => ['UPLOADING', 'CONVERTING', 'CHUNKING', 'EMBEDDING', 'SELECTED'].includes(c.status))
+)
+
+const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement
   if (!input.files?.length) return
-  const file = input.files[0]
-  await doUpload(file)
+  selectedFiles.value = Array.from(input.files)
   input.value = ''
 }
 
-const handleDrop = async (event: DragEvent) => {
+const handleDrop = (event: DragEvent) => {
   event.preventDefault()
   event.stopPropagation()
-  const file = event.dataTransfer?.files[0]
-  if (!file) return
-  await doUpload(file)
+  const files = event.dataTransfer?.files
+  if (!files?.length) return
+  selectedFiles.value = Array.from(files)
 }
 
 const handleDragOver = (event: DragEvent) => {
@@ -38,70 +52,149 @@ const handleDragOver = (event: DragEvent) => {
   event.stopPropagation()
 }
 
-const doUpload = async (file: File) => {
+const removeFile = (index: number) => {
+  selectedFiles.value.splice(index, 1)
+}
+
+const doUpload = async () => {
+  if (selectedFiles.value.length === 0) return
+
+  if (selectedFiles.value.length > 20) {
+    ElMessage.warning('单次最多上传 20 个文件')
+    return
+  }
+
   uploading.value = true
   progress.value = 0
-  uploadSuccess.value = false
-  uploadError.value = ''
+
+  // Create initial file cards
+  fileCards.value = selectedFiles.value.map(f => ({
+    id: nextFileId++,
+    filename: f.name,
+    status: 'SELECTED' as const,
+  }))
 
   try {
-    await knowledgeService.uploadDocument(props.documentsUrl, file, (p) => {
-      progress.value = p
-    })
-    uploadSuccess.value = true
-    ElMessage.success('文档上传成功')
+    const results = await knowledgeService.batchUpload(
+      props.documentsUrl,
+      selectedFiles.value,
+      (p) => { progress.value = p }
+    )
+
+    // Update cards with server-returned status
+    for (let i = 0; i < results.length && i < fileCards.value.length; i++) {
+      fileCards.value[i].id = results[i].id
+      fileCards.value[i].status = results[i].status as DocumentStatus
+    }
+
+    selectedFiles.value = []
     emit('uploaded')
-    setTimeout(() => {
-      uploadSuccess.value = false
-    }, 3000)
+    ElMessage.success(`${results.length} 个文件已提交，正在后台处理`)
   } catch (e: any) {
-    const msg = e.response?.data?.message || '上传失败'
-    uploadError.value = msg
+    const msg = e.response?.data?.error || e.message || '上传失败'
     ElMessage.error(msg)
-    setTimeout(() => {
-      uploadError.value = ''
-    }, 5000)
+    // Mark all as failed
+    for (const card of fileCards.value) {
+      if (card.status === 'SELECTED') {
+        card.status = 'FAILED'
+        card.errorMessage = msg
+      }
+    }
   } finally {
     uploading.value = false
     progress.value = 0
   }
 }
+
+/** Update file card statuses from external polling (called by parent) */
+const updateStatuses = (statuses: { id: number; status: DocumentStatus; error_message?: string | null }[]) => {
+  for (const s of statuses) {
+    const card = fileCards.value.find(c => c.id === s.id)
+    if (card) {
+      card.status = s.status
+      card.errorMessage = s.error_message || null
+    }
+  }
+}
+
+defineExpose({ updateStatuses })
+
+// Auto-clear file cards 3s after all reach terminal state
+const allTerminal = computed(() =>
+  fileCards.value.length > 0 &&
+  fileCards.value.every(c => c.status === 'READY' || c.status === 'FAILED')
+)
+
+watch(allTerminal, (val) => {
+  if (val) {
+    setTimeout(() => { fileCards.value = [] }, 3000)
+  }
+})
 </script>
 
 <template>
   <div class="document-upload">
-    <label class="upload-area" :class="{ uploading }" @drop="handleDrop" @dragover="handleDragOver">
+    <!-- Upload area -->
+    <label v-if="!uploading && !hasProcessingFiles" class="upload-area" @drop="handleDrop" @dragover="handleDragOver">
       <input
         type="file"
         class="file-input"
         @change="handleFileSelect"
         :disabled="uploading"
+        multiple
         accept=".pdf,.docx,.doc,.txt,.md,.pptx,.xlsx"
       />
-      <div v-if="uploading" class="upload-progress">
-        <Loader2 :size="28" class="spin" />
-        <span class="progress-text">{{ progress >= 90 ? '处理中...' : progress + '%' }}</span>
-      </div>
-      <div v-else-if="uploadSuccess" class="upload-status success">
-        <CheckCircle :size="28" />
-        <span>上传成功</span>
-      </div>
-      <div v-else-if="uploadError" class="upload-status error">
-        <XCircle :size="28" />
-        <span>{{ uploadError }}</span>
-      </div>
-      <div v-else class="upload-prompt">
+      <div class="upload-prompt">
         <Upload :size="28" />
         <span class="upload-text">拖拽文件到此处，或点击选择文件</span>
-        <span class="upload-hint">支持 PDF、DOCX、TXT、MD、PPTX、XLSX 格式</span>
+        <span class="upload-hint">支持批量上传（最多 20 个），格式：PDF、DOCX、TXT、MD、PPTX、XLSX</span>
       </div>
     </label>
+
+    <!-- Upload progress -->
+    <div v-if="uploading" class="upload-progress-area">
+      <Loader2 :size="24" class="spin" />
+      <span class="progress-text">{{ progress >= 90 ? '提交中...' : `上传中 ${progress}%` }}</span>
+    </div>
+
+    <!-- Selected files preview -->
+    <div v-if="hasSelectedFiles && !uploading" class="selected-files">
+      <div class="selected-header">
+        <span class="selected-count">已选择 {{ selectedFiles.length }} 个文件</span>
+        <button class="btn-upload" @click="doUpload">
+          <Upload :size="14" />
+          <span>开始上传</span>
+        </button>
+      </div>
+      <div class="file-list">
+        <div v-for="(file, idx) in selectedFiles" :key="idx" class="file-card">
+          <File :size="14" aria-hidden="true" />
+          <span class="file-name">{{ file.name }}</span>
+          <span class="file-size">{{ (file.size / 1024).toFixed(1) }} KB</span>
+          <button class="btn-remove" @click="removeFile(idx)" aria-label="移除文件">
+            <X :size="14" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processing file cards (after upload) -->
+    <div v-if="fileCards.length > 0" class="processing-cards">
+      <div v-for="card in fileCards" :key="card.id" class="processing-card" :class="card.status.toLowerCase()">
+        <File :size="14" aria-hidden="true" />
+        <span class="card-name">{{ card.filename }}</span>
+        <StatusBadge v-if="card.status !== 'SELECTED'" :status="card.status as DocumentStatus" :error-message="card.errorMessage" />
+        <span v-else class="status-pending">待上传</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .document-upload {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .upload-area {
@@ -119,13 +212,9 @@ const doUpload = async (file: File) => {
   padding: 20px;
 }
 
-.upload-area:hover:not(.uploading) {
+.upload-area:hover {
   border-color: var(--accent-1);
   background: rgba(139, 92, 246, 0.05);
-}
-
-.upload-area.uploading {
-  cursor: default;
 }
 
 .file-input {
@@ -149,14 +238,20 @@ const doUpload = async (file: File) => {
 .upload-hint {
   font-size: 12px;
   color: var(--text-muted);
+  text-align: center;
 }
 
-.upload-progress {
+/* Upload progress */
+.upload-progress-area {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
   color: var(--accent-1);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
 }
 
 .progress-text {
@@ -165,21 +260,131 @@ const doUpload = async (file: File) => {
   font-family: var(--font-mono);
 }
 
-.upload-status {
+/* Selected files */
+.selected-files {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.selected-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.btn-upload {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-upload:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.file-list {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.file-card {
+  display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 13px;
+  color: var(--text-primary);
 }
 
-.upload-status.success {
-  color: #10B981;
+.file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.upload-status.error {
+.file-size {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.btn-remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-remove:hover {
   color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Processing cards */
+.processing-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.processing-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.card-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-pending {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .spin {
@@ -191,7 +396,19 @@ const doUpload = async (file: File) => {
   to { transform: rotate(360deg); }
 }
 
+/* Light theme */
 [data-theme="light"] .upload-area {
   background: var(--bg-card);
+}
+
+[data-theme="light"] .selected-files,
+[data-theme="light"] .upload-progress-area {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .file-card,
+[data-theme="light"] .processing-card {
+  background: var(--bg-secondary);
 }
 </style>

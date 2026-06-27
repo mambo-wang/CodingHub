@@ -68,6 +68,11 @@ public class ForumPost {
     @Builder.Default
     private Boolean pinned = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ForumPostVisibility visibility = ForumPostVisibility.PUBLIC;
+
     // 更新 score 的方法：score = viewCount * 1 + likeCount * 3 + commentCount * 5
     public void updateScore() {
         this.score = BigDecimal.valueOf(this.viewCount)

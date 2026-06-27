@@ -3,7 +3,7 @@
 A local RAG (Retrieval-Augmented Generation) knowledge base server
 that uses zvec for vector storage and Qwen3-Embedding for text embedding.
 
-Exposes 11 MCP tools for knowledge management and (optionally) a REST API
+Exposes 12 MCP tools for knowledge management and (optionally) a REST API
 for web frontend integration. Both interfaces share the same vector store.
 
 MCP Tools:
@@ -12,6 +12,7 @@ MCP Tools:
   - ingest_directory: Batch import a directory of files
   - ingest_url: Download a file from a URL and import it
   - upload_info: Get the HTTP upload endpoint for client-side file transfer
+  - document_status: Query document processing status
   - list_collections: List all knowledge base collections
   - list_documents: List documents in a collection
   - delete_document: Remove a document from the knowledge base
@@ -23,7 +24,10 @@ REST API (enabled by default in SSE / streamable-http modes):
   - GET  /api/health
   - GET  /api/collections
   - GET  /api/collections/{name}/documents
-  - POST /api/collections/{name}/documents  (multipart file upload)
+  - POST /api/collections/{name}/documents         (single file upload, sync)
+  - POST /api/collections/{name}/documents/batch   (batch upload, async)
+  - GET  /api/collections/{name}/documents/status  (document status list)
+  - GET  /api/collections/{name}/documents/{id}/status (single doc status)
   - DELETE /api/collections/{name}/documents
   - DELETE /api/collections/{name}
   - POST /api/collections/{name}/search
@@ -569,7 +573,15 @@ def upload_info() -> str:
 The MCP protocol does not support binary file transfer. To upload files
 from your local machine, use the REST API:
 
-Endpoint: POST {base_url}/api/collections/{{collection}}/documents
+Single file upload (synchronous):
+  POST {base_url}/api/collections/{{collection}}/documents
+
+Batch upload (asynchronous, recommended for multiple files):
+  POST {base_url}/api/collections/{{collection}}/documents/batch
+  - Accepts multiple files in a single request
+  - Returns immediately with document IDs and UPLOADING status
+  - Files are processed asynchronously in the background
+  - Query document status via GET /api/collections/{{collection}}/documents/status
 
 Supported file types:
   - Text files: md, txt, py, js, ts, java, go, etc.
@@ -579,16 +591,73 @@ Query parameters (optional):
   - chunk_size (int): Max characters per chunk (default: 500)
   - chunk_mode (str): "recursive", "semantic", or "structural"
 
-Example (curl):
+Example (single file):
   curl -X POST "{base_url}/api/collections/default/documents" \\
     -F "file=@/path/to/document.pdf"
 
-Example (upload to specific collection):
-  curl -X POST "{base_url}/api/collections/my-kb/documents" \\
-    -F "file=@/path/to/document.pdf"
+Example (batch upload):
+  curl -X POST "{base_url}/api/collections/my-kb/documents/batch" \\
+    -F "files=@/path/to/file1.pdf" \\
+    -F "files=@/path/to/file2.docx" \\
+    -F "files=@/path/to/file3.md"
 
 Alternatively, use the ingest_url tool to import a file from a URL,
 or use ingest_file if the file is already on this server."""
+
+
+@mcp.tool()
+def document_status(
+    collection: str = "default",
+    doc_id: int = 0,
+) -> str:
+    """Query document processing status in the knowledge base.
+
+    Documents go through states: UPLOADING → CONVERTING → CHUNKING →
+    EMBEDDING → READY (success) or FAILED (error).
+
+    Args:
+        collection: Collection name to query (default: "default").
+        doc_id: Specific document ID to query. 0 = list all documents
+            in the collection with their status.
+    """
+    from api.app import get_db
+
+    try:
+        db = get_db()
+    except RuntimeError:
+        return "Error: Database not initialized. Document status tracking requires the REST API to be enabled (use --mode sse or --mode streamable-http without --no-api)."
+
+    if doc_id > 0:
+        doc = db.get_document_by_id(doc_id)
+        if doc is None:
+            return f"Document {doc_id} not found."
+        if doc["collection"] != collection:
+            return f"Document {doc_id} not in collection '{collection}'."
+        status = doc["status"]
+        line = (
+            f"[{doc['id']}] {doc['filename']} — {status}"
+            f" ({doc['chunk_count']} chunks"
+        )
+        if doc.get("error_message"):
+            line += f", error: {doc['error_message']}"
+        line += ")"
+        return f"Document status in '{collection}':\n  {line}"
+
+    docs = db.get_documents(collection)
+    if not docs:
+        return f"No documents tracked in collection '{collection}'."
+
+    lines = [f"Documents in '{collection}' ({len(docs)} total):\n"]
+    for doc in docs:
+        status = doc["status"]
+        line = f"  [{doc['id']}] {doc['filename']} — {status}"
+        if status == "READY":
+            line += f" ({doc['chunk_count']} chunks)"
+        elif status == "FAILED" and doc.get("error_message"):
+            line += f" (error: {doc['error_message']})"
+        lines.append(line)
+
+    return "\n".join(lines)
 
 
 # ── Combined ASGI Application ────────────────────────────────────────────────
@@ -607,7 +676,11 @@ def _create_combined_app():
     from starlette.middleware import Middleware
     from starlette.middleware.cors import CORSMiddleware
 
-    from api.app import create_api_routes, get_cors_middleware
+    from api.app import create_api_routes, get_cors_middleware, init_db_and_engine
+
+    # Initialize SQLite database and async processing engine
+    data_dir = os.getenv("RAG_DATA_DIR", "./data/")
+    init_db_and_engine(data_dir)
 
     # Get the MCP ASGI app (Starlette instance)
     if _args.mode == "sse":

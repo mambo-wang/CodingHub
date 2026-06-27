@@ -27,6 +27,7 @@ import com.iaihub.toolbox.dto.kb.KbSearchRequest;
 import com.iaihub.toolbox.dto.kb.KbSearchResultResponse;
 import com.iaihub.toolbox.dto.kb.KbUpdateRequest;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
+import com.iaihub.toolbox.service.RagApiClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +73,7 @@ public class IaihubToolHandler {
     private final ForumPostService postService;
     private final UserService userService;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final RagApiClient ragApiClient;
     private final ObjectMapper objectMapper;
 
     public IaihubToolHandler(McpSearchService searchService,
@@ -80,6 +82,7 @@ public class IaihubToolHandler {
                              ForumPostService postService,
                              UserService userService,
                              KnowledgeBaseService knowledgeBaseService,
+                             RagApiClient ragApiClient,
                              ObjectMapper objectMapper) {
         this.searchService = searchService;
         this.toolService = toolService;
@@ -87,6 +90,7 @@ public class IaihubToolHandler {
         this.postService = postService;
         this.userService = userService;
         this.knowledgeBaseService = knowledgeBaseService;
+        this.ragApiClient = ragApiClient;
         this.objectMapper = objectMapper;
     }
 
@@ -267,7 +271,7 @@ public class IaihubToolHandler {
             Long userId = loginResult.getUser().getId();
 
             // 调用创建帖子
-            ForumPostCreateRequest request = new ForumPostCreateRequest(title, content, categoryId, null);
+            ForumPostCreateRequest request = new ForumPostCreateRequest(title, content, categoryId, null, null);
             ForumPostDTO created = postService.createPost(userId, request);
             String json = toJson(created);
             return successResult(json);
@@ -386,7 +390,7 @@ public class IaihubToolHandler {
         try {
             int p = page != null ? page : 0;
             int s = size != null ? size : 20;
-            Page<KbResponse> kbPage = knowledgeBaseService.listKnowledgeBases(p, s, sortBy);
+            Page<KbResponse> kbPage = knowledgeBaseService.listKnowledgeBases(p, s, sortBy, null);
             String json = toJson(new KbListResponse(
                     kbPage.getContent(),
                     kbPage.getTotalElements(),
@@ -533,26 +537,50 @@ public class IaihubToolHandler {
     }
 
     /**
-     * 处理获取知识库文档上传信息
+     * 处理获取知识库文档上传信息（支持批量异步上传）
      */
     public McpSchema.CallToolResult handleKbUploadDocument(Long kbId) {
         logger.info("MCP kb upload document info: kbId={}", kbId);
         try {
             KbResponse kb = knowledgeBaseService.getKnowledgeBase(kbId);
+            String batchUrl = kb.getDocumentsUrl() + "/batch";
             String json = toJson(new KbUploadDocumentInfoResponse(
                     kbId,
                     kb.getName(),
-                    kb.getDocumentsUrl(),
+                    batchUrl,
                     "POST",
                     "multipart/form-data",
-                    "file (必填, 单个文件)",
-                    "1GB per file",
+                    "files (必填, 支持多文件批量上传，最多 20 个)",
+                    "单次最多 20 个文件",
                     "无需认证"
             ));
             return successResult(json);
         } catch (Exception e) {
             logger.error("Error getting kb upload document info", e);
             return errorResult("获取文档上传信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理查询知识库文档处理状态
+     */
+    public McpSchema.CallToolResult handleKbDocumentStatus(Long kbId, Integer docId) {
+        logger.info("MCP kb document status: kbId={}, docId={}", kbId, docId);
+        try {
+            KbResponse kb = knowledgeBaseService.getKnowledgeBase(kbId);
+            String collection = kb.getRagCollection();
+
+            if (docId != null && docId > 0) {
+                Map<String, Object> doc = ragApiClient.getDocumentStatusById(collection, docId);
+                return successResult(toJson(doc));
+            } else {
+                List<Map<String, Object>> docs = ragApiClient.getDocumentStatus(collection);
+                KbDocumentStatusResponse response = new KbDocumentStatusResponse(kbId, kb.getName(), docs);
+                return successResult(toJson(response));
+            }
+        } catch (Exception e) {
+            logger.error("Error querying kb document status", e);
+            return errorResult("查询文档状态失败: " + e.getMessage());
         }
     }
 
@@ -802,13 +830,29 @@ public class IaihubToolHandler {
                 "md", "txt", "pdf", "docx", "pptx", "xlsx", "py", "js", "ts", "java", "go"
             };
             this.curlExample = "curl -X POST \"" + uploadUrl + "\" \\\n"
-                    + "  -F \"file=@/path/to/document.pdf\"";
+                    + "  -F \"files=@/path/to/file1.pdf\" \\\n"
+                    + "  -F \"files=@/path/to/file2.docx\" \\\n"
+                    + "  -F \"files=@/path/to/file3.md\"";
             this.explanation = "MCP 协议不直接支持二进制文件传输。"
-                    + "请直接向 RAG 服务上传文件到知识库，无需认证。";
+                    + "请直接向 RAG 服务批量上传文件到知识库，无需认证。"
+                    + "上传后文件异步处理，可通过 document_status 工具查询进度。";
             this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
                     + "，Content-Type 设为 " + contentType
                     + "，表单字段: " + formFields
-                    + "。" + requiresAuth + "。";
+                    + "。" + requiresAuth + "。上传后通过 GET " + uploadUrl.replace("/batch", "/status") + " 查询处理进度。";
+        }
+    }
+
+    private static class KbDocumentStatusResponse {
+        public Long kbId;
+        public String kbName;
+        public List<Map<String, Object>> documents;
+        public int totalCount;
+        public KbDocumentStatusResponse(Long kbId, String kbName, List<Map<String, Object>> documents) {
+            this.kbId = kbId;
+            this.kbName = kbName;
+            this.documents = documents;
+            this.totalCount = documents.size();
         }
     }
 }

@@ -6,6 +6,7 @@ import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.model.forum.ForumPostStatus;
+import com.iaihub.toolbox.model.forum.ForumPostVisibility;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.ToolFileRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
@@ -93,9 +94,9 @@ public class McpSearchService {
 
         List<ForumPost> posts;
         if (query != null && !query.isEmpty()) {
-            posts = forumPostRepository.searchByTitle(query, ForumPostStatus.NORMAL, pageable).getContent();
+            posts = forumPostRepository.searchByTitle(query, ForumPostStatus.NORMAL, ForumPostVisibility.PUBLIC, pageable).getContent();
         } else {
-            posts = forumPostRepository.findByStatusOrderByCreatedAtDesc(ForumPostStatus.NORMAL, pageable).getContent();
+            posts = forumPostRepository.findByStatusAndVisibilityOrderByCreatedAtDesc(ForumPostStatus.NORMAL, ForumPostVisibility.PUBLIC, pageable).getContent();
         }
 
         return posts.stream()

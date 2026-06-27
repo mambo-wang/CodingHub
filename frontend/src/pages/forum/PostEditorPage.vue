@@ -29,6 +29,25 @@
     </div>
 
     <div class="form-group">
+      <label>可见性</label>
+      <div class="visibility-options">
+        <label class="visibility-option" :class="{ active: visibility === 'PUBLIC' }">
+          <input type="radio" v-model="visibility" value="PUBLIC" />
+          <Globe :size="16" />
+          <span>公开</span>
+        </label>
+        <label class="visibility-option" :class="{ active: visibility === 'PRIVATE' }">
+          <input type="radio" v-model="visibility" value="PRIVATE" />
+          <Lock :size="16" />
+          <span>私有</span>
+        </label>
+      </div>
+      <p class="visibility-hint">
+        {{ visibility === 'PRIVATE' ? '仅自己和管理员可见' : '所有人可见' }}
+      </p>
+    </div>
+
+    <div class="form-group">
       <label>标签</label>
       <TagSelector v-model="selectedTags" tagType="FORUM" />
     </div>
@@ -53,6 +72,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { Globe, Lock } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import forumService from '@/services/forum';
 import type { Tag } from '@/types';
@@ -68,6 +88,7 @@ const isEdit = computed(() => !!route.params.id);
 const title = ref('');
 const categoryId = ref<number | ''>('');
 const content = ref('');
+const visibility = ref('PUBLIC');
 const errorMessage = ref('');
 const loading = ref(false);
 const selectedTags = ref<Tag[]>([]);
@@ -80,6 +101,7 @@ onMounted(async () => {
       title.value = post.title;
       categoryId.value = post.categoryId;
       content.value = post.content;
+      visibility.value = post.visibility || 'PUBLIC';
       if (post.tags) {
         selectedTags.value = post.tags;
       }
@@ -108,7 +130,8 @@ const publish = async () => {
       title: title.value,
       content: content.value,
       categoryId: categoryId.value as number,
-      tagIds: selectedTags.value.map(t => t.id)
+      tagIds: selectedTags.value.map(t => t.id),
+      visibility: visibility.value
     };
     if (isEdit.value) {
       await forumService.updatePost(Number(route.params.id), data);
@@ -200,6 +223,48 @@ select {
 
 select:focus {
   border-color: var(--accent-1);
+}
+
+.visibility-options {
+  display: flex;
+  gap: 12px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.visibility-option input[type="radio"] {
+  display: none;
+}
+
+.visibility-option:hover {
+  border-color: var(--accent-1);
+  color: var(--text-primary);
+}
+
+.visibility-option.active {
+  border-color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent-1);
+  font-weight: 500;
+}
+
+.visibility-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .content-input {

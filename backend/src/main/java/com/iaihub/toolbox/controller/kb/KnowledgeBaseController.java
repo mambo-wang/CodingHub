@@ -28,8 +28,9 @@ public class KnowledgeBaseController {
     public ResponseEntity<ApiResponse<PageResponse<KbResponse>>> listKnowledgeBases(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "latest") String sortBy) {
-        Page<KbResponse> result = knowledgeBaseService.listKnowledgeBases(page, size, sortBy);
+            @RequestParam(defaultValue = "latest") String sortBy,
+            @RequestParam(required = false) Long ownerId) {
+        Page<KbResponse> result = knowledgeBaseService.listKnowledgeBases(page, size, sortBy, ownerId);
         PageResponse<KbResponse> pageResponse = PageResponse.<KbResponse>builder()
                 .content(result.getContent())
                 .totalElements(result.getTotalElements())

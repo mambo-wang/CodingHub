@@ -72,20 +72,26 @@ class EmbeddingService:
         self._ensure_loaded()
         return self._model_name
 
-    def encode(self, texts: list[str]) -> list[list[float]]:
+    def encode(self, texts: list[str], batch_size: int | None = None) -> list[list[float]]:
         """Encode a list of texts into normalized embedding vectors.
 
         Args:
             texts: List of text strings to encode.
+            batch_size: Batch size for encoding. None = use RAG_EMBEDDING_BATCH_SIZE
+                env var (default 32). Larger values improve GPU utilization
+                but increase memory usage.
 
         Returns:
             List of embedding vectors, each as a list of floats.
         """
         self._ensure_loaded()
+        if batch_size is None:
+            batch_size = int(os.getenv("RAG_EMBEDDING_BATCH_SIZE", "32"))
         embeddings = self._model.encode(
             texts,
             normalize_embeddings=True,
             show_progress_bar=False,
+            batch_size=batch_size,
         )
         # Convert numpy arrays to plain Python lists
         return embeddings.tolist()

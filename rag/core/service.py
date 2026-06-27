@@ -294,13 +294,21 @@ def list_collections() -> list[dict]:
     names = store.list_collections()
     result = []
     for name in names:
-        docs = store.list_documents(collection=name)
-        config = store.get_collection_config(name)
-        result.append({
-            "name": name,
-            "doc_count": len(docs),
-            "description": config.get("description", ""),
-        })
+        try:
+            docs = store.list_documents(collection=name)
+            config = store.get_collection_config(name)
+            result.append({
+                "name": name,
+                "doc_count": len(docs),
+                "description": config.get("description", ""),
+            })
+        except Exception as e:
+            logger.warning(f"Skipping broken collection '{name}': {e}")
+            result.append({
+                "name": name,
+                "doc_count": 0,
+                "description": f"(error: {e})",
+            })
     return result
 
 

@@ -79,13 +79,6 @@ const displayName = computed(() => props.kb.ownerNickname || '未知用户')
         <h3 class="kb-title">{{ kb.name }}</h3>
         <p v-if="kb.description" class="kb-desc">{{ kb.description }}</p>
 
-        <div class="kb-stats">
-          <span class="stat-item">
-            <FileText :size="14" aria-hidden="true" />
-            <span>{{ kb.documentCount || 0 }} 篇文档</span>
-          </span>
-        </div>
-
         <div class="kb-uploader">
           <UserAvatar :user="ownerUser" size="sm" :display-name="displayName" />
           <span class="uploader-name">{{ displayName }}</span>
@@ -168,24 +161,6 @@ const displayName = computed(() => props.kb.ownerNickname || '未知用户')
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.kb-stats {
-  display: flex;
-  gap: 14px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-}
-
-.stat-item svg {
-  opacity: 0.7;
 }
 
 .kb-uploader {

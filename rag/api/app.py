@@ -16,8 +16,37 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from core import service
+from core.database import Database, MAX_BATCH_FILES, TERMINAL_STATUSES
 
 logger = logging.getLogger(__name__)
+
+
+# ── Module-level state (initialized on app startup) ─────────
+_db: Database | None = None
+_async_engine = None
+
+
+def init_db_and_engine(data_dir: str):
+    """Initialize the Database and AsyncEngine. Called at app startup."""
+    global _db, _async_engine
+    _db = Database(data_dir)
+    _db.init_db()
+    _db.mark_stale_as_failed()
+    from core.async_engine import AsyncEngine
+    _async_engine = AsyncEngine(_db)
+    return _db, _async_engine
+
+
+def get_db() -> Database:
+    if _db is None:
+        raise RuntimeError("Database not initialized. Call init_db_and_engine() first.")
+    return _db
+
+
+def get_async_engine():
+    if _async_engine is None:
+        raise RuntimeError("AsyncEngine not initialized. Call init_db_and_engine() first.")
+    return _async_engine
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -289,6 +318,134 @@ async def update_config(request: Request):
         return _error(str(e), 500)
 
 
+# ── Batch Upload & Status Endpoints ──────────────────────────
+
+async def batch_upload_documents(request: Request):
+    """POST /api/collections/{name}/documents/batch — batch upload files.
+
+    Accepts multipart/form-data with multiple 'files' fields.
+    Returns 202 Accepted with document IDs and initial UPLOADING status.
+    Files are processed asynchronously in the background.
+    """
+    collection = _get_collection(request)
+
+    try:
+        form = await request.form()
+    except Exception:
+        return _error("Invalid multipart form data. Did you forget python-multipart?", 400)
+
+    # Collect all uploaded files
+    uploads = form.getlist("files")
+    if not uploads:
+        # Also try "file" for backward compat with single-file clients
+        single = form.get("file")
+        if single:
+            uploads = [single]
+
+    if not uploads:
+        return _error("至少需要上传 1 个文件", 400)
+
+    if len(uploads) > MAX_BATCH_FILES:
+        return _error(f"单次最多上传 {MAX_BATCH_FILES} 个文件，当前 {len(uploads)} 个", 400)
+
+    db = get_db()
+    engine = get_async_engine()
+    store = service.get_store()
+    upload_dir = os.path.join(store.data_dir, "_uploads", collection)
+    os.makedirs(upload_dir, exist_ok=True)
+
+    doc_entries = []
+
+    for upload in uploads:
+        filename = _fix_filename_encoding(upload.filename or "unnamed")
+        filepath = os.path.join(upload_dir, filename)
+
+        try:
+            raw = await upload.read()
+        except Exception as e:
+            # Skip files that fail to read, record error
+            doc_entries.append({
+                "filename": filename,
+                "status": "error",
+                "error": f"Failed to read uploaded file: {e}",
+            })
+            continue
+
+        file_size = len(raw)
+        with open(filepath, "wb") as f:
+            f.write(raw)
+
+        # Resolve chunk_mode from collection config
+        config = service._resolve_config(collection)
+        chunk_mode = config.get("chunk_mode")
+
+        # Insert into SQLite with UPLOADING status
+        doc_id = db.insert_document(
+            collection=collection,
+            filename=filename,
+            filepath=filepath,
+            file_size=file_size,
+            chunk_mode=chunk_mode,
+        )
+
+        doc_entries.append({
+            "id": doc_id,
+            "filename": filename,
+            "filepath": filepath,
+            "collection": collection,
+            "status": "UPLOADING",
+            "file_size": file_size,
+        })
+
+    # Submit all valid entries for async processing
+    valid_entries = [e for e in doc_entries if "id" in e]
+    if valid_entries:
+        engine.submit_tasks(valid_entries)
+
+    return _json(doc_entries, 202)
+
+
+async def get_documents_status(request: Request):
+    """GET /api/collections/{name}/documents/status — query all document statuses.
+
+    Returns list of documents with their processing status, sorted by created_at DESC.
+    """
+    collection = _get_collection(request)
+    try:
+        db = get_db()
+        documents = db.get_documents(collection)
+        return _json(documents)
+    except Exception as e:
+        logger.error(f"get_documents_status failed: {e}")
+        return _error(str(e), 500)
+
+
+async def get_single_document_status(request: Request):
+    """GET /api/collections/{name}/documents/{doc_id}/status — query single document.
+
+    Returns detailed document status including error_message if FAILED.
+    """
+    collection = _get_collection(request)
+    doc_id_str = request.path_params.get("doc_id")
+
+    try:
+        doc_id = int(doc_id_str)
+    except (ValueError, TypeError):
+        return _error(f"Invalid document ID: {doc_id_str}", 400)
+
+    try:
+        db = get_db()
+        doc = db.get_document_by_id(doc_id)
+        if doc is None:
+            return _error(f"Document not found: {doc_id}", 404)
+        if doc["collection"] != collection:
+            return _error(f"Document {doc_id} not in collection {collection}", 404)
+        return _json(doc)
+    except Exception as e:
+        logger.error(f"get_single_document_status failed: {e}")
+        return _error(str(e), 500)
+
+
 # ── Router ───────────────────────────────────────────────────
 
 def create_api_routes() -> list[Route]:
@@ -296,6 +453,12 @@ def create_api_routes() -> list[Route]:
     return [
         Route("/api/health", health, methods=["GET"]),
         Route("/api/collections", list_collections, methods=["GET"]),
+        # Batch upload (must come before generic documents route)
+        Route("/api/collections/{name}/documents/batch", batch_upload_documents, methods=["POST"]),
+        # Status endpoints (must come before generic documents route)
+        Route("/api/collections/{name}/documents/status", get_documents_status, methods=["GET"]),
+        Route("/api/collections/{name}/documents/{doc_id}/status", get_single_document_status, methods=["GET"]),
+        # Original document endpoints
         Route("/api/collections/{name}/documents", list_documents, methods=["GET"]),
         Route("/api/collections/{name}/documents", upload_document, methods=["POST"]),
         Route("/api/collections/{name}/documents", delete_document, methods=["DELETE"]),

@@ -57,8 +57,10 @@ public class ForumPostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ForumPostDTO> getPostById(@PathVariable Long id) {
-        ForumPostDTO post = postService.getPostById(id);
+    public ResponseEntity<ForumPostDTO> getPostById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        ForumPostDTO post = postService.getPostById(id, user);
         return ResponseEntity.ok(post);
     }
 

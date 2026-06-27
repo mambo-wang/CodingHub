@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
  *   <li><b>SSE</b>（/sse + /mcp/message）— 旧版传输，兼容不支持 streamable-http 的客户端</li>
  * </ul>
  *
- * <p>两个 McpServer 实例各自注册相同的 17 个工具，客户端通过任一传输协议均可调用。
+ * <p>两个 McpServer 实例各自注册相同的 18 个工具，客户端通过任一传输协议均可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -100,7 +100,7 @@ public class McpSdkServerConfig {
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 17 tools");
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools");
         return server;
     }
 
@@ -119,14 +119,14 @@ public class McpSdkServerConfig {
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (SSE, /sse) initialized with 17 tools");
+        logger.info("MCP Server (SSE, /sse) initialized with 18 tools");
         return server;
     }
 
     // ── 工具注册 ──────────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册相同的 17 个工具。
+     * 在所有 McpServer 实例上注册相同的 18 个工具。
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
@@ -505,19 +505,20 @@ public class McpSdkServerConfig {
                 });
 
         registerTool(server, "h3_coding_hub_kb_upload_document", """
-                获取知识库文档上传的 REST API 信息。
+                获取知识库文档批量上传的 REST API 信息。
                 
                 MCP 协议不直接支持二进制文件传输。要上传文件到知识库，请使用 REST API。
-                本工具返回上传端点 URL、支持的文件类型、认证方式和 curl 示例。
+                本工具返回批量上传端点 URL、支持的文件类型和 curl 示例。
                 
+                支持批量上传（单次最多 20 个文件），上传后异步处理。
                 支持的文件类型：md, txt, pdf, docx, pptx, xlsx, py, js, ts, java, go 等
-                限制：单文件最大 50MB
-                认证：需要 Authorization: Bearer <token> 头（通过 POST /api/v1/auth/login 获取）
+                认证：无需认证（直连 RAG 服务）
                 
                 工作流程：
                 1. 先调用 h3_coding_hub_kb_create 创建知识库，获取 kbId
-                2. 调用本工具获取上传接口信息
+                2. 调用本工具获取批量上传接口信息
                 3. 通过 HTTP Multipart POST 上传文件（参考返回的 curlExample）
+                4. 调用 h3_coding_hub_kb_document_status 查询处理进度
                 """,
                 """
                 {
@@ -532,6 +533,33 @@ public class McpSdkServerConfig {
                     Map<String, Object> args = request.arguments();
                     Long kbId = ((Number) args.get("kbId")).longValue();
                     return toolHandler.handleKbUploadDocument(kbId);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_document_status", """
+                查询知识库中文档的处理状态。
+                
+                文档上传后异步处理，状态依次为：
+                UPLOADING（已上传等待处理）→ CONVERTING（格式转换中）→ CHUNKING（分块中）
+                → EMBEDDING（向量化中）→ READY（处理完成）或 FAILED（处理失败）
+                
+                可查询集合内所有文档状态，或指定文档 ID 查询单个文档。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"},
+                        "docId":{"type":"integer","description":"文档ID（可选，不传则查询集合内所有文档状态）"}
+                    },
+                    "required":["kbId"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    Integer docId = args.containsKey("docId") && args.get("docId") != null
+                            ? ((Number) args.get("docId")).intValue() : null;
+                    return toolHandler.handleKbDocumentStatus(kbId, docId);
                 });
     }
 

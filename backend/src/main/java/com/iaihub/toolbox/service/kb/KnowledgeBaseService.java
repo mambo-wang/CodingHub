@@ -9,7 +9,6 @@ import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.kb.KbStatus;
 import com.iaihub.toolbox.model.kb.KnowledgeBase;
 import com.iaihub.toolbox.repository.UserRepository;
-import com.iaihub.toolbox.repository.kb.KbDocumentRepository;
 import com.iaihub.toolbox.repository.kb.KnowledgeBaseRepository;
 import com.iaihub.toolbox.service.RagApiClient;
 import lombok.extern.slf4j.Slf4j;
@@ -27,18 +26,15 @@ import java.util.stream.Collectors;
 public class KnowledgeBaseService {
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
-    private final KbDocumentRepository kbDocumentRepository;
     private final UserRepository userRepository;
     private final RagApiClient ragApiClient;
     private final String ragPublicUrl;
 
     public KnowledgeBaseService(KnowledgeBaseRepository knowledgeBaseRepository,
-                                KbDocumentRepository kbDocumentRepository,
                                 UserRepository userRepository,
                                 RagApiClient ragApiClient,
                                 @Value("${app.rag.public-url}") String ragPublicUrl) {
         this.knowledgeBaseRepository = knowledgeBaseRepository;
-        this.kbDocumentRepository = kbDocumentRepository;
         this.userRepository = userRepository;
         this.ragApiClient = ragApiClient;
         this.ragPublicUrl = ragPublicUrl;
@@ -47,11 +43,13 @@ public class KnowledgeBaseService {
     // ── Knowledge Base CRUD ──────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Page<KbResponse> listKnowledgeBases(int page, int size, String sortBy) {
+    public Page<KbResponse> listKnowledgeBases(int page, int size, String sortBy, Long ownerId) {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<KnowledgeBase> kbPage;
 
-        if ("hot".equals(sortBy)) {
+        if (ownerId != null) {
+            kbPage = knowledgeBaseRepository.findByOwnerIdAndStatusOrderByCreatedAtDesc(ownerId, KbStatus.NORMAL, pageable);
+        } else if ("hot".equals(sortBy)) {
             kbPage = knowledgeBaseRepository.findByStatusOrderByHot(KbStatus.NORMAL, pageable);
         } else {
             kbPage = knowledgeBaseRepository.findByStatusOrderByCreatedAtDesc(KbStatus.NORMAL, pageable);
@@ -74,13 +72,28 @@ public class KnowledgeBaseService {
         }
 
         // Create MySQL record
+        // Generate ASCII-safe ragCollection name (zvec rejects non-ASCII names)
+        String safeName = request.getName()
+                .toLowerCase()
+                .replaceAll("[^a-z0-9\\-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+        if (safeName.isEmpty()) {
+            safeName = "kb";
+        }
+
         KnowledgeBase kb = KnowledgeBase.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .ownerId(user.getId())
-                .ragCollection(request.getName())
+                .ragCollection(safeName)
                 .status(KbStatus.NORMAL)
                 .build();
+        kb = knowledgeBaseRepository.save(kb);
+
+        // Append ID to ragCollection for uniqueness
+        String uniqueCollection = safeName + "-" + kb.getId();
+        kb.setRagCollection(uniqueCollection);
         kb = knowledgeBaseRepository.save(kb);
 
         // Initialize RAG collection config
@@ -183,15 +196,12 @@ public class KnowledgeBaseService {
                 .map(u -> u.getNickname() != null ? u.getNickname() : u.getUsername())
                 .orElse("未知用户");
 
-        long docCount = kbDocumentRepository.countByKbIdAndStatus(kb.getId(), KbStatus.NORMAL);
-
         return KbResponse.builder()
                 .id(kb.getId())
                 .name(kb.getName())
                 .description(kb.getDescription())
                 .ownerId(kb.getOwnerId())
                 .ownerNickname(ownerNickname)
-                .documentCount(docCount)
                 .ragCollection(kb.getRagCollection())
                 .ragBaseUrl(ragPublicUrl)
                 .documentsUrl(ragPublicUrl + "/api/collections/" + kb.getRagCollection() + "/documents")

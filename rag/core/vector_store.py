@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import shutil
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -47,6 +48,7 @@ class VectorStore:
         self.data_dir = data_dir
         self.embedding_service = EmbeddingService()
         self._collections: dict[str, zvec.Collection] = {}
+        self._lock = threading.Lock()
         os.makedirs(data_dir, exist_ok=True)
 
     def _collection_path(self, name: str) -> str:
@@ -73,7 +75,12 @@ class VectorStore:
         return db_path
 
     def _get_or_create_collection(self, name: str) -> zvec.Collection:
-        """Open an existing collection or create a new one."""
+        """Open an existing collection or create a new one (thread-safe)."""
+        with self._lock:
+            return self._get_or_create_collection_unlocked(name)
+
+    def _get_or_create_collection_unlocked(self, name: str) -> zvec.Collection:
+        """Internal: open or create collection. Must be called under self._lock."""
         if name in self._collections:
             return self._collections[name]
 

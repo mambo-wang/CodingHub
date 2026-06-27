@@ -3,6 +3,7 @@ import axios from 'axios'
 import type {
   KnowledgeBase,
   RagDocument,
+  RagDocumentStatus,
   KbConfig,
   KbSearchResult,
   KbCreateRequest,
@@ -15,9 +16,14 @@ import type { AxiosProgressEvent } from 'axios'
 export const knowledgeService = {
   /**
    * Get knowledge base list (paginated)
+   * @param ownerId Optional owner ID to filter by
    */
-  async getList(page: number = 0, size: number = 20, sortBy: string = 'latest'): Promise<KbPageResponse> {
-    const response = await api.get('/knowledge', { params: { page, size, sortBy } })
+  async getList(page: number = 0, size: number = 20, sortBy: string = 'latest', ownerId?: number): Promise<KbPageResponse> {
+    const params: Record<string, any> = { page, size, sortBy }
+    if (ownerId !== undefined) {
+      params.ownerId = ownerId
+    }
+    const response = await api.get('/knowledge', { params })
     return response.data.data
   },
 
@@ -64,7 +70,37 @@ export const knowledgeService = {
   },
 
   /**
-   * 上传文档（直连 RAG，无需认证）
+   * 批量上传文档（直连 RAG，异步处理）
+   * @param documentsUrl KB 详情中的 documentsUrl（会自动加 /batch 后缀）
+   * @param files 多个文件
+   * @param onProgress 整体上传进度回调（0-90为HTTP传输，90+为处理中）
+   */
+  async batchUpload(
+    documentsUrl: string,
+    files: File[],
+    onProgress?: (percent: number) => void
+  ): Promise<RagDocumentStatus[]> {
+    const batchUrl = documentsUrl + '/batch'
+    const formData = new FormData()
+    for (const file of files) {
+      formData.append('files', file)
+    }
+
+    const response = await axios.post(batchUrl, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+      onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const rawPercent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(Math.min(rawPercent, 90))
+        }
+      }
+    })
+    return response.data
+  },
+
+  /**
+   * 上传单个文档（兼容方法，内部调用 batchUpload）
    * @param documentsUrl KB 详情中的 documentsUrl
    */
   async uploadDocument(
@@ -72,21 +108,12 @@ export const knowledgeService = {
     file: File,
     onProgress?: (percent: number) => void
   ): Promise<{ status: string; filename: string; chunks: number }> {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    const response = await axios.post(documentsUrl, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 900000,
-      onUploadProgress: (progressEvent: AxiosProgressEvent) => {
-        if (progressEvent.total && onProgress) {
-          // HTTP 传输只占 0-90%，服务端处理（转换+embedding）是剩余的 10%
-          const rawPercent = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          onProgress(Math.min(rawPercent, 90))
-        }
-      }
-    })
-    return response.data
+    const results = await this.batchUpload(documentsUrl, [file], onProgress)
+    if (results.length > 0) {
+      const r = results[0]
+      return { status: r.status, filename: r.filename, chunks: r.chunk_count }
+    }
+    throw new Error('上传失败')
   },
 
   /**
@@ -99,6 +126,31 @@ export const knowledgeService = {
       data: { filepath },
       timeout: 30000
     })
+  },
+
+  // ── 文档状态查询：直连 RAG 服务 ─────────────────────────────
+
+  /**
+   * 获取集合内所有文档的处理状态（直连 RAG）
+   * @param ragBaseUrl KB 详情中的 ragBaseUrl
+   * @param ragCollection KB 详情中的 ragCollection
+   */
+  async getDocumentStatus(ragBaseUrl: string, ragCollection: string): Promise<RagDocumentStatus[]> {
+    const url = `${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/documents/status`
+    const response = await axios.get(url, { timeout: 10000 })
+    return response.data
+  },
+
+  /**
+   * 获取单个文档的处理状态（直连 RAG）
+   * @param ragBaseUrl KB 详情中的 ragBaseUrl
+   * @param ragCollection KB 详情中的 ragCollection
+   * @param docId 文档 ID
+   */
+  async getSingleDocumentStatus(ragBaseUrl: string, ragCollection: string, docId: number): Promise<RagDocumentStatus> {
+    const url = `${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/documents/${docId}/status`
+    const response = await axios.get(url, { timeout: 10000 })
+    return response.data
   },
 
   // ── 搜索：经 Java 代理 ─────────────────────────────────────

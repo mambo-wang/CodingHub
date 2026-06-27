@@ -22,5 +22,6 @@ public record ForumPostDTO(
     LocalDateTime updatedAt,
     BigDecimal score,
     Boolean pinned,
+    String visibility,
     List<TagDTO> tags
 ) {}

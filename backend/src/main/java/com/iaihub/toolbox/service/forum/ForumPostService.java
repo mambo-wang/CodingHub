@@ -31,24 +31,23 @@ public class ForumPostService {
 
     public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, String sortBy, Pageable pageable) {
         Page<ForumPost> posts;
+        ForumPostVisibility visibility = ForumPostVisibility.PUBLIC;
 
         if ("latest".equalsIgnoreCase(sortBy)) {
-            // 最新排序：createdAt DESC，忽略 pinned
             if (keyword != null && !keyword.isBlank()) {
-                posts = postRepository.searchByTitle(keyword, ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.searchByTitle(keyword, ForumPostStatus.NORMAL, visibility, pageable);
             } else if (categoryId != null) {
-                posts = postRepository.findByCategoryIdAndStatus(categoryId, ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.findByCategoryIdAndStatusAndVisibility(categoryId, ForumPostStatus.NORMAL, visibility, pageable);
             } else {
-                posts = postRepository.findByStatusOrderByCreatedAtDesc(ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.findByStatusAndVisibilityOrderByCreatedAtDesc(ForumPostStatus.NORMAL, visibility, pageable);
             }
         } else {
-            // 默认 hot：pinned DESC, score DESC
             if (keyword != null && !keyword.isBlank()) {
-                posts = postRepository.searchByTitleOrderByHot(keyword, ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.searchByTitleOrderByHot(keyword, ForumPostStatus.NORMAL, visibility, pageable);
             } else if (categoryId != null) {
-                posts = postRepository.findByCategoryIdAndStatusOrderByHot(categoryId, ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.findByCategoryIdAndStatusAndVisibilityOrderByHot(categoryId, ForumPostStatus.NORMAL, visibility, pageable);
             } else {
-                posts = postRepository.findByStatusOrderByHot(ForumPostStatus.NORMAL, pageable);
+                posts = postRepository.findByStatusAndVisibilityOrderByHot(ForumPostStatus.NORMAL, visibility, pageable);
             }
         }
 
@@ -72,13 +71,25 @@ public class ForumPostService {
     }
 
     public Page<ForumPostDTO> getMyPosts(Long userId, Pageable pageable) {
-        Page<ForumPost> posts = postRepository.findByAuthorIdAndStatus(userId, ForumPostStatus.NORMAL, pageable);
+        Page<ForumPost> posts = postRepository.findByAuthorIdAndStatusOrderByCreatedAtDesc(userId, ForumPostStatus.NORMAL, pageable);
         return posts.map(this::toDTO);
     }
 
-    public ForumPostDTO getPostById(Long id) {
+    public ForumPostDTO getPostById(Long id, User currentUser) {
         ForumPost post = postRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));
+
+        // Private posts: only author and admin can view
+        if (post.getVisibility() == ForumPostVisibility.PRIVATE) {
+            if (currentUser == null) {
+                throw new ForbiddenException("该帖子为私有帖子，请登录后查看");
+            }
+            boolean isOwner = post.getAuthorId().equals(currentUser.getId());
+            boolean isAdmin = currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_ADMIN;
+            if (!isOwner && !isAdmin) {
+                throw new ForbiddenException("该帖子为私有帖子，无权查看");
+            }
+        }
 
         post.setViewCount(post.getViewCount() + 1);
         post.updateScore();
@@ -95,6 +106,13 @@ public class ForumPostService {
         post.setAuthorId(authorId);
         post.setCategoryId(request.categoryId());
         post.setStatus(ForumPostStatus.NORMAL);
+
+        // Set visibility from request, default to PUBLIC
+        if (request.visibility() != null && !request.visibility().isBlank()) {
+            post.setVisibility(ForumPostVisibility.valueOf(request.visibility()));
+        } else {
+            post.setVisibility(ForumPostVisibility.PUBLIC);
+        }
 
         post = postRepository.save(post);
 
@@ -125,6 +143,11 @@ public class ForumPostService {
         post.setTitle(request.title());
         post.setContent(request.content());
         post.setCategoryId(request.categoryId());
+
+        // Update visibility if provided
+        if (request.visibility() != null && !request.visibility().isBlank()) {
+            post.setVisibility(ForumPostVisibility.valueOf(request.visibility()));
+        }
 
         // Handle tag replacement
         if (request.tagIds() != null) {
@@ -191,6 +214,7 @@ public class ForumPostService {
             post.getCreatedAt(), post.getUpdatedAt(),
             post.getScore() != null ? post.getScore() : java.math.BigDecimal.ZERO,
             post.getPinned() != null ? post.getPinned() : false,
+            post.getVisibility() != null ? post.getVisibility().name() : "PUBLIC",
             tags
         );
     }

@@ -4,6 +4,10 @@
     <div class="main-content">
       <div class="page-header">
         <h1>我的帖子</h1>
+        <button class="create-btn" @click="router.push('/forum/editor')">
+          <Plus :size="18" />
+          发布帖子
+        </button>
       </div>
       <div v-if="loading" class="loading">加载中...</div>
       <div v-else-if="posts.length === 0" class="empty">暂无帖子</div>
@@ -13,8 +17,10 @@
           :key="post.id"
           :post="post"
           :deletable="true"
+          :editable="true"
           @click="goToDetail(post.id)"
           @delete="handlePostDelete"
+          @edit="handlePostEdit"
         />
       </div>
 
@@ -38,7 +44,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { LayoutGrid, FileText, Bookmark } from '@lucide/vue';
+import { LayoutGrid, FileText, Bookmark, Plus } from '@lucide/vue';
 import { ElMessage } from 'element-plus';
 import { useForumStore } from '@/stores/forum';
 import PostCard from '@/components/forum/PostCard.vue';
@@ -66,6 +72,10 @@ onMounted(async () => {
 
 const goToDetail = (postId: number) => {
   router.push(`/forum/posts/${postId}`);
+};
+
+const handlePostEdit = (postId: number) => {
+  router.push(`/forum/posts/${postId}/edit`);
 };
 
 const handlePostDelete = (postId: number) => {
@@ -134,6 +144,9 @@ const handleDeleteError = (errorCode: string) => {
 }
 
 .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 32px;
 }
 
@@ -142,6 +155,27 @@ const handleDeleteError = (errorCode: string) => {
   font-size: 32px;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.create-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
 }
 
 .post-list {

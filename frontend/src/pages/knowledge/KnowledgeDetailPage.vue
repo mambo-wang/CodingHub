@@ -23,6 +23,7 @@ const activeTab = ref<'search' | 'documents' | 'config'>('search')
 const deleteDialogVisible = ref(false)
 const deleting = ref(false)
 const docListRef = ref<InstanceType<typeof DocumentList> | null>(null)
+const uploadRef = ref<InstanceType<typeof DocumentUpload> | null>(null)
 
 const isOwner = computed(() => {
   if (!authStore.isLoggedIn || !kb.value) return false
@@ -62,13 +63,17 @@ const handleDelete = async () => {
 }
 
 const handleDocumentUploaded = async () => {
-  // Refresh document list and kb detail (doc count)
   if (docListRef.value) {
-    docListRef.value.loadDocuments()
+    await docListRef.value.loadDocuments()
+    docListRef.value.startPolling()
   }
-  try {
-    kb.value = await knowledgeService.getDetail(kb.value!.id)
-  } catch {}
+}
+
+/** Forward polled document statuses to DocumentUpload so file cards update */
+const handleDocumentsRefreshed = (documents: any[]) => {
+  if (uploadRef.value && documents.length > 0) {
+    uploadRef.value.updateStatuses(documents)
+  }
 }
 
 const formatRelativeTime = (dateStr: string): string => {
@@ -133,10 +138,6 @@ onMounted(loadKb)
           <p v-if="kb.description" class="kb-desc">{{ kb.description }}</p>
           <div class="kb-meta">
             <span class="meta-item">
-              <FileText :size="14" />
-              {{ kb.documentCount || 0 }} 篇文档
-            </span>
-            <span class="meta-item">
               创建者: {{ kb.ownerNickname || '未知' }}
             </span>
             <span class="meta-item">
@@ -179,8 +180,8 @@ onMounted(loadKb)
           <KnowledgeSearch v-if="activeTab === 'search'" :kb-id="kb.id" />
 
           <div v-else-if="activeTab === 'documents'" class="documents-tab">
-            <DocumentUpload :documents-url="kb.documentsUrl" @uploaded="handleDocumentUploaded" />
-            <DocumentList ref="docListRef" :documents-url="kb.documentsUrl" :is-owner="isOwner" @refreshed="handleDocumentUploaded" />
+            <DocumentUpload ref="uploadRef" :documents-url="kb.documentsUrl" @uploaded="handleDocumentUploaded" />
+            <DocumentList ref="docListRef" :documents-url="kb.documentsUrl" :rag-base-url="kb.ragBaseUrl" :rag-collection="kb.ragCollection" :is-owner="isOwner" @refreshed="handleDocumentsRefreshed" />
           </div>
 
           <ConfigPanel v-else-if="activeTab === 'config'" :rag-base-url="kb.ragBaseUrl" :rag-collection="kb.ragCollection" :is-owner="isOwner" />

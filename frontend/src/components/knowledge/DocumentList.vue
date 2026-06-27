@@ -1,26 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { FileText, Trash2, Loader2 } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
-import type { RagDocument } from '@/types/knowledge'
+import StatusBadge from './StatusBadge.vue'
+import type { RagDocumentStatus } from '@/types/knowledge'
 
 const props = defineProps<{
   documentsUrl: string
+  ragBaseUrl: string
+  ragCollection: string
   isOwner: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'refreshed'): void
+  (e: 'refreshed', documents: RagDocumentStatus[]): void
 }>()
 
-const documents = ref<RagDocument[]>([])
+const documents = ref<RagDocumentStatus[]>([])
 const loading = ref(true)
 const deletingSource = ref<string | null>(null)
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+const hasProcessing = computed(() =>
+  documents.value.some(d =>
+    ['UPLOADING', 'CONVERTING', 'CHUNKING', 'EMBEDDING'].includes(d.status)
+  )
+)
 
 const loadDocuments = async () => {
-  loading.value = true
   try {
-    documents.value = await knowledgeService.getDocuments(props.documentsUrl)
+    documents.value = await knowledgeService.getDocumentStatus(props.ragBaseUrl, props.ragCollection)
   } catch (e) {
     console.error('Failed to load documents:', e)
   } finally {
@@ -28,13 +37,37 @@ const loadDocuments = async () => {
   }
 }
 
-const handleDelete = async (source: string) => {
+const startPolling = () => {
+  stopPolling()
+  pollTimer = setInterval(async () => {
+    try {
+      const updated = await knowledgeService.getDocumentStatus(props.ragBaseUrl, props.ragCollection)
+      documents.value = updated
+      // Stop polling if all documents are in terminal state
+      if (!updated.some(d => ['UPLOADING', 'CONVERTING', 'CHUNKING', 'EMBEDDING'].includes(d.status))) {
+        stopPolling()
+        emit('refreshed', updated)
+      }
+    } catch (e) {
+      console.error('Polling failed:', e)
+    }
+  }, 3000)
+}
+
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+const handleDelete = async (filepath: string) => {
   if (!confirm('确定要删除这个文档吗？')) return
-  deletingSource.value = source
+  deletingSource.value = filepath
   try {
-    await knowledgeService.deleteDocument(props.documentsUrl, source)
-    documents.value = documents.value.filter(d => d.source !== source)
-    emit('refreshed')
+    await knowledgeService.deleteDocument(props.documentsUrl, filepath)
+    documents.value = documents.value.filter(d => d.filepath !== filepath)
+    emit('refreshed', documents.value)
   } catch (e) {
     console.error('Failed to delete document:', e)
   } finally {
@@ -42,9 +75,24 @@ const handleDelete = async (source: string) => {
   }
 }
 
-onMounted(loadDocuments)
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 
-defineExpose({ loadDocuments })
+onMounted(async () => {
+  await loadDocuments()
+  if (hasProcessing.value) {
+    startPolling()
+  }
+})
+
+onUnmounted(() => {
+  stopPolling()
+})
+
+defineExpose({ loadDocuments, startPolling })
 </script>
 
 <template>
@@ -60,27 +108,34 @@ defineExpose({ loadDocuments })
     </div>
 
     <div v-else class="doc-items">
-      <div v-for="doc in documents" :key="doc.source" class="doc-item glass-card">
+      <div v-for="doc in documents" :key="doc.id" class="doc-item glass-card" :class="{ processing: ['UPLOADING','CONVERTING','CHUNKING','EMBEDDING'].includes(doc.status) }">
         <div class="doc-icon">
           <FileText :size="20" />
         </div>
         <div class="doc-info">
-          <span class="doc-name">{{ doc.source }}</span>
+          <span class="doc-name" :title="doc.filename">{{ doc.filename }}</span>
           <div class="doc-meta">
-            <span v-if="doc.chunk_count != null">{{ doc.chunk_count }} 个分块</span>
+            <span v-if="doc.file_size">{{ formatFileSize(doc.file_size) }}</span>
+            <span v-if="doc.status === 'READY' && doc.chunk_count > 0">{{ doc.chunk_count }} 个分块</span>
           </div>
         </div>
+        <StatusBadge :status="doc.status" :error-message="doc.error_message" />
         <button
           v-if="isOwner"
           class="btn-delete"
-          :disabled="deletingSource === doc.source"
-          @click="handleDelete(doc.source)"
+          :disabled="deletingSource === doc.filepath"
+          @click="handleDelete(doc.filepath)"
           aria-label="删除文档"
         >
-          <Loader2 v-if="deletingSource === doc.source" :size="16" class="spin" />
+          <Loader2 v-if="deletingSource === doc.filepath" :size="16" class="spin" />
           <Trash2 v-else :size="16" />
         </button>
       </div>
+    </div>
+
+    <div v-if="hasProcessing && !loading" class="polling-hint">
+      <Loader2 :size="14" class="spin" />
+      <span>处理中，自动刷新状态...</span>
     </div>
   </div>
 </template>
@@ -124,6 +179,10 @@ defineExpose({ loadDocuments })
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
+}
+
+.doc-item.processing {
+  border-left: 3px solid var(--accent-1);
 }
 
 .doc-icon {
@@ -175,6 +234,16 @@ defineExpose({ loadDocuments })
 .btn-delete:hover {
   color: #EF4444;
   background: rgba(239, 68, 68, 0.1);
+}
+
+.polling-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .spin {

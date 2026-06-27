@@ -142,6 +142,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/knowledge/KnowledgeListPage.vue')
   },
   {
+    path: '/knowledge/my',
+    name: 'MyKnowledge',
+    component: () => import('@/pages/knowledge/KnowledgeListPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/knowledge/create',
     name: 'KnowledgeCreate',
     component: () => import('@/pages/knowledge/KnowledgeEditorPage.vue'),
