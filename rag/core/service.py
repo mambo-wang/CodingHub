@@ -58,6 +58,46 @@ def _get_markitdown():
 
 # ── File reading ─────────────────────────────────────────────
 
+def _convert_xlsx(filepath: str) -> str:
+    """Convert XLSX/XLS to Markdown tables using openpyxl directly.
+
+    markitdown 0.0.2 hangs on XLSX files, so we handle them ourselves.
+    Each sheet becomes a Markdown table with a ## heading.
+    """
+    import openpyxl
+    wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+    parts = []
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            continue
+        parts.append(f"## {sheet_name}\n")
+        # Filter out completely empty rows
+        non_empty = [r for r in rows if any(v is not None for v in r)]
+        if not non_empty:
+            continue
+        # Determine max columns
+        max_cols = max(len(r) for r in non_empty)
+        # Build table header from first row
+        header = non_empty[0]
+        header_cells = [str(v) if v is not None else "" for v in header]
+        # Pad to max_cols
+        while len(header_cells) < max_cols:
+            header_cells.append("")
+        parts.append("| " + " | ".join(header_cells) + " |")
+        parts.append("| " + " | ".join(["---"] * max_cols) + " |")
+        # Data rows
+        for row in non_empty[1:]:
+            cells = [str(v) if v is not None else "" for v in row]
+            while len(cells) < max_cols:
+                cells.append("")
+            parts.append("| " + " | ".join(cells) + " |")
+        parts.append("")
+    wb.close()
+    return "\n".join(parts)
+
+
 def read_file_content(filepath: str) -> tuple[str | None, str | None]:
     """Read file content, handling both text and binary document formats.
 
@@ -66,7 +106,16 @@ def read_file_content(filepath: str) -> tuple[str | None, str | None]:
     """
     ext = Path(filepath).suffix.lower()
 
-    if ext in BINARY_EXTENSIONS:
+    if ext in (".xlsx", ".xls"):
+        # Use openpyxl directly — markitdown 0.0.2 hangs on XLSX
+        try:
+            content = _convert_xlsx(filepath)
+            if not content.strip():
+                return None, f"No text extracted from {ext} file: {filepath}"
+            return content, None
+        except Exception as e:
+            return None, f"Error converting {ext} file: {e}"
+    elif ext in BINARY_EXTENSIONS:
         try:
             md = _get_markitdown()
             result = md.convert(filepath)

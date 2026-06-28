@@ -58,13 +58,23 @@ class VectorStore:
     def _zvec_path(self, name: str) -> str:
         """Return the zvec data directory for a collection.
 
-        Uses a 'db' subdirectory to avoid conflicts with uploads and
-        registry files that live at the collection root.
-        Falls back to the collection root for backward compatibility
-        with existing installations that stored zvec data directly there.
+        Tries 'db' subdirectory first, falls back to 'zvec' if 'db' is
+        a locked empty directory (common on Windows after process crashes).
+        Falls back to collection root for backward compatibility.
         """
         db_path = os.path.join(self._collection_path(name), "db")
         if os.path.exists(db_path):
+            # Check if it's a locked empty dir (no manifest files)
+            try:
+                contents = os.listdir(db_path) if os.path.isdir(db_path) else []
+            except PermissionError:
+                # Windows locks the directory — treat as empty/broken
+                contents = []
+            if len(contents) == 0:
+                # Empty or inaccessible dir — likely leftover from a crash
+                fallback = os.path.join(self._collection_path(name), "zvec")
+                logger.info(f"Empty db dir detected, using fallback: {fallback}")
+                return fallback
             return db_path
 
         # Backward compat: legacy layout stored zvec data directly in data/{name}/
@@ -94,16 +104,38 @@ class VectorStore:
                 return coll
             except Exception as open_err:
                 logger.warning(f"Failed to open collection at {zvec_dir}: {open_err}")
-                # Remove the corrupted/stale directory and recreate
+                # Try to remove the corrupted/stale directory
                 try:
                     shutil.rmtree(zvec_dir)
                     logger.info(f"Removed stale collection directory: {zvec_dir}")
                 except Exception as rm_err:
-                    logger.error(f"Failed to remove stale collection: {rm_err}")
-                    raise RuntimeError(
-                        f"Cannot open or recreate collection '{name}': "
-                        f"open failed ({open_err}), cleanup failed ({rm_err})"
-                    ) from rm_err
+                    # Windows may lock empty directories — if it's empty, try harder
+                    remaining = list(os.listdir(zvec_dir)) if os.path.isdir(zvec_dir) else None
+                    if remaining is not None and len(remaining) == 0:
+                        # Try os.rmdir on the empty directory
+                        try:
+                            os.rmdir(zvec_dir)
+                            logger.info(f"Removed empty collection dir: {zvec_dir}")
+                        except Exception:
+                            # Last resort: Windows cmd rd
+                            import subprocess
+                            try:
+                                subprocess.run(
+                                    ["cmd", "/c", "rd", "/s", "/q", zvec_dir],
+                                    capture_output=True, timeout=5,
+                                )
+                            except Exception:
+                                pass
+                            if os.path.isdir(zvec_dir):
+                                logger.warning(
+                                    f"Cannot remove empty dir {zvec_dir}, "
+                                    f"will try to reuse it"
+                                )
+                    else:
+                        raise RuntimeError(
+                            f"Cannot open or recreate collection '{name}': "
+                            f"open failed ({open_err}), cleanup failed ({rm_err})"
+                        ) from rm_err
 
         # Ensure the parent directory exists
         os.makedirs(os.path.dirname(zvec_dir), exist_ok=True)
@@ -267,26 +299,45 @@ class VectorStore:
         coll = self._get_or_create_collection(collection)
         doc_id = compute_doc_id(filepath)
 
-        # We need to find all chunk IDs belonging to this document.
-        # Strategy: search with a dummy query to get all results,
-        # then filter by source field matching the filepath.
-        # Alternative: try to delete by known ID pattern.
-        deleted = 0
-        # Try deleting chunks by ID pattern: {doc_id}_{index}
-        # We try a reasonable range of chunk indices (0..9999)
-        ids_to_delete = []
-        for i in range(10000):
-            chunk_id = f"{doc_id}_{i}"
+        # Determine chunk count from registry (fast path)
+        chunk_count = None
+        registry_path = os.path.join(self._collection_path(collection), "_registry.json")
+        if os.path.exists(registry_path):
             try:
-                fetched = coll.fetch([chunk_id])
-                if chunk_id in fetched and fetched[chunk_id] is not None:
-                    ids_to_delete.append(chunk_id)
-                else:
-                    # Once we hit a gap, no more chunks
-                    if i > 0:
-                        break
+                with open(registry_path, "r", encoding="utf-8") as f:
+                    registry = json.load(f)
+                abs_path = os.path.normpath(os.path.abspath(filepath))
+                info = registry.get(abs_path, {})
+                chunk_count = info.get("chunk_count")
             except Exception:
-                break
+                pass
+
+        ids_to_delete = []
+        if chunk_count and chunk_count > 0:
+            # Fast path: registry tells us exactly how many chunks exist
+            ids_to_delete = [f"{doc_id}_{i}" for i in range(chunk_count)]
+            # Verify they actually exist in the store (batch fetch)
+            try:
+                fetched = coll.fetch(ids_to_delete)
+                ids_to_delete = [
+                    cid for cid in ids_to_delete
+                    if cid in fetched and fetched[cid] is not None
+                ]
+            except Exception:
+                ids_to_delete = []
+        else:
+            # Slow path: probe for chunks (first upload or missing registry)
+            for i in range(10000):
+                chunk_id = f"{doc_id}_{i}"
+                try:
+                    fetched = coll.fetch([chunk_id])
+                    if chunk_id in fetched and fetched[chunk_id] is not None:
+                        ids_to_delete.append(chunk_id)
+                    else:
+                        if i > 0:
+                            break
+                except Exception:
+                    break
 
         if ids_to_delete:
             with self._lock:
@@ -297,7 +348,7 @@ class VectorStore:
                 f"Deleted {deleted} chunks for document '{filepath}' "
                 f"from collection '{collection}'"
             )
-        return deleted
+        return len(ids_to_delete)
 
     def list_collections(self) -> list[str]:
         """List all available collection names."""

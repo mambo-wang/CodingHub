@@ -2,14 +2,16 @@
 
 import logging
 import os
+import threading
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Default model — can be overridden via environment variable
-DEFAULT_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-0.6B")
+# Default model — all-MiniLM-L6-v2 is fast on CPU (22M params vs Qwen3's 600M).
+# Set RAG_EMBEDDING_MODEL for higher-quality models when GPU is available.
+DEFAULT_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 # Expected embedding dimension for the default model
-DEFAULT_DIMENSION = 1024
+DEFAULT_DIMENSION = 384
 
 
 class EmbeddingService:
@@ -24,6 +26,7 @@ class EmbeddingService:
     _model = None
     _model_name: str = ""
     _dimension: int = 0
+    _load_lock = threading.Lock()
 
     def __new__(cls):
         if cls._instance is None:
@@ -31,36 +34,41 @@ class EmbeddingService:
         return cls._instance
 
     def _ensure_loaded(self):
-        """Load the model on first call (lazy initialization)."""
+        """Load the model on first call (lazy initialization). Thread-safe."""
         if self._model is not None:
             return
 
-        model_name = DEFAULT_MODEL
-        logger.info(f"Loading embedding model: {model_name}")
+        with self._load_lock:
+            # Double-check after acquiring lock
+            if self._model is not None:
+                return
 
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError:
-            raise RuntimeError(
-                "sentence-transformers is not installed. "
-                "Run: pip install sentence-transformers"
+            model_name = DEFAULT_MODEL
+            logger.info(f"Loading embedding model: {model_name}")
+
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError:
+                raise RuntimeError(
+                    "sentence-transformers is not installed. "
+                    "Run: pip install sentence-transformers"
+                )
+
+            # Set HuggingFace mirror for China users (if not already configured)
+            os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+            os.environ.setdefault("TRANSFORMERS_OFFLINE", "0")
+            os.environ.setdefault("HF_HUB_OFFLINE", "0")
+
+            self._model = SentenceTransformer(model_name)
+
+            # Detect actual dimension by encoding a test sentence
+            test_emb = self._model.encode(["test"], normalize_embeddings=True)
+            self._dimension = test_emb.shape[1]
+            self._model_name = model_name
+
+            logger.info(
+                f"Model loaded: {self._model_name}, dimension: {self._dimension}"
             )
-
-        # Set HuggingFace mirror for China users (if not already configured)
-        os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-        os.environ.setdefault("TRANSFORMERS_OFFLINE", "0")
-        os.environ.setdefault("HF_HUB_OFFLINE", "0")
-
-        self._model = SentenceTransformer(model_name)
-
-        # Detect actual dimension by encoding a test sentence
-        test_emb = self._model.encode(["test"], normalize_embeddings=True)
-        self._dimension = test_emb.shape[1]
-        self._model_name = model_name
-
-        logger.info(
-            f"Model loaded: {self._model_name}, dimension: {self._dimension}"
-        )
 
     @property
     def dimension(self) -> int:

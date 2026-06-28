@@ -8,6 +8,7 @@ CONVERTING → CHUNKING → EMBEDDING → READY/FAILED.
 import asyncio
 import logging
 import os
+import time
 from typing import Callable, Optional
 
 from core.database import (
@@ -21,10 +22,11 @@ from core.database import (
 
 logger = logging.getLogger(__name__)
 
-# Max concurrent file processing tasks
-# zvec 写操作已有 threading.Lock 保护，可安全并发。
-# CPU-only 环境建议 2-3，GPU 环境可适当调高。
-MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "3"))
+# Max concurrent file processing tasks.
+# CPU-only: embedding (Qwen3-0.6B) must be serial — concurrent encoding
+# causes severe CPU contention where even small files exceed 600s timeout.
+# Set higher only with GPU acceleration.
+MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "1"))
 
 # Per-document processing timeout in seconds (default 10 minutes)
 PROCESS_TIMEOUT = int(os.getenv("RAG_PROCESS_TIMEOUT", "600"))
@@ -108,13 +110,18 @@ class AsyncEngine:
         filepath = entry["filepath"]
         collection = entry["collection"]
         filename = entry["filename"]
+        t_start = time.monotonic()
 
         try:
             # Stage 1: CONVERTING — read file and convert to text
             self.db.update_status(doc_id, STATUS_CONVERTING)
+            t0 = time.monotonic()
 
             content, error = await asyncio.to_thread(
                 _read_file_content, filepath
+            )
+            logger.info(
+                f"[doc:{doc_id}] CONVERTING took {time.monotonic()-t0:.1f}s"
             )
             if error:
                 self.db.update_status(
@@ -124,9 +131,14 @@ class AsyncEngine:
 
             # Stage 2: CHUNKING — split text into chunks
             self.db.update_status(doc_id, STATUS_CHUNKING)
+            t0 = time.monotonic()
 
             chunks = await asyncio.to_thread(
                 _chunk_text, content, filepath, collection
+            )
+            logger.info(
+                f"[doc:{doc_id}] CHUNKING produced {len(chunks)} chunks "
+                f"in {time.monotonic()-t0:.1f}s"
             )
             if not chunks:
                 self.db.update_status(
@@ -136,9 +148,13 @@ class AsyncEngine:
 
             # Stage 3: EMBEDDING — generate vectors and store
             self.db.update_status(doc_id, STATUS_EMBEDDING)
+            t0 = time.monotonic()
 
             chunk_count = await asyncio.to_thread(
                 _ingest_chunks, chunks, collection, filepath
+            )
+            logger.info(
+                f"[doc:{doc_id}] EMBEDDING+INSERT took {time.monotonic()-t0:.1f}s"
             )
 
             # Stage 4: READY
@@ -147,7 +163,7 @@ class AsyncEngine:
             )
             logger.info(
                 f"Document {doc_id} ({filename}) processed: "
-                f"{chunk_count} chunks"
+                f"{chunk_count} chunks in {time.monotonic()-t_start:.1f}s total"
             )
 
         except Exception as e:
