@@ -24,17 +24,32 @@ logger = logging.getLogger(__name__)
 # ── Module-level state (initialized on app startup) ─────────
 _db: Database | None = None
 _async_engine = None
+_pending_recovery: list[dict] = []
 
 
 def init_db_and_engine(data_dir: str):
     """Initialize the Database and AsyncEngine. Called at app startup."""
-    global _db, _async_engine
+    global _db, _async_engine, _pending_recovery
     _db = Database(data_dir)
     _db.init_db()
-    _db.mark_stale_as_failed()
+    recovered = _db.mark_stale_as_failed()
     from core.async_engine import AsyncEngine
     _async_engine = AsyncEngine(_db)
+    # Defer re-submission until the event loop is running
+    if recovered:
+        _pending_recovery = recovered
     return _db, _async_engine
+
+
+def _flush_recovery():
+    """Submit recovered stale documents to the async engine.
+
+    Called lazily on the first API request when the event loop is active.
+    """
+    global _pending_recovery
+    if _pending_recovery and _async_engine:
+        _async_engine.submit_tasks(_pending_recovery)
+        _pending_recovery = []
 
 
 def get_db() -> Database:
@@ -105,6 +120,7 @@ def _get_collection(request: Request) -> str:
 
 async def health(request: Request):
     """GET /api/health — health check."""
+    _flush_recovery()
     return _json({"status": "ok", "service": "wandering-rag-mcp"})
 
 

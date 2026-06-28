@@ -218,19 +218,69 @@ class Database:
 
         Called during service startup to handle documents that were being
         processed when the service was last shut down.
+        Documents whose source files still exist are reset to UPLOADING
+        for automatic reprocessing; only documents with missing files
+        are marked as FAILED.
+
+        Returns:
+            List of document entries (dicts) that should be re-submitted
+            to the async engine for reprocessing.
         """
         conn = self._get_conn()
         now = datetime.now().isoformat()
         placeholders = ",".join("?" for _ in INTERMEDIATE_STATUSES)
-        cursor = conn.execute(
-            f"""UPDATE documents SET status=?, error_message=?, updated_at=?
-                WHERE status IN ({placeholders})""",
-            (STATUS_FAILED, "服务重启，处理中断", now, *INTERMEDIATE_STATUSES),
-        )
+
+        # Find all stale documents in intermediate states
+        rows = conn.execute(
+            f"""SELECT id, collection, filename, filepath, file_size
+                FROM documents WHERE status IN ({placeholders})""",
+            (*INTERMEDIATE_STATUSES,),
+        ).fetchall()
+
+        to_retry = []
+        to_fail = []
+
+        for row in rows:
+            doc = dict(row)
+            if doc["filepath"] and os.path.isfile(doc["filepath"]):
+                to_retry.append(doc)
+            else:
+                to_fail.append(doc["id"])
+
+        # Reset retryable docs to UPLOADING
+        for doc in to_retry:
+            conn.execute(
+                "UPDATE documents SET status=?, error_message=NULL, updated_at=? WHERE id=?",
+                (STATUS_UPLOADING, now, doc["id"]),
+            )
+
+        # Mark docs with missing files as FAILED
+        if to_fail:
+            fail_placeholders = ",".join("?" for _ in to_fail)
+            conn.execute(
+                f"""UPDATE documents SET status=?, error_message=?, updated_at=?
+                    WHERE id IN ({fail_placeholders})""",
+                (STATUS_FAILED, "服务重启，源文件已丢失", now, *to_fail),
+            )
+
         conn.commit()
-        count = cursor.rowcount
-        if count > 0:
-            logger.info(f"Marked {count} stale documents as FAILED")
+
+        if to_retry:
+            logger.info(f"Recovered {len(to_retry)} stale documents for reprocessing")
+        if to_fail:
+            logger.info(f"Marked {len(to_fail)} stale documents as FAILED (source missing)")
+
+        # Build entries compatible with AsyncEngine.submit_tasks
+        return [
+            {
+                "id": d["id"],
+                "filepath": d["filepath"],
+                "collection": d["collection"],
+                "filename": d["filename"],
+                "file_size": d.get("file_size", 0),
+            }
+            for d in to_retry
+        ]
 
     def get_processing_count(self, collection: str) -> int:
         """Count documents in intermediate (processing) states."""

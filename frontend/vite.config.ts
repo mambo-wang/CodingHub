@@ -30,7 +30,7 @@ export default defineConfig({
         changeOrigin: true
       },
       '/rag': {
-        target: 'http://172.53.3.98:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/rag/, '')
       }

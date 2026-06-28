@@ -22,7 +22,12 @@ from core.database import (
 logger = logging.getLogger(__name__)
 
 # Max concurrent file processing tasks
-MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "5"))
+# Default 1: on CPU-only deployments, concurrent embedding causes resource
+# contention and potential zvec deadlocks. Set higher only with GPU.
+MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "1"))
+
+# Per-document processing timeout in seconds (default 10 minutes)
+PROCESS_TIMEOUT = int(os.getenv("RAG_PROCESS_TIMEOUT", "600"))
 
 
 class AsyncEngine:
@@ -72,8 +77,23 @@ class AsyncEngine:
 
     async def _process_with_semaphore(self, entry: dict):
         """Process a single file within the semaphore concurrency limit."""
+        doc_id = entry["id"]
+        filename = entry.get("filename", "?")
         async with self.semaphore:
-            await self._process_single_file(entry)
+            try:
+                await asyncio.wait_for(
+                    self._process_single_file(entry),
+                    timeout=PROCESS_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                logger.error(
+                    f"Document {doc_id} ({filename}) timed out after "
+                    f"{PROCESS_TIMEOUT}s"
+                )
+                self.db.update_status(
+                    doc_id, STATUS_FAILED,
+                    error_message=f"处理超时（{PROCESS_TIMEOUT}s），文件过大或系统资源不足",
+                )
 
     async def _process_single_file(self, entry: dict):
         """Process a single file through the full pipeline.

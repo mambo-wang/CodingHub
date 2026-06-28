@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { Upload, Loader2, File, X } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import { ElMessage } from 'element-plus'
@@ -81,13 +81,8 @@ const doUpload = async () => {
       (p) => { progress.value = p }
     )
 
-    // Update cards with server-returned status
-    for (let i = 0; i < results.length && i < fileCards.value.length; i++) {
-      fileCards.value[i].id = results[i].id
-      fileCards.value[i].status = results[i].status as DocumentStatus
-    }
-
     selectedFiles.value = []
+    fileCards.value = []
     emit('uploaded')
     ElMessage.success(`${results.length} 个文件已提交，正在后台处理`)
   } catch (e: any) {
@@ -118,18 +113,6 @@ const updateStatuses = (statuses: { id: number; status: DocumentStatus; error_me
 }
 
 defineExpose({ updateStatuses })
-
-// Auto-clear file cards 3s after all reach terminal state
-const allTerminal = computed(() =>
-  fileCards.value.length > 0 &&
-  fileCards.value.every(c => c.status === 'READY' || c.status === 'FAILED')
-)
-
-watch(allTerminal, (val) => {
-  if (val) {
-    setTimeout(() => { fileCards.value = [] }, 3000)
-  }
-})
 </script>
 
 <template>

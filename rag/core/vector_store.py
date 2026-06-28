@@ -158,8 +158,9 @@ class VectorStore:
             for chunk, emb in zip(chunks, embeddings)
         ])
 
-        coll.insert(docs)
-        coll.flush()
+        with self._lock:
+            coll.insert(docs)
+            coll.flush()
         logger.info(f"Inserted {len(chunks)} chunks into collection '{collection}'")
         return len(chunks)
 
@@ -288,8 +289,9 @@ class VectorStore:
                 break
 
         if ids_to_delete:
-            coll.delete(ids_to_delete)
-            coll.flush()
+            with self._lock:
+                coll.delete(ids_to_delete)
+                coll.flush()
             deleted = len(ids_to_delete)
             logger.info(
                 f"Deleted {deleted} chunks for document '{filepath}' "
