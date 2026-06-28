@@ -22,9 +22,9 @@ from core.database import (
 logger = logging.getLogger(__name__)
 
 # Max concurrent file processing tasks
-# Default 1: on CPU-only deployments, concurrent embedding causes resource
-# contention and potential zvec deadlocks. Set higher only with GPU.
-MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "1"))
+# zvec 写操作已有 threading.Lock 保护，可安全并发。
+# CPU-only 环境建议 2-3，GPU 环境可适当调高。
+MAX_CONCURRENT = int(os.getenv("RAG_MAX_CONCURRENT", "3"))
 
 # Per-document processing timeout in seconds (default 10 minutes)
 PROCESS_TIMEOUT = int(os.getenv("RAG_PROCESS_TIMEOUT", "600"))
