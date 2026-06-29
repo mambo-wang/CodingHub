@@ -506,17 +506,18 @@ public class McpSdkServerConfig {
 
         registerTool(server, "h3_coding_hub_kb_upload_document", """
                 获取知识库文档批量上传的 REST API 信息。
-                
+
                 MCP 协议不直接支持二进制文件传输。要上传文件到知识库，请使用 REST API。
-                本工具返回批量上传端点 URL、支持的文件类型和 curl 示例。
-                
+                本工具返回完整的 RAG 服务批量上传端点 URL（绝对地址，可直接使用）、支持的文件类型和 curl 示例。
+
+                上传 URL 从配置文件实时读取 RAG 服务地址构造，无需手动拼接。
                 支持批量上传（单次最多 20 个文件），上传后异步处理。
                 支持的文件类型：md, txt, pdf, docx, pptx, xlsx, py, js, ts, java, go 等
                 认证：无需认证（直连 RAG 服务）
-                
+
                 工作流程：
                 1. 先调用 h3_coding_hub_kb_create 创建知识库，获取 kbId
-                2. 调用本工具获取批量上传接口信息
+                2. 调用本工具获取批量上传接口信息（uploadUrl 为完整地址）
                 3. 通过 HTTP Multipart POST 上传文件（参考返回的 curlExample）
                 4. 调用 h3_coding_hub_kb_document_status 查询处理进度
                 """,

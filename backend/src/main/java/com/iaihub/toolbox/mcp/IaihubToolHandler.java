@@ -31,6 +31,7 @@ import com.iaihub.toolbox.service.RagApiClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -75,6 +76,7 @@ public class IaihubToolHandler {
     private final KnowledgeBaseService knowledgeBaseService;
     private final RagApiClient ragApiClient;
     private final ObjectMapper objectMapper;
+    private final String ragBaseUrl;
 
     public IaihubToolHandler(McpSearchService searchService,
                              ToolService toolService,
@@ -83,7 +85,8 @@ public class IaihubToolHandler {
                              UserService userService,
                              KnowledgeBaseService knowledgeBaseService,
                              RagApiClient ragApiClient,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             @Value("${app.rag.base-url}") String ragBaseUrl) {
         this.searchService = searchService;
         this.toolService = toolService;
         this.toolFileService = toolFileService;
@@ -92,6 +95,7 @@ public class IaihubToolHandler {
         this.knowledgeBaseService = knowledgeBaseService;
         this.ragApiClient = ragApiClient;
         this.objectMapper = objectMapper;
+        this.ragBaseUrl = ragBaseUrl;
     }
 
     /**
@@ -538,12 +542,17 @@ public class IaihubToolHandler {
 
     /**
      * 处理获取知识库文档上传信息（支持批量异步上传）
+     * 从配置文件实时读取 RAG 服务地址，返回完整的上传 URL
      */
     public McpSchema.CallToolResult handleKbUploadDocument(Long kbId) {
-        logger.info("MCP kb upload document info: kbId={}", kbId);
+        logger.info("MCP kb upload document info: kbId={}, ragBaseUrl={}", kbId, ragBaseUrl);
         try {
             KbResponse kb = knowledgeBaseService.getKnowledgeBase(kbId);
-            String batchUrl = kb.getDocumentsUrl() + "/batch";
+            String collection = kb.getRagCollection();
+            String base = ragBaseUrl.endsWith("/")
+                    ? ragBaseUrl.substring(0, ragBaseUrl.length() - 1)
+                    : ragBaseUrl;
+            String batchUrl = base + "/api/collections/" + collection + "/documents/batch";
             String json = toJson(new KbUploadDocumentInfoResponse(
                     kbId,
                     kb.getName(),
