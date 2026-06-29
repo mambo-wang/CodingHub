@@ -1,6 +1,9 @@
 package com.iaihub.toolbox.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iaihub.toolbox.dto.tag.TagDTO;
+
+import java.util.List;
 
 /**
  * 工具搜索结果 DTO
@@ -25,6 +28,9 @@ public class ToolSearchResult {
     @JsonProperty("createdAt")
     private String createdAt;
 
+    @JsonProperty("tags")
+    private List<TagDTO> tags;
+
     public ToolSearchResult() {
     }
 
@@ -35,6 +41,16 @@ public class ToolSearchResult {
         this.category = category;
         this.version = version;
         this.createdAt = createdAt;
+    }
+
+    public ToolSearchResult(Long id, String name, String description, String category, String version, String createdAt, List<TagDTO> tags) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.category = category;
+        this.version = version;
+        this.createdAt = createdAt;
+        this.tags = tags;
     }
 
     public Long getId() {
@@ -83,5 +99,13 @@ public class ToolSearchResult {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<TagDTO> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<TagDTO> tags) {
+        this.tags = tags;
     }
 }

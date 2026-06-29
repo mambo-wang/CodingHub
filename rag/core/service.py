@@ -281,6 +281,10 @@ def ingest_content(
     os.makedirs(upload_dir, exist_ok=True)
     virtual_path = os.path.join(upload_dir, filename)
 
+    # Save original text file to disk for later download
+    with open(virtual_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
     # Idempotent: delete existing chunks
     store.delete_document(virtual_path, collection=collection)
 
@@ -314,6 +318,35 @@ def delete_document(
     deleted = store.delete_document(filepath, collection=collection)
     store.unregister_document(filepath, collection=collection)
     return {"status": "ok", "filepath": filepath, "deleted": deleted}
+
+
+def download_document(filepath: str, collection: str = "default") -> str:
+    """Resolve a safe download path for a document.
+
+    Validates that the filepath is within the collection's _uploads directory
+    to prevent path traversal attacks. Returns the absolute path if valid.
+
+    Raises:
+        ValueError: if filepath is missing or escapes the uploads directory.
+        FileNotFoundError: if the file does not exist on disk.
+    """
+    if not filepath:
+        raise ValueError("Missing filepath parameter")
+
+    store = get_store()
+    uploads_dir = os.path.join(store.data_dir, "_uploads", collection)
+
+    # Resolve both paths to absolute, canonical form to prevent traversal
+    real_uploads = os.path.realpath(uploads_dir)
+    real_target = os.path.realpath(filepath)
+
+    if not real_target.startswith(real_uploads + os.sep) and real_target != real_uploads:
+        raise ValueError("Path traversal detected: filepath escapes uploads directory")
+
+    if not os.path.isfile(real_target):
+        raise FileNotFoundError(f"Source file not found: {os.path.basename(filepath)}")
+
+    return real_target
 
 
 def delete_collection(collection: str) -> dict:

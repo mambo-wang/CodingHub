@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { FileText, Trash2, Loader2 } from '@lucide/vue'
+import { FileText, Trash2, Loader2, Download } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import StatusBadge from './StatusBadge.vue'
 import type { RagDocumentStatus } from '@/types/knowledge'
@@ -75,6 +75,40 @@ const handleDelete = async (filepath: string) => {
   }
 }
 
+const downloadingFile = ref<string | null>(null)
+
+const handleDownload = async (filepath: string, filename: string) => {
+  downloadingFile.value = filepath
+  try {
+    const url = `${props.ragBaseUrl}/api/collections/${encodeURIComponent(props.ragCollection)}/documents/download?filepath=${encodeURIComponent(filepath)}`
+    // Use fetch to check if the file exists (handles 404)
+    const response = await fetch(url)
+    if (!response.ok) {
+      if (response.status === 404) {
+        alert('源文件不可用，请重新上传')
+      } else {
+        alert('下载失败，请稍后重试')
+      }
+      return
+    }
+    // Trigger browser download via blob
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(blobUrl)
+  } catch (e) {
+    console.error('Download failed:', e)
+    alert('下载失败，请检查网络连接')
+  } finally {
+    downloadingFile.value = null
+  }
+}
+
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -120,6 +154,16 @@ defineExpose({ loadDocuments, startPolling })
           </div>
         </div>
         <StatusBadge :status="doc.status" :error-message="doc.error_message" />
+        <button
+          class="btn-download"
+          :disabled="doc.status !== 'READY' || downloadingFile === doc.filepath"
+          :title="doc.status !== 'READY' ? '文档处理中或失败，无法下载' : '下载源文件'"
+          @click="handleDownload(doc.filepath, doc.filename)"
+          aria-label="下载文档"
+        >
+          <Loader2 v-if="downloadingFile === doc.filepath" :size="16" class="spin" />
+          <Download v-else :size="16" />
+        </button>
         <button
           v-if="isOwner"
           class="btn-delete"
@@ -214,6 +258,31 @@ defineExpose({ loadDocuments, startPolling })
   gap: 12px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.btn-download {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download:hover:not(:disabled) {
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.btn-download:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn-delete {

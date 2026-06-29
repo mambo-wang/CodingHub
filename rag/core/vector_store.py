@@ -163,6 +163,9 @@ class VectorStore:
     def ingest_chunks(self, chunks: list[Chunk], collection: str = "default") -> int:
         """Insert pre-chunked text into the vector store.
 
+        Processes chunks in batches to stay within zvec's max write
+        batch size (1024) and to avoid memory spikes on large documents.
+
         Args:
             chunks: List of Chunk objects (already split and with metadata).
             collection: Target collection name.
@@ -174,27 +177,41 @@ class VectorStore:
             return 0
 
         coll = self._get_or_create_collection(collection)
-        texts = [c.text for c in chunks]
-        embeddings = self.embedding_service.encode(texts)
 
-        docs = zvec.DocList([
-            zvec.Doc(
-                id=f"{chunk.doc_id}_{chunk.chunk_index}",
-                vectors={"embedding": emb},
-                fields={
-                    "text": chunk.text,
-                    "source": chunk.source,
-                    "chunk_index": chunk.chunk_index,
-                },
+        # zvec max batch size for insert is 1024; encode also benefits from batching
+        ZVEC_MAX_BATCH = 1024
+        total_inserted = 0
+
+        for start in range(0, len(chunks), ZVEC_MAX_BATCH):
+            batch = chunks[start:start + ZVEC_MAX_BATCH]
+            texts = [c.text for c in batch]
+            embeddings = self.embedding_service.encode(texts)
+
+            docs = zvec.DocList([
+                zvec.Doc(
+                    id=f"{chunk.doc_id}_{chunk.chunk_index}",
+                    vectors={"embedding": emb},
+                    fields={
+                        "text": chunk.text,
+                        "source": chunk.source,
+                        "chunk_index": chunk.chunk_index,
+                    },
+                )
+                for chunk, emb in zip(batch, embeddings)
+            ])
+
+            with self._lock:
+                coll.insert(docs)
+                coll.flush()
+            total_inserted += len(batch)
+            logger.info(
+                f"Inserted batch {start//ZVEC_MAX_BATCH + 1} "
+                f"({len(batch)} chunks) into collection '{collection}' "
+                f"(total: {total_inserted}/{len(chunks)})"
             )
-            for chunk, emb in zip(chunks, embeddings)
-        ])
 
-        with self._lock:
-            coll.insert(docs)
-            coll.flush()
-        logger.info(f"Inserted {len(chunks)} chunks into collection '{collection}'")
-        return len(chunks)
+        logger.info(f"Inserted all {total_inserted} chunks into collection '{collection}'")
+        return total_inserted
 
     def search(
         self,

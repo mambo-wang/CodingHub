@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Search, Loader2, FileText } from '@lucide/vue'
+import markdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css'
 import { knowledgeService } from '@/services/knowledge'
 import InfoBanner from './InfoBanner.vue'
 import type { KbSearchResult } from '@/types/knowledge'
@@ -16,6 +19,32 @@ const searched = ref(false)
 const topK = ref(5)
 const rerank = ref(true)
 const hintVisible = ref(true)
+
+// Markdown renderer: html:false for XSS safety, highlight.js for code blocks
+const md = markdownIt({
+  html: false,
+  linkify: true,
+  typographer: false,
+  highlight(str: string, lang: string): string {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+          hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+          '</code></pre>'
+      } catch { /* fall through */ }
+    }
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
+  },
+})
+
+const renderMarkdown = (text: string): string => {
+  try {
+    return md.render(text)
+  } catch {
+    // Fallback: escape and return as plain text
+    return md.utils.escapeHtml(text)
+  }
+}
 
 const handleSearch = async () => {
   if (!query.value.trim()) return
@@ -84,7 +113,7 @@ const handleKeydown = (e: KeyboardEvent) => {
             </span>
             <span class="result-score">{{ (result.score * 100).toFixed(1) }}%</span>
           </div>
-          <p class="result-text">{{ result.text }}</p>
+          <div class="result-text markdown-body" v-html="renderMarkdown(result.text)"></div>
         </div>
       </div>
     </div>
@@ -209,8 +238,94 @@ const handleKeydown = (e: KeyboardEvent) => {
   font-size: 14px;
   line-height: 1.7;
   color: var(--text-secondary);
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.result-text :deep(h1),
+.result-text :deep(h2),
+.result-text :deep(h3) {
+  color: var(--text-primary);
+  margin: 12px 0 8px;
+  line-height: 1.4;
+}
+
+.result-text :deep(h1) { font-size: 20px; }
+.result-text :deep(h2) { font-size: 17px; }
+.result-text :deep(h3) { font-size: 15px; }
+
+.result-text :deep(p) {
+  margin: 6px 0;
+}
+
+.result-text :deep(ul),
+.result-text :deep(ol) {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+
+.result-text :deep(li) {
+  margin: 2px 0;
+}
+
+.result-text :deep(code) {
+  background: var(--inline-code-bg, rgba(255,255,255,0.06));
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 85%;
+}
+
+.result-text :deep(pre) {
+  background: #0d1117;
+  color: #e6edf3;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 10px 0;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.result-text :deep(pre code) {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.result-text :deep(table) {
+  border-collapse: collapse;
+  margin: 8px 0;
+  width: 100%;
+  font-size: 13px;
+}
+
+.result-text :deep(th),
+.result-text :deep(td) {
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.result-text :deep(th) {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.result-text :deep(blockquote) {
+  border-left: 3px solid var(--accent-1);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--text-muted);
+}
+
+/* Light theme code block */
+:root[data-theme="light"] .result-text :deep(pre) {
+  background: #f6f8fa;
+  color: #1f2328;
+}
+
+:root[data-theme="light"] .result-text :deep(code) {
+  background: rgba(0,0,0,0.06);
 }
 
 .no-results {

@@ -6,6 +6,10 @@ import { resolve } from 'path'
 const backendPort = process.env.BACKEND_PORT || '8082'
 const backendTarget = `http://localhost:${backendPort}`
 
+// RAG 服务端口可通过环境变量 RAG_PORT 覆盖，默认 8000
+const ragPort = process.env.RAG_PORT || '8000'
+const ragTarget = `http://localhost:${ragPort}`
+
 export default defineConfig({
   plugins: [vue()],
   resolve: {
@@ -30,7 +34,7 @@ export default defineConfig({
         changeOrigin: true
       },
       '/rag': {
-        target: 'http://localhost:8000',
+        target: ragTarget,
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/rag/, '')
       }

@@ -3,6 +3,7 @@ package com.iaihub.toolbox.mcp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iaihub.toolbox.dto.PostSearchResult;
 import com.iaihub.toolbox.dto.ToolSearchResult;
+import com.iaihub.toolbox.dto.tag.TagDTO;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.ToolFile;
@@ -123,12 +124,14 @@ public class IaihubToolHandler {
             if (tool == null) {
                 return errorResult("工具不存在: " + toolId);
             }
+            List<TagDTO> tags = searchService.getToolTags(toolId);
             String json = toJson(new ToolDetailResponse(
                     tool.getId(),
                     tool.getName(),
                     tool.getVersion() != null ? tool.getVersion() : "1.0.0",
                     tool.getContent() != null ? tool.getContent() : "",
-                    tool.getCategory() != null ? tool.getCategory().getName() : ""
+                    tool.getCategory() != null ? tool.getCategory().getName() : "",
+                    tags
             ));
             return successResult(json);
         } catch (Exception e) {
@@ -661,12 +664,14 @@ public class IaihubToolHandler {
         public String version;
         public String content;
         public String category;
-        public ToolDetailResponse(Long id, String name, String version, String content, String category) {
+        public List<TagDTO> tags;
+        public ToolDetailResponse(Long id, String name, String version, String content, String category, List<TagDTO> tags) {
             this.id = id;
             this.name = name;
             this.version = version;
             this.content = content;
             this.category = category;
+            this.tags = tags;
         }
     }
 

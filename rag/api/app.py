@@ -12,7 +12,7 @@ import os
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Route
 
 from core import service
@@ -234,6 +234,38 @@ async def delete_document(request: Request):
     except Exception as e:
         logger.error(f"delete_document failed: {e}")
         return _error(str(e), 500)
+
+
+async def download_document(request: Request):
+    """GET /api/collections/{name}/documents/download — download source file.
+
+    Query params:
+      filepath (required): Path to the file in _uploads/{collection}/.
+    Returns the file as an attachment (Content-Disposition: attachment).
+    """
+    collection = _get_collection(request)
+    filepath = request.query_params.get("filepath")
+
+    if not filepath:
+        return _error("Missing 'filepath' query parameter", 400)
+
+    try:
+        real_path = service.download_document(filepath, collection=collection)
+    except ValueError as e:
+        logger.warning(f"download_document rejected: {e}")
+        return _error(str(e), 403)
+    except FileNotFoundError as e:
+        return _error(str(e), 404)
+    except Exception as e:
+        logger.error(f"download_document failed: {e}")
+        return _error(str(e), 500)
+
+    filename = os.path.basename(real_path)
+    return FileResponse(
+        real_path,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 async def delete_collection(request: Request):
@@ -478,6 +510,7 @@ def create_api_routes() -> list[Route]:
         Route("/api/collections/{name}/documents", list_documents, methods=["GET"]),
         Route("/api/collections/{name}/documents", upload_document, methods=["POST"]),
         Route("/api/collections/{name}/documents", delete_document, methods=["DELETE"]),
+        Route("/api/collections/{name}/documents/download", download_document, methods=["GET"]),
         Route("/api/collections/{name}", delete_collection, methods=["DELETE"]),
         Route("/api/collections/{name}/search", search_documents, methods=["POST"]),
         Route("/api/collections/{name}/config", get_config, methods=["GET"]),
