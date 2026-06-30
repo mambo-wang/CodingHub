@@ -34,6 +34,7 @@ export interface VideoDetail {
   uploaderAvatarUrl?: string | null
   userLiked: boolean
   userFavorited: boolean
+  danmakuEnabled: boolean
   tags?: Tag[]
   createdAt: string
   updatedAt: string
@@ -58,6 +59,7 @@ export interface VideoUpdateRequest {
   title: string
   description?: string
   tagIds?: number[]
+  danmakuEnabled?: boolean
 }
 
 export interface VideoInteractionResponse {

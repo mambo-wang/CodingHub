@@ -74,6 +74,10 @@ public class Video {
     @Builder.Default
     private Boolean pinned = false;
 
+    @Column(name = "danmaku_enabled", nullable = false)
+    @Builder.Default
+    private Boolean danmakuEnabled = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

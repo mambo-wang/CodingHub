@@ -29,6 +29,7 @@ public class VideoResponse {
     private String uploaderAvatarUrl;
     private Boolean userLiked;
     private Boolean userFavorited;
+    private Boolean danmakuEnabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<com.iaihub.toolbox.dto.tag.TagDTO> tags;

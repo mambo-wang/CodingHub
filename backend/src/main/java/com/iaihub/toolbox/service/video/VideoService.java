@@ -205,6 +205,9 @@ public class VideoService {
         if (request.getDescription() != null) {
             video.setDescription(request.getDescription());
         }
+        if (request.getDanmakuEnabled() != null) {
+            video.setDanmakuEnabled(request.getDanmakuEnabled());
+        }
 
         // Handle tag replacement
         if (request.getTagIds() != null) {
@@ -433,6 +436,7 @@ public class VideoService {
                 .uploaderAvatarUrl(uploaderAvatarUrl)
                 .userLiked(userLiked)
                 .userFavorited(userFavorited)
+                .danmakuEnabled(video.getDanmakuEnabled() != null ? video.getDanmakuEnabled() : true)
                 .createdAt(video.getCreatedAt())
                 .updatedAt(video.getUpdatedAt())
                 .tags(tags)

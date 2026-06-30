@@ -21,11 +21,12 @@ const props = defineProps<{
   videoId: number
   currentTime: number
   duration: number
+  initialVisible?: boolean
 }>()
 
 const allDanmaku = ref<DanmakuItem[]>([])
 const activeItems = ref<ActiveDanmaku[]>([])
-const visible = ref(true)
+const visible = ref(props.initialVisible !== false)
 const opacity = ref(0.85)
 const containerRef = ref<HTMLElement | null>(null)
 

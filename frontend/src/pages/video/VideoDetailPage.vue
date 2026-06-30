@@ -199,16 +199,17 @@ const goBack = () => {
           <div class="player-wrapper">
             <VideoPlayer ref="videoPlayerRef" :src="streamUrl" :title="video.title" />
             <DanmakuPlayer
-              v-if="video"
+              v-if="video.danmakuEnabled !== false"
               :video-id="video.id"
               :current-time="currentVideoTime"
               :duration="videoDuration"
+              :initial-visible="true"
             />
           </div>
         </div>
 
         <!-- Danmaku Input Bar -->
-        <div class="danmaku-bar glass-card">
+        <div v-if="video.danmakuEnabled !== false" class="danmaku-bar glass-card">
           <template v-if="authStore.isLoggedIn">
             <input
               v-model="danmakuInput"

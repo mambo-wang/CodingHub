@@ -31,6 +31,22 @@
           <TagSelector v-model="selectedTags" tagType="VIDEO" />
         </div>
 
+        <div class="form-group">
+          <label class="toggle-label">
+            <span>弹幕功能</span>
+            <span class="toggle-desc">启用后观众可以发送和查看弹幕</span>
+            <button
+              type="button"
+              class="toggle-switch"
+              :class="{ active: danmakuEnabled }"
+              @click="danmakuEnabled = !danmakuEnabled"
+            >
+              <span class="toggle-knob" />
+            </button>
+            <span class="toggle-status">{{ danmakuEnabled ? '已启用' : '已关闭' }}</span>
+          </label>
+        </div>
+
         <VideoCoverPicker
           :videoSrc="`/api/v1/videos/${videoId}/stream`"
           :coverUrl="currentCoverUrl"
@@ -72,6 +88,7 @@ const coverBlob = ref<Blob | null>(null)
 const coverFile = ref<File | null>(null)
 const currentCoverUrl = ref<string | null>(null)
 const videoId = ref(0)
+const danmakuEnabled = ref(true)
 
 onMounted(async () => {
   try {
@@ -80,6 +97,7 @@ onMounted(async () => {
     title.value = video.title
     description.value = video.description || ''
     currentCoverUrl.value = video.coverUrl || null
+    danmakuEnabled.value = video.danmakuEnabled !== false
     if (video.tags) {
       selectedTags.value = video.tags
     }
@@ -102,7 +120,8 @@ const save = async () => {
     await videoService.updateVideo(videoId.value, {
       title: title.value,
       description: description.value || undefined,
-      tagIds: tagIds.length > 0 ? tagIds : undefined
+      tagIds: tagIds.length > 0 ? tagIds : undefined,
+      danmakuEnabled: danmakuEnabled.value
     })
 
     // Upload cover if changed
@@ -256,5 +275,60 @@ const save = async () => {
 .save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.toggle-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 200ms;
+  flex-shrink: 0;
+}
+
+.toggle-switch.active {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  border-color: transparent;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 200ms;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-knob {
+  transform: translateX(20px);
+}
+
+.toggle-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 40px;
 }
 </style>

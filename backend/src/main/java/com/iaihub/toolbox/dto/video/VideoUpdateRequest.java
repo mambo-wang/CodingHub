@@ -20,4 +20,6 @@ public class VideoUpdateRequest {
     private String description;
 
     private java.util.List<Long> tagIds;
+
+    private Boolean danmakuEnabled;
 }
