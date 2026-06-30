@@ -261,10 +261,15 @@ async def download_document(request: Request):
         return _error(str(e), 500)
 
     filename = os.path.basename(real_path)
+    # RFC 5987: use filename*=UTF-8''<url-encoded> for non-ASCII filenames
+    from urllib.parse import quote
+    encoded_filename = quote(filename, safe='')
     return FileResponse(
         real_path,
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        },
     )
 
 
