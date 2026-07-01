@@ -241,10 +241,13 @@ CodingHub 专为离线环境设计：
 
 ## 相关文档
 
-- [架构详情](docs/ARCHITECTURE.md) - 详细架构说明
+- [**使用指导**](docs/GUIDE.md) - 技术架构、功能详解与快速上手（推荐新手阅读）
+- [架构详情](docs/ARCHITECTURE.md) - 详细架构说明、ER 图、序列图
+- [开发指南](docs/DEVELOPMENT.md) - 开发环境搭建与工作流程
 - [Agent 导航地图](AGENTS.md) - AI 代理快速参考
+- [设计系统](design-system/CodingHub/MASTER.md) - 双主题 UI 规范
 - [环境配置](harness/config/environment.json) - 运行时环境变量
 
 ---
 
-**最后更新**: 2026-06-10
+**最后更新**: 2026-06-30
