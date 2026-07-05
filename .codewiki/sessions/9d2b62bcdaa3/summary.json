@@ -1,0 +1,33 @@
+{
+  "session_id": "9d2b62bcdaa3",
+  "repo_name": "CodingHub",
+  "repo_path": "/Users/kirito/repos/CodingHub",
+  "output_dir": "/Users/kirito/repos/CodingHub/repowiki",
+  "total_components": 946,
+  "total_leaf_nodes": 235,
+  "languages": {
+    "null": 946
+  },
+  "leaf_nodes_preview": [
+    "frontend/src/types/knowledge.ts::KnowledgeBase",
+    "backend/src/main/java/com/iaihub/toolbox/repository/UnifiedFavoriteRepository.java::UnifiedFavoriteRepository",
+    "frontend/src/types/index.ts::UpdateToolRequest",
+    "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::ToolDetailResponse",
+    "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTagId",
+    "backend/src/main/java/com/iaihub/toolbox/service/kb/KnowledgeBaseService.java::KnowledgeBaseService",
+    "backend/src/main/java/com/iaihub/toolbox/util/JwtUtil.java::JwtUtil",
+    "frontend/src/types/index.ts::Tag",
+    "backend/src/main/java/com/iaihub/toolbox/service/UnifiedFavoriteService.java::UnifiedFavoriteService",
+    "backend/src/main/java/com/iaihub/toolbox/controller/feedback/FeedbackController.java::FeedbackController",
+    "backend/src/main/java/com/iaihub/toolbox/dto/RefreshResponse.java::RefreshResponse",
+    "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::FileUploadInfoResponse",
+    "backend/src/main/java/com/iaihub/toolbox/service/UnifiedCommentService.java::UnifiedCommentService",
+    "frontend/src/types/index.ts::Category",
+    "frontend/src/types/overview.ts::VideoRankDto",
+    "frontend/src/services/tool.ts::ToolDetailVO",
+    "backend/src/main/java/com/iaihub/toolbox/dto/kb/KbResponse.java::KbResponse",
+    "backend/src/main/java/com/iaihub/toolbox/service/OverviewService.java::OverviewService",
+    "frontend/src/types/index.ts::LoginRequest",
+    "frontend/src/types/knowledge.ts::RagDocumentStatus"
+  ]
+}

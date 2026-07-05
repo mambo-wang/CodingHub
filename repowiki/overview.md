@@ -1,159 +1,198 @@
-# CodingHub 仓库总览
+## CodingHub 项目文档
 
-## 项目简介
+CodingHub（ai-tool-square）是一个面向 AI 工具分享与技术交流的综合性平台，由 Java 后端、Vue 前端和 Python RAG 知识库引擎三大子系统协同构成，提供 AI 工具管理、社区论坛、微课视频、智能知识库、留言反馈等完整功能。
 
-CodingHub（ai-tool-square）是一个 AI 工具市场与知识分享平台，采用 **Java 17 / Spring Boot 3.2.5**（后端）+ **Vue 3.4 / TypeScript 5.4 / Vite 5.2**（前端）技术栈构建。平台提供 AI 工具发布与发现、论坛社区讨论、微课视频分享、RAG 知识库、留言反馈等核心功能，并通过 MCP（Model Context Protocol）协议将平台资源暴露给外部 AI 代理。
+---
 
-## 端到端架构图
+## 项目概述
 
-```mermaid
-graph TD
-    subgraph Frontend Vue 3
-        A[Pages 29] --> B[Components 34]
-        B --> C[Stores 3]
-        B --> D[Services 9]
-        D --> E[Types 7]
-    end
-    subgraph Backend Spring Boot
-        F[Controllers 22] --> G[Services 22]
-        G --> H[Repositories 26]
-        H --> I[Models 35]
-        G --> J[Config 7]
-        G --> K[Utils 2]
-    end
-    subgraph AI Integration
-        L[MCP Server 18 tools] --> G
-        M[RAG Python Service] -->|HTTP| G
-    end
-    subgraph Storage
-        H --> N[(MySQL 8.x)]
-        G --> O[File System]
-        M --> P[(Vector DB + SQLite)]
-    end
-    D -->|REST API :8082| F
-    L -->|MCP Protocol| F
-```
+| 维度 | 说明 |
+|------|------|
+| 项目名称 | CodingHub (ai-tool-square) |
+| 后端 | Java 17 / Spring Boot 3.2.5，端口 8082，22 个控制器、22 个服务、26 个数据仓库、35 个实体模型 |
+| 前端 | Vue 3.4 / TypeScript 5.4 / Vite 5.2，端口 5173，28 个页面、36 个组件、9 个 API 服务 |
+| RAG 服务 | Python 独立进程，双协议架构（MCP Server + REST API），提供文档导入、智能分块、向量存储与语义检索 |
+| 数据库 | MySQL 8.x（ai_tool_square），Flyway 迁移 V1~V9 |
+| 构建工具 | Gradle 8.5（后端）+ npm（前端） |
+| 部署方式 | 本地裸机，无 Docker/CI |
+| 设计系统 | 双主题——Cyberpunk Dark / Glassmorphism Light |
 
-## 模块文档
+---
 
-### 核心业务模块
-
-| 模块 | 文档 | 说明 |
-|------|------|------|
-| [工具市场](工具市场.md) | 工具 CRUD、文件管理、分类、热度排行 | 135 组件 |
-| [论坛社区](论坛社区.md) | 帖子发布、分类、标签、可见性、置顶 | 87 组件 |
-| [微课视频](微课视频.md) | 视频上传、流式播放、弹幕、封面管理 | 80 组件 |
-| [知识库](知识库.md) | RAG 知识库 CRUD、文档管理、语义搜索 | 68 组件 |
-
-### 跨模块基础设施
-
-| 模块 | 文档 | 说明 |
-|------|------|------|
-| [统一互动](统一互动.md) | 跨内容类型的点赞、评论、收藏 | 71 组件 |
-| [标签系统](标签系统.md) | 统一标签创建、关联、热度排行 | 46 组件 |
-| [通知系统](通知系统.md) | 站内消息推送、未读计数 | 28 组件 |
-| [留言反馈](留言反馈.md) | 匿名/登录留言、管理员回复 | 35 组件 |
-
-### 平台基础
-
-| 模块 | 文档 | 说明 |
-|------|------|------|
-| [认证与用户](认证与用户.md) | JWT 认证、三级角色、用户管理 | 93 组件 |
-| [基础设施](基础设施.md) | 异常处理、XSS 防护、概览统计 | 63 组件 |
-| [前端基础](前端基础.md) | API 客户端、主题系统、类型定义 | 45 组件 |
-
-### AI 集成
-
-| 模块 | 文档 | 说明 |
-|------|------|------|
-| [MCP协议](MCP协议.md) | 双传输 MCP Server、18 个工具 | 111 组件 |
-| [RAG服务](RAG服务.md) | Python 向量检索、文档处理、语义搜索 | 77 组件 |
-
-## 技术架构要点
-
-### 后端分层
-
-严格遵循 Controller → Service → Repository → Model 单向依赖：
-
-- **L0 配置/工具**：SecurityConfig、JwtAuthenticationFilter、XssSanitizer、异常类
-- **L1 模型**：35 个 JPA 实体 + 61 个 DTO
-- **L2 数据访问**：26 个 Spring Data JPA Repository
-- **L3 业务逻辑**：22 个 Service 类
-- **L4 API/MCP**：22 个 REST Controller + 4 个 MCP 类
-
-### 前端分层
-
-- **L0 类型/工具**：7 个类型文件 + 2 个 Composables
-- **L1 服务层**：9 个 API Service
-- **L2 状态管理**：3 个 Pinia Store
-- **L3 组件**：34 个 Vue 组件
-- **L4 页面**：29 个页面
-
-### 数据库
-
-- **MySQL 8.x**：主数据库，Flyway 管理 9 个迁移文件
-- **SQLite**：RAG 服务文档状态跟踪
-- **Vector DB**：RAG 服务向量存储
-
-### 安全模型
-
-- **JWT 无状态认证**：15 分钟访问令牌 + 7 天刷新令牌
-- **三级角色**：USER / ADMIN（需审批）/ SUPER_ADMIN（受保护）
-- **URL + Filter + Service 三层授权**
-- **XSS 防护**：所有用户输入统一消毒
-
-### 热度排行系统
-
-工具、帖子、视频共享统一的热度分数公式：
-
-`score = viewCount × 1 + likeCount × 3 + commentCount × 5`
-
-每次浏览/点赞/评论时自动重算，支撑 "hot" 排序和 Top5 排行。
-
-### 软删除模式
-
-所有主要内容实体（Tool、ForumPost、Video、KnowledgeBase、FeedbackMessage）使用 `status` 枚举（NORMAL/DELETED）实现软删除，查询自动过滤已删除记录。
-
-## 端口与服务
-
-| 服务 | 端口 | 技术 |
-|------|------|------|
-| Spring Boot 后端 | 8082 | Java 17 + Gradle 8.5 |
-| Vite 前端 | 5173 | Vue 3.4 + TypeScript 5.4 |
-| MySQL | 3306 | MySQL 8.x |
-| RAG 服务 | 配置可变 | Python + Starlette + FastMCP |
-
-## 模块依赖关系
+## 系统架构
 
 ```mermaid
-graph LR
-    A[工具市场] --> B[统一互动]
-    C[论坛社区] --> B
-    D[微课视频] --> B
-    A --> E[标签系统]
-    D --> E
-    C --> E
-    B --> F[通知系统]
-    G[知识库] --> H[RAG服务]
-    I[MCP协议] --> A
-    I --> C
-    I --> G
-    I --> J[认证与用户]
-    B --> J
-    A --> J
-    C --> J
-    D --> J
-    G --> J
-    K[基础设施] --> A
-    K --> C
+graph TB
+    subgraph 用户端
+        BROWSER["浏览器<br/>http://localhost:5173"]
+    end
+
+    subgraph 前端["前端 · Vue 3.4 / TypeScript 5.4"]
+        PAGES["Pages (28)"]
+        COMPONENTS["Components (36)"]
+        STORES["Stores (3) · Pinia"]
+        SERVICES["Services (9) · Axios"]
+        PAGES --> COMPONENTS
+        COMPONENTS --> STORES
+        STORES --> SERVICES
+    end
+
+    subgraph 后端["后端 · Java 17 / Spring Boot 3.2.5"]
+        CTRL["Controller 层 (22)"]
+        SVC["Service 层 (22)"]
+        REPO["Repository 层 (26)"]
+        MCP_MOD["MCP 模块 (18 tools)"]
+        CTRL --> SVC
+        SVC --> REPO
+        MCP_MOD --> SVC
+    end
+
+    subgraph 数据层
+        MYSQL["MySQL 8.x<br/>ai_tool_square"]
+    end
+
+    subgraph RAG["RAG 服务 · Python"]
+        RAG_MCP["MCP Server<br/>stdio / SSE / Streamable-HTTP"]
+        RAG_REST["REST API<br/>Starlette HTTP"]
+        RAG_CORE["分块引擎 · 嵌入向量 · 重排序"]
+        RAG_STORE["向量存储 (zvec) + 元数据 (SQLite)"]
+        RAG_MCP --> RAG_CORE
+        RAG_REST --> RAG_CORE
+        RAG_CORE --> RAG_STORE
+    end
+
+    subgraph AI代理
+        AGENT["AI Agent<br/>MCP 客户端"]
+    end
+
+    BROWSER -->|HTTP| PAGES
+    SERVICES -->|REST API :8082| CTRL
+    SERVICES -.->|直连 RAG REST API| RAG_REST
+    REPO --> MYSQL
+    AGENT -->|MCP SSE / Streamable-HTTP| MCP_MOD
+    MCP_MOD -->|RAG 知识库工具| RAG_MCP
+    SVC -->|RagApiClient| RAG_REST
 ```
 
-## 快速开始
+### 子系统交互说明
+
+| 通信链路 | 协议 | 说明 |
+|----------|------|------|
+| 前端 → 后端 | HTTP REST (Axios) | 前端通过 9 个 API 服务模块调用后端 :8082 的 REST 接口 |
+| 前端 → RAG 服务 | HTTP REST (直连) | 知识库文档管理采用旁路设计，前端直连 RAG Python 服务 |
+| 后端 → MySQL | JDBC | 所有业务数据持久化到 MySQL 8.x，通过 Spring Data JPA 访问 |
+| 后端 → RAG 服务 | HTTP REST ([RagApiClient](../backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java)) | 知识库元数据与语义搜索通过 [RagApiClient](../backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java) 桥接 RAG 服务 |
+| AI 代理 → 后端 MCP | MCP SSE / Streamable-HTTP | 18 个 AI 代理工具通过 MCP 协议对外暴露 |
+| 后端 MCP → RAG 服务 | MCP / REST | MCP 模块中的知识库工具通过 RAG 服务实现语义检索 |
+
+---
+
+## 模块导航
+
+| 模块 | 说明 | 核心能力 |
+|------|------|----------|
+| [后端](后端.md) | Java 17 / Spring Boot 3.2.5 后端服务，11 个子模块覆盖完整业务域 | 认证与安全（JWT + RBAC）、AI 工具 CRUD 与分类、社区论坛（帖子/评论/标签）、微课视频（上传/流播放/弹幕）、RAG 知识库集成、统一互动系统（点赞/评论/收藏）、留言反馈、标签与通知、MCP AI 代理工具（18 个）、后台管理与统计概览 |
+| [前端](前端.md) | Vue 3.4 / TypeScript 5.4 SPA，5 层架构（Types → Services → Stores → Components → Pages） | 28 个页面路由入口、36 个 UI 组件（通用/论坛/视频/知识库/反馈）、9 个 API 服务、3 个 Pinia Store（论坛/主题/认证）、双主题设计系统 |
+| [RAG 服务](RAG服务.md) | Python 独立 RAG 知识库引擎，双协议架构 | 文档导入（md/txt/py/pdf/docx 等）、智能分块（递归/语义/结构化）、向量检索（zvec + Cross-Encoder 重排序）、异步处理引擎、MCP + REST 双协议接入 |
+
+---
+
+## 技术栈总览
+
+### 后端技术
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Java | 17 | 运行时 |
+| Spring Boot | 3.2.5 | 应用框架 |
+| Spring Security | - | 认证与授权（JWT + RBAC） |
+| Spring Data JPA | - | 数据访问 |
+| Gradle | 8.5 | 构建工具 |
+| Flyway | - | 数据库迁移（V1~V9） |
+| MCP SDK | 2.0.0 | AI 代理工具协议（SSE + Streamable-HTTP） |
+
+### 前端技术
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Vue | 3.4 | UI 框架 |
+| TypeScript | 5.4 | 类型安全 |
+| Vite | 5.2 | 构建与开发服务器 |
+| Pinia | - | 状态管理 |
+| Axios | - | HTTP 客户端 |
+| Vue Router | - | 路由管理 |
+
+### RAG 服务技术
+
+| 技术 | 用途 |
+|------|------|
+| Python | 运行时 |
+| Starlette | REST API 框架 |
+| MCP Server | AI 代理协议服务 |
+| zvec | 向量存储引擎 |
+| SQLite (WAL) | 元数据存储 |
+| Cross-Encoder | 搜索结果重排序 |
+
+---
+
+## 数据库设计
+
+数据库采用 MySQL 8.x，库名 `ai_tool_square`，通过 Flyway 管理迁移脚本（V1~V9），位于 `backend/src/main/resources/db/migration/`。
+
+### 核心数据表
+
+| 领域 | 数据表 |
+|------|--------|
+| 核心 | `user`, `category`, `tool`, `tool_file`, `tool_like`, `tool_comment` |
+| 论坛 | `forum_category`, `forum_tag`, `forum_post`, `forum_post_tag`, `forum_comment`, `forum_like` |
+| 微课 | `video`, `video_comment`, `video_like`, `video_favorite`, `danmaku` |
+| 知识库 | `knowledge_base`, `kb_document` |
+| 标签 | `tag`, `tool_tag`, `video_tag` |
+| 通知 | `notification` |
+| 留言 | `feedback_message` |
+| 其他 | `post_favorite` |
+
+> RAG 服务使用独立的存储方案：zvec 向量存储 + SQLite 元数据库，与 MySQL 数据库解耦。
+
+---
+
+## API 入口点
+
+后端运行在 `http://localhost:8082`，主要 API 前缀如下：
+
+| 前缀 | 说明 | 前缀 | 说明 |
+|------|------|------|------|
+| `/api/v1/auth` | 认证 | `/api/forum/posts` | 论坛帖子 |
+| `/api/v1/tools` | 工具 CRUD + 点赞 | `/api/forum/categories` | 论坛分类 |
+| `/api/v1/categories` | 工具分类 | `/api/v1/post-favorites` | 帖子收藏 |
+| `/api/v1/users` | 用户（profile/avatar） | `/api/overview` | 统计 / 排行 |
+| `/api/v1/admin` | 管理（审批/用户） | `/mcp/sse` | MCP（18 tools, SSE） |
+| `/api/v1/videos` | 微课 | `/api/v1/feedback` | 留言反馈 |
+| `/api/v1/interactions` | 统一互动 | `/api/v1/notifications` | 通知 |
+| `/api/v1/knowledge` | 知识库 | `/api/v1/tags` | 统一标签 |
+
+---
+
+## 快速命令
 
 ```bash
-make db              # 创建数据库并初始化表结构
-make install         # 安装前端依赖
-make backend         # 启动后端 (8082)
-make frontend        # 启动前端 (5173)
-make run             # 同时启动后端+前端
+make db          # 创建数据库并初始化
+make install     # 安装前端依赖
+make backend     # 启动后端 (8082)
+make frontend    # 启动前端 (5173)
+make run         # 同时启动后端 + 前端
+make stop        # 停止所有服务
+make lint        # lint-arch + lint-quality + lint-deps
 ```
+
+---
+
+## 约束规则
+
+- **分层依赖**: 禁止循环依赖，单向依赖 controller → service → repository → model
+- **XSS 防护**: 全局 `XssSanitizer.sanitize()` 过滤用户输入
+- **JWT 认证**: `Authorization: Bearer <token>`，access token 15 分钟过期，refresh token 7 天
+- **权限模型**: USER / ADMIN / SUPER_ADMIN 三级角色，内容操作 `isOwner || isAdmin`
+- **空值处理**: 禁止返回 null，须抛异常或返回 Optional
+- **软删除**: `status = DELETED`（[Tool](../backend/src/main/java/com/iaihub/toolbox/model/Tool.java) / [ForumPost](../backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPost.java) / [Video](../backend/src/main/java/com/iaihub/toolbox/model/video/Video.java)）
+- **Git 规范**: Conventional Commits，单次提交不超过 1000 行，禁止私自提交

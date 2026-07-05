@@ -123,7 +123,7 @@
     },
     "migrations": {
       "path": "backend/src/main/resources/db/migration/",
-      "files": ["V1", "V2", "V3_add_sort_and_pin", "V3_add_user_nickname", "V4", "V5", "V6", "V7", "V8"],
+      "files": ["V1", "V2", "V3_add_sort_and_pin", "V3_add_user_nickname", "V4", "V5", "V6", "V7", "V8", "V9"],
       "tool": "Flyway (spring.flyway.enabled=true)"
     },
     "init_sql_path": "Makefile (make db 命令)"

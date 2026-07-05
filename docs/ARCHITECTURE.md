@@ -85,11 +85,11 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    L4["L4 - Pages (23)"]
-    L3["L3 - Components (21)"]
+    L4["L4 - Pages (28)"]
+    L3["L3 - Components (36)"]
     L2["L2 - Stores (3)"]
-    L1["L1 - Services (5)"]
-    L0["L0 - Types / Composables (6)"]
+    L1["L1 - Services (9)"]
+    L0["L0 - Types / Composables (9)"]
     L4 --> L3
     L4 --> L2
     L3 --> L2
@@ -104,8 +104,8 @@ flowchart TD
 
 | 目录 | 核心 | admin/ | forum/ | video/ | knowledge/ | feedback/ | 合计 |
 |------|------|--------|--------|--------|------------|-----------|------|
-| pages/ | 11 | 2 | 6 | 6 | 3 | 1 | 29 |
-| components/ | 7 | - | 7 | 4 | 5 | 2 | 25 (+9 common/) |
+| pages/ | 11 | 2 | 6 | 6 | 3 | 1 | 28 |
+| components/ | 7 | - | 7 | 4 | 7 | 2 | 27 (+9 common/) |
 
 **其他目录**:
 - services/(9): api.ts, tool.ts, forum.ts, video.ts, overview.ts, feedback.ts, knowledge.ts, notification.ts, interaction.ts
