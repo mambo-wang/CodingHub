@@ -46,7 +46,7 @@ app:
     username: admin
     password: Cloud@1234
   rag:
-    base-url: http://172.53.3.98:8000
+    base-url: http://127.0.0.1:8000
     public-url: /rag
 
 logging:
