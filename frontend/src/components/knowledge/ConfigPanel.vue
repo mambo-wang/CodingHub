@@ -100,22 +100,6 @@ onMounted(loadConfig)
       </div>
 
       <div class="form-group">
-        <label class="form-label toggle-label">
-          <span>重排序 (Rerank)</span>
-          <button
-            type="button"
-            class="toggle-btn"
-            :class="{ active: form.rerank }"
-            :disabled="!isOwner"
-            @click="form.rerank = !form.rerank"
-          >
-            <span class="toggle-knob"></span>
-          </button>
-        </label>
-        <span class="form-hint">提升搜索结果精度，略有性能开销</span>
-      </div>
-
-      <div class="form-group">
         <label class="form-label">知识库描述</label>
         <textarea
           v-model="form.description"

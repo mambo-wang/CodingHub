@@ -8,7 +8,7 @@ const backendTarget = `http://localhost:${backendPort}`
 
 // RAG 服务端口可通过环境变量 RAG_PORT 覆盖，默认 8000
 const ragPort = process.env.RAG_PORT || '8000'
-const ragTarget = `http://localhost:${ragPort}`
+const ragTarget = `http://172.53.3.98:${ragPort}`
 
 export default defineConfig({
   plugins: [vue()],
