@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Search, Loader2, FileText } from '@lucide/vue'
+import { Search, Loader2, FileText, Settings } from '@lucide/vue'
 import markdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -18,6 +18,8 @@ const searching = ref(false)
 const searched = ref(false)
 const topK = ref(5)
 const rerank = ref(true)
+const expandContext = ref(1)
+const showConfig = ref(false)
 const hintVisible = ref(true)
 
 // Markdown renderer: html:false for XSS safety, highlight.js for code blocks
@@ -55,7 +57,7 @@ const handleSearch = async () => {
       query: query.value.trim(),
       topK: topK.value,
       rerank: rerank.value,
-      expandContext: 1,
+      expandContext: expandContext.value,
     })
   } catch (e) {
     console.error('Search failed:', e)
@@ -96,6 +98,42 @@ const handleKeydown = (e: KeyboardEvent) => {
           <Loader2 v-if="searching" :size="16" class="spin" aria-hidden="true" />
           <span v-else>搜索</span>
         </button>
+        <button
+          type="button"
+          class="config-toggle"
+          :class="{ active: showConfig }"
+          @click="showConfig = !showConfig"
+        >
+          <Settings :size="14" aria-hidden="true" />
+          <span>检索参数</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 检索参数配置 -->
+    <div v-if="showConfig" class="search-config glass-card">
+      <div class="config-row">
+        <div class="config-item">
+          <label class="config-label">topK (返回数量)</label>
+          <input v-model.number="topK" type="number" class="config-input" min="1" max="20" />
+        </div>
+        <div class="config-item">
+          <label class="config-label">expandContext (上下文扩展)</label>
+          <input v-model.number="expandContext" type="number" class="config-input" min="0" max="10" />
+        </div>
+        <div class="config-item">
+          <label class="config-label toggle-label">
+            <span>重排序 (Rerank)</span>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ active: rerank }"
+              @click="rerank = !rerank"
+            >
+              <span class="toggle-knob"></span>
+            </button>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -196,6 +234,110 @@ const handleKeydown = (e: KeyboardEvent) => {
 .search-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.config-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.config-toggle:hover {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+}
+
+.config-toggle.active {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+}
+
+.search-config {
+  padding: 16px;
+}
+
+.config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.config-label.toggle-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-input {
+  padding: 6px 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--font-display);
+  outline: none;
+  width: 80px;
+  transition: border-color 0.2s ease;
+}
+
+.config-input:focus {
+  border-color: var(--accent-1);
+}
+
+/* Toggle button */
+.toggle-btn {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-btn.active {
+  background: var(--accent-1);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s ease;
+}
+
+.toggle-btn.active .toggle-knob {
+  transform: translateX(16px);
 }
 
 .results-list {
