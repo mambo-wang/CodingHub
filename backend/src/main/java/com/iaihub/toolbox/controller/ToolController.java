@@ -1,6 +1,7 @@
 package com.iaihub.toolbox.controller;
 
 import com.iaihub.toolbox.dto.*;
+import com.iaihub.toolbox.mcp.McpNotificationService;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.service.ToolService;
 import jakarta.validation.Valid;
@@ -19,6 +20,7 @@ import java.util.List;
 public class ToolController {
 
     private final ToolService toolService;
+    private final McpNotificationService mcpNotificationService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ToolSummaryDTO>>> getTools(
@@ -44,6 +46,7 @@ public class ToolController {
             @AuthenticationPrincipal User currentUser) {
 
         ToolSummaryDTO tool = toolService.createTool(request, currentUser.getId());
+        mcpNotificationService.notifyToolCreated(tool.getId(), tool.getName());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.created("上传成功", tool));
@@ -56,6 +59,7 @@ public class ToolController {
             @AuthenticationPrincipal User currentUser) {
 
         ToolDetailDTO tool = toolService.updateTool(id, request, currentUser);
+        mcpNotificationService.notifyToolUpdated(id, tool.getName());
         return ResponseEntity.ok(ApiResponse.success("更新成功", tool));
     }
 
@@ -65,6 +69,7 @@ public class ToolController {
             @AuthenticationPrincipal User currentUser) {
 
         toolService.deleteTool(id, currentUser);
+        mcpNotificationService.notifyToolDeleted(id);
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
     }
 

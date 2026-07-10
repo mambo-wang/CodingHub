@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
@@ -90,17 +91,20 @@ public class McpSdkServerConfig {
     @Primary
     @Bean(destroyMethod = "close")
     public McpSyncServer streamableMcpServer(HttpServletStreamableServerTransportProvider transportProvider,
-                                             IaihubToolHandler toolHandler) {
+                                             IaihubToolHandler toolHandler,
+                                             McpResourceHandler resourceHandler) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
+                        .resources(true, true)
                         .logging()
                         .build())
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools");
+        registerAllResources(server, resourceHandler);
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools and 3 resources");
         return server;
     }
 
@@ -109,17 +113,20 @@ public class McpSdkServerConfig {
      */
     @Bean(destroyMethod = "close")
     public McpSyncServer sseMcpServer(HttpServletSseServerTransportProvider transportProvider,
-                                      IaihubToolHandler toolHandler) {
+                                      IaihubToolHandler toolHandler,
+                                      McpResourceHandler resourceHandler) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
+                        .resources(true, true)
                         .logging()
                         .build())
                 .build();
 
         registerAllTools(server, toolHandler);
-        logger.info("MCP Server (SSE, /sse) initialized with 18 tools");
+        registerAllResources(server, resourceHandler);
+        logger.info("MCP Server (SSE, /sse) initialized with 18 tools and 3 resources");
         return server;
     }
 
@@ -583,5 +590,48 @@ public class McpSdkServerConfig {
             logger.error("Failed to register tool: {}", name, e);
             throw new RuntimeException("Failed to register tool: " + name, e);
         }
+    }
+
+    // ── 资源注册 ──────────────────────────────────────────────────
+
+    /**
+     * 在所有 McpServer 实例上注册 MCP Resource：
+     * <ul>
+     *   <li>{@code codinghub://tools/catalog} — 工具广场全量目录</li>
+     *   <li>{@code codinghub://tools/recent} — 最近更新的工具</li>
+     *   <li>{@code codinghub://tool/{id}} — 单个工具详情（Resource Template）</li>
+     * </ul>
+     */
+    private void registerAllResources(McpSyncServer server, McpResourceHandler resourceHandler) {
+
+        // 静态资源：工具广场目录
+        server.addResource(new McpServerFeatures.SyncResourceSpecification(
+                McpSchema.Resource.builder(McpResourceHandler.CATALOG_URI, "CodingHub 工具广场")
+                        .description("工具广场全量目录 — 所有可用工具的摘要列表，工具新增或更新时会推送变更通知")
+                        .mimeType("application/json")
+                        .build(),
+                (exchange, req) -> resourceHandler.readCatalog()
+        ));
+
+        // 静态资源：最近更新
+        server.addResource(new McpServerFeatures.SyncResourceSpecification(
+                McpSchema.Resource.builder(McpResourceHandler.RECENT_URI, "最近更新工具")
+                        .description("最近更新或新增的工具（按默认排序取前 20 条）")
+                        .mimeType("application/json")
+                        .build(),
+                (exchange, req) -> resourceHandler.readRecent()
+        ));
+
+        // Resource Template：单个工具详情
+        server.addResourceTemplate(new McpServerFeatures.SyncResourceTemplateSpecification(
+                McpSchema.ResourceTemplate.builder(McpResourceHandler.TOOL_URI_TEMPLATE, "工具详情")
+                        .description("获取指定工具的完整信息，URI 格式: codinghub://tool/{id}")
+                        .mimeType("application/json")
+                        .build(),
+                (exchange, req) -> resourceHandler.readTool(req)
+        ));
+
+        logger.info("Registered 3 MCP resources (catalog, recent, tool/{id} template) on {}",
+                server.hashCode());
     }
 }

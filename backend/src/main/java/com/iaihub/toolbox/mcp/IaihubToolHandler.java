@@ -77,6 +77,7 @@ public class IaihubToolHandler {
     private final KnowledgeBaseService knowledgeBaseService;
     private final RagApiClient ragApiClient;
     private final ObjectMapper objectMapper;
+    private final McpNotificationService mcpNotificationService;
     private final String ragBaseUrl;
 
     public IaihubToolHandler(McpSearchService searchService,
@@ -87,6 +88,7 @@ public class IaihubToolHandler {
                              KnowledgeBaseService knowledgeBaseService,
                              RagApiClient ragApiClient,
                              ObjectMapper objectMapper,
+                             McpNotificationService mcpNotificationService,
                              @Value("${app.rag.base-url}") String ragBaseUrl) {
         this.searchService = searchService;
         this.toolService = toolService;
@@ -96,6 +98,7 @@ public class IaihubToolHandler {
         this.knowledgeBaseService = knowledgeBaseService;
         this.ragApiClient = ragApiClient;
         this.objectMapper = objectMapper;
+        this.mcpNotificationService = mcpNotificationService;
         this.ragBaseUrl = ragBaseUrl;
     }
 
@@ -255,6 +258,7 @@ public class IaihubToolHandler {
 
             ToolSummaryDTO created = toolService.createTool(request, userId);
             String json = toJson(created);
+            mcpNotificationService.notifyToolCreated(created.getId(), created.getName());
             return successResult(json);
         } catch (Exception e) {
             logger.error("Error creating tool via MCP", e);
@@ -357,6 +361,7 @@ public class IaihubToolHandler {
 
             ToolDetailDTO updated = toolService.updateTool(toolId, request, mcpUser);
             String json = toJson(updated);
+            mcpNotificationService.notifyToolUpdated(toolId, updated.getName());
             return successResult(json);
         } catch (Exception e) {
             logger.error("Error modifying tool via MCP", e);

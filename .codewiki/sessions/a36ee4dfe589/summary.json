@@ -1,0 +1,34 @@
+{
+  "session_id": "a36ee4dfe589",
+  "repo_name": "CodingHub",
+  "repo_path": "D:\\repos\\CodingHub",
+  "output_dir": "D:\\repos\\CodingHub\\repowiki",
+  "total_components": 828,
+  "total_leaf_nodes": 222,
+  "languages": {
+    "typescript": 144,
+    "java": 684
+  },
+  "leaf_nodes_preview": [
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::IaihubToolHandler",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\UnifiedFavorite.java::UnifiedFavorite",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\McpServerConfig.java::McpServerConfig",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\ToolCommentRepository.java::ToolCommentRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\ToolFileService.java::ToolFileService",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\ToolDetailDTO.java::ToolDetailDTO",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\kb\\KnowledgeBaseController.java::KnowledgeBaseController",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\LoginResponse.java::LoginResponse",
+    "frontend\\src\\types\\forum.ts::ForumCommentCreateRequest",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpConnectionManager.java::SseEmitterEvent",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::ToolFilesResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\CategoryRepository.java::CategoryRepository",
+    "frontend\\src\\types\\video.ts::VideoComment",
+    "frontend\\src\\types\\forum.ts::ForumPostCreateRequest",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\video\\DanmakuService.java::DanmakuService",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\StaticController.java::StaticController",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\video\\DanmakuController.java::DanmakuController",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\tag\\VideoTagRepository.java::VideoTagRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService",
+    "frontend\\src\\types\\index.ts::UpdateToolRequest"
+  ]
+}
