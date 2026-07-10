@@ -714,6 +714,7 @@
       "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService.getTagById",
       "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService.getTagsByType",
       "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService.incrementUsage",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService.resolveOrCreateTags",
       "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService.toDTO"
     ],
     "children": {}

@@ -1,234 +1,221 @@
 # 知识库（Knowledge Base）
 
-知识库是 CodingHub 平台的文档管理与语义搜索模块，包含 **41 个组件**。该模块采用 Java + Python 双服务架构：Java 后端负责知识库元数据管理（CRUD、权限、生命周期），Python RAG 服务负责文档处理、向量化存储和语义搜索。
+## 模块简介
 
-用户可以在平台上创建知识库，上传文档（PDF、Markdown 等），系统自动将文档切片、向量化并存入向量数据库。其他用户可以通过语义搜索在知识库中查找相关内容，搜索结果支持 rerank 排序和上下文扩展，为 AI 工具提供可靠的知识检索能力。
+知识库模块是 CodingHub 的 RAG（检索增强生成）知识管理平台，为用户提供文档知识库的创建、管理和语义搜索能力。本模块采用双服务架构——Java 后端管理知识库元数据（存储在 MySQL 中），Python RAG 服务负责文档解析、向量化存储和语义检索，两者通过 HTTP API 协同工作。
 
----
+本模块包含 41 个组件，虽然体量相对精简，但承担了平台级的知识管理能力，同时通过 MCP 协议向 AI 代理开放知识库操作接口，是 CodingHub 智能化能力的核心支撑。
 
-## 双服务架构
+## 架构概览
 
 ```mermaid
 graph TD
-    subgraph 前端
-        FE[知识库页面]
+    subgraph Frontend[前端]
+        KBList[知识库列表页]
+        KBDetail[知识库详情页]
+        KBDocMgr[文档管理组件]
+        KBSearch[语义搜索组件]
     end
 
-    subgraph Java后端 - 8082
-        KB_CTL["KnowledgeBaseController<br/>/api/v1/knowledge"]
-        KB_SVC[KnowledgeBaseService]
-        RAG_CLIENT[RagApiClient]
-        AUTH[JWT认证 + 权限校验]
+    subgraph JavaBackend[Java 后端 :8082]
+        subgraph Controllers[控制器层]
+            KBCtrl[KnowledgeBaseController]
+        end
+
+        subgraph Services[业务逻辑层]
+            KBService[KnowledgeBaseService]
+            RagClient[RagApiClient]
+        end
+
+        subgraph Data[数据访问层]
+            KBRepo[KnowledgeBaseRepository]
+            UserRepo[UserRepository]
+        end
     end
 
-    subgraph 数据存储
-        MYSQL[(MySQL<br/>knowledge_base 表)]
+    subgraph PythonRAG[Python RAG 服务 :8000]
+        CollectionAPI[Collection 管理 API]
+        SearchAPI[语义搜索 API]
+        DocAPI[文档管理 API]
+        VectorDB[(向量数据库)]
     end
 
-    subgraph Python RAG服务 - 8000
-        RAG_API["RAG REST API<br/>/api/collections"]
-        VECDB[(向量数据库)]
-        DOC_PROC[文档处理器<br/>切片 + 向量化]
+    subgraph MCP[MCP 协议]
+        MCPHandler[IaihubToolHandler]
     end
 
-    FE -->|知识库 CRUD| KB_CTL
-    FE -->|文档上传/管理| RAG_API
-    KB_CTL --> AUTH
-    AUTH --> KB_SVC
-    KB_SVC --> MYSQL
-    KB_SVC --> RAG_CLIENT
-    RAG_CLIENT -->|HTTP| RAG_API
-    RAG_API --> DOC_PROC
-    RAG_API --> VECDB
-    DOC_PROC --> VECDB
+    subgraph Storage[(存储)]
+        MySQL[(MySQL)]
+    end
+
+    KBList --> KBCtrl
+    KBDetail --> KBCtrl
+    KBDocMgr --> PythonRAG
+    KBSearch --> KBCtrl
+
+    KBCtrl --> KBService
+    KBService --> KBRepo
+    KBService --> UserRepo
+    KBService --> RagClient
+
+    KBRepo --> MySQL
+    RagClient -->|HTTP| CollectionAPI
+    RagClient -->|HTTP| SearchAPI
+
+    MCPHandler --> KBService
+
+    DocAPI --> VectorDB
+    SearchAPI --> VectorDB
+    CollectionAPI --> VectorDB
 ```
 
-上图展示了知识库模块的双服务架构。前端根据操作类型分别与 Java 后端和 Python RAG 服务通信：
+## 组件职责
 
-- **知识库 CRUD**（创建/更新/删除/列表/搜索）→ Java 后端（:8082）
-- **文档管理**（上传/删除/状态查询）→ Python RAG 服务（:8000，前端直连或通过 Nginx 代理 `/rag`）
+### Controller（控制器）
 
----
+| 控制器 | 路径 | 职责 |
+|--------|------|------|
+| KnowledgeBaseController | `/api/v1/knowledge` | 知识库列表（分页，支持 sortBy=hot/latest、ownerId 过滤）、知识库详情、创建知识库（自动生成 ASCII 安全的 ragCollection 名，初始化 RAG 配置）、更新知识库（同步描述到 RAG）、删除知识库（软删除 + 删除 RAG collection）、语义搜索（代理到 RAG 服务，支持 topK / rerank / expandContext） |
 
-## 组件职责说明
+### Service（业务逻辑）
 
-### Controller
+| 服务 | 核心职责 |
+|------|----------|
+| KnowledgeBaseService | 知识库 CRUD 核心逻辑：名称唯一性校验、权限检查（isOwner / isAdmin）、RAG collection 生命周期管理、语义搜索代理 |
+| RagApiClient | HTTP 客户端，封装与 Python RAG 服务的全部通信 |
 
-#### KnowledgeBaseController (`/api/v1/knowledge`)
+### RagApiClient 接口详情
 
-| 方法 | 路径 | 说明 | 认证 |
-|---|---|---|---|
-| `GET` | `/api/v1/knowledge` | 知识库列表（分页，sortBy=hot\|latest，ownerId 过滤） | 否 |
-| `GET` | `/api/v1/knowledge/{id}` | 知识库详情 | 否 |
-| `POST` | `/api/v1/knowledge` | 创建知识库（自动生成 ASCII 安全的 ragCollection 名，初始化 RAG 配置） | 是 |
-| `PUT` | `/api/v1/knowledge/{id}` | 更新知识库（同步描述到 RAG 服务） | 是（owner/admin） |
-| `DELETE` | `/api/v1/knowledge/{id}` | 删除知识库（软删除 + 删除 RAG collection） | 是（owner/admin） |
-| `POST` | `/api/v1/knowledge/{id}/search` | 语义搜索（代理到 RAG 服务，支持 topK / rerank / expandContext） | 否 |
+RagApiClient 是 Java 后端与 Python RAG 服务之间的桥梁，封装了以下 HTTP 调用：
 
-### Service
+| 方法 | RAG 服务端点 | 说明 |
+|------|-------------|------|
+| 配置 collection | `PUT /api/collections/{name}/config` | 初始化或更新 collection 配置 |
+| 获取配置 | `GET /api/collections/{name}/config` | 查询 collection 当前配置 |
+| 删除 collection | `DELETE /api/collections/{name}` | 删除 collection 及其向量数据 |
+| 语义搜索 | `POST /api/collections/{name}/search` | 执行语义搜索查询 |
+| 文档状态 | `GET /api/collections/{name}/documents/status` | 查询文档处理状态 |
 
-#### KnowledgeBaseService
+### Model（数据模型）
 
-核心业务逻辑服务，职责包括：
+| 模型 | 关键字段 |
+|------|----------|
+| KnowledgeBase | name, description, ownerId, ragCollection, status |
 
-- **知识库 CRUD**：创建时自动生成 `ragCollection` 名称，更新时同步描述到 RAG 服务，删除时同时清理 MySQL 记录和 RAG collection
-- **名称唯一性校验**：通过 `existsByNameAndStatus` 确保活跃知识库名称不重复
-- **权限检查**：`isOwner || isAdmin` 模式，与[工具广场](tool-plaza.md)的权限模型一致
-- **RAG collection 生命周期管理**：创建时初始化 collection 配置（chunk_mode / chunk_size / chunk_overlap / rerank），删除时清理远端资源
-- **语义搜索代理**：将前端搜索请求转发到 Python RAG 服务，返回结构化结果
+### DTOs（数据传输对象）
 
-### RagApiClient
+| DTO | 说明 |
+|-----|------|
+| KbCreateRequest | 创建知识库请求（name, description） |
+| KbUpdateRequest | 更新知识库请求（description） |
+| KbResponse | 知识库信息响应 |
+| KbSearchRequest | 语义搜索请求（query, topK, rerank, expandContext） |
+| KbSearchResultResponse | 语义搜索结果响应 |
+| KbConfigRequest | RAG 配置请求 |
 
-HTTP 客户端，负责 Java 后端与 Python RAG 服务之间的通信：
+## API 端点列表
 
-| 方法 | 端点 | 说明 |
-|---|---|---|
-| `PUT` | `/api/collections/{name}/config` | 配置 collection（chunk_mode / chunk_size / chunk_overlap / rerank） |
-| `GET` | `/api/collections/{name}/config` | 获取 collection 配置 |
-| `DELETE` | `/api/collections/{name}` | 删除 collection |
-| `POST` | `/api/collections/{name}/search` | 语义搜索 |
-| `GET` | `/api/collections/{name}/documents/status` | 文档状态列表 |
-| `GET` | `/api/collections/{name}/documents/{docId}/status` | 单文档状态 |
+| 方法 | 端点 | 说明 | 权限 |
+|------|------|------|------|
+| GET | `/api/v1/knowledge` | 知识库分页列表（sortBy: hot/latest, ownerId 过滤） | 公开 |
+| GET | `/api/v1/knowledge/{id}` | 知识库详情 | 公开 |
+| POST | `/api/v1/knowledge` | 创建知识库 | 需认证 |
+| PUT | `/api/v1/knowledge/{id}` | 更新知识库 | 拥有者/管理员 |
+| DELETE | `/api/v1/knowledge/{id}` | 删除知识库（软删除 + 删除 RAG collection） | 拥有者/管理员 |
+| POST | `/api/v1/knowledge/{id}/search` | 语义搜索（代理到 RAG 服务） | 公开 |
 
-### Model
-
-#### KnowledgeBase
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `name` | String | 知识库名称（唯一性约束） |
-| `description` | String | 知识库描述 |
-| `ownerId` | Long | 创建者用户 ID |
-| `ragCollection` | String | RAG collection 名称（ASCII 安全） |
-| `status` | Enum | 状态（ACTIVE / DELETED） |
-
-### DTOs
-
-| DTO | 用途 |
-|---|---|
-| `KbCreateRequest` | 创建知识库请求（name + description） |
-| `KbUpdateRequest` | 更新知识库请求 |
-| `KbResponse` | 知识库信息响应 |
-| `KbSearchRequest` | 语义搜索请求（query + topK + rerank + expandContext） |
-| `KbSearchResultResponse` | 语义搜索结果响应 |
-| `KbConfigRequest` | RAG 配置请求（chunk 参数） |
-
----
-
-## ragCollection 名称生成规则
-
-创建知识库时，系统需要将用户输入的名称（可能包含中文）转换为 ASCII 安全的 collection 名称：
-
-```mermaid
-graph LR
-    A["用户输入名称<br/>例如：我的AI知识库"] --> B["转换为 ASCII 安全<br/>例如：wode-AI-zhishiku"]
-    B --> C["追加知识库 ID<br/>例如：wode-AI-zhishiku-42"]
-    C --> D["作为 RAG<br/>collection 名"]
-```
-
-生成步骤：
-
-1. **中文转拼音/ASCII**：将非 ASCII 字符转换为对应的拼音或移除
-2. **特殊字符清理**：仅保留字母、数字、连字符
-3. **追加 ID 后缀**：使用数据库自增 ID 保证唯一性，避免名称冲突
-
----
+> **注意**：文档上传与管理操作由前端直连 Python RAG 服务（`:8000`），不经过 Java 后端。
 
 ## 关键特性
 
-### 双服务通信模式
+### 双服务架构
 
-知识库模块的通信分为两条路径：
+知识库采用 Java + Python 双服务分离设计：
 
-**路径 A — Java 后端代理**（知识库元数据 + 语义搜索）：
-- 前端 → Java Backend (:8082) → Python RAG (:8000)
-- 适用场景：知识库 CRUD、语义搜索
-- 优势：统一的认证和权限校验
+- **Java 后端（:8082）**：管理知识库元数据（名称、描述、所有者、状态），存储在 MySQL 中，提供统一的 REST API
+- **Python RAG 服务（:8000）**：负责文档解析、向量化、存储和语义检索，使用专业的向量数据库
 
-**路径 B — 前端直连 RAG 服务**（文档管理）：
-- 前端 → Python RAG (:8000) 或 Nginx 代理 `/rag`
-- 适用场景：文档上传、文档删除、文档状态查询
-- 优势：大文件上传不经过 Java 层，减少中间环节开销
+这种分离使得文档处理的重计算任务不影响主业务服务，同时 Java 后端可以统一管理多个知识库的元数据。
 
-### 语义搜索参数
+### ragCollection 命名策略
 
-| 参数 | 类型 | 说明 |
-|---|---|---|
-| `query` | String | 搜索查询文本 |
-| `topK` | Integer | 返回结果数量（默认值由 RAG 服务决定） |
-| `rerank` | Boolean | 是否启用 rerank 重排序 |
-| `expandContext` | Boolean | 是否扩展上下文（返回更多周边内容） |
+创建知识库时，用户输入的名称（可能包含中文）需要转换为 ASCII 安全的 collection 名称：
 
-### 配置信息
+1. 将中文名转换为 ASCII 安全字符串（去除/替换非 ASCII 字符）
+2. 追加知识库 ID 保证唯一性
+3. 例如：`"技术文档"` → `"tech-docs-42"`
 
-| 配置项 | 值 | 说明 |
-|---|---|---|
-| `ragBaseUrl` | `http://172.53.3.98:8000` | RAG 服务内部地址 |
-| `publicUrl` | `/rag` | Nginx 代理路径（前端文档管理使用） |
+这一策略确保 RAG 服务的 collection 名称兼容各种底层存储系统。
 
-### 软删除与级联清理
+### 语义搜索
 
-删除知识库时执行两步操作：
-1. **MySQL 软删除**：将知识库 status 设为 DELETED
-2. **RAG collection 清理**：调用 `DELETE /api/collections/{name}` 删除向量数据库中的 collection 及其所有文档和向量数据
+语义搜索通过 Java 后端代理转发到 Python RAG 服务，支持以下参数：
 
----
+| 参数 | 说明 |
+|------|------|
+| query | 搜索查询文本 |
+| topK | 返回结果数量上限 |
+| rerank | 是否启用重排序（提高相关性） |
+| expandContext | 是否扩展上下文（返回更多周边文本） |
 
-## 与其他模块的关系
+### 生命周期管理
 
-- **工具广场**：知识库与工具广场共享权限模型（isOwner / isAdmin）和软删除策略。工具广场的统一互动系统可为知识库提供评论和点赞支持。详见 [工具广场](tool-plaza.md)。
-- **社区模块**：知识库可通过标签系统进行分类标记。详见 [社区与概览](community-social.md)。
-- **MCP 集成**：RAG 知识库的能力同时作为 MCP 工具暴露，AI 助手可通过 MCP 协议直接搜索知识库内容。
+- **创建**：Java 后端创建元数据记录 → 调用 RAG 服务初始化 collection 配置
+- **更新**：Java 后端更新描述 → 同步更新 RAG 服务中的 collection 配置
+- **删除**：Java 后端软删除元数据（status=DELETED）→ 调用 RAG 服务删除 collection 及其向量数据
 
----
+## 依赖关系
 
-## 错误处理
+### 上游依赖（谁调用本模块）
 
-知识库模块在双服务通信中需要处理多种异常场景：
+| 调用方 | 调用方式 | 说明 |
+|--------|----------|------|
+| KnowledgeBaseController | REST API | 前端 Web 界面直接调用 |
+| IaihubToolHandler | MCP 协议 | AI 代理通过 MCP 的 `kb_*` 系列工具操作知识库 |
 
-| 场景 | 处理方式 |
-|---|---|
-| 知识库名称重复 | 通过 `existsByNameAndStatus` 校验，返回 400 错误提示用户更换名称 |
-| 无操作权限 | 非 owner 且非 admin 操作时返回 403 |
-| RAG 服务不可用 | `RagApiClient` HTTP 请求超时或失败时，Java 后端返回 502 并记录错误日志 |
-| RAG collection 删除失败 | 软删除 MySQL 记录后尝试清理 RAG 端资源，失败时记录警告日志但不阻塞主流程 |
-| 语义搜索参数异常 | 前端传入的 topK / rerank 等参数由 Java 层校验后转发 |
+### 下游依赖（本模块依赖谁）
 
----
+| 依赖 | 类型 | 说明 |
+|------|------|------|
+| KnowledgeBaseRepository | 数据访问 | 知识库元数据 CRUD |
+| RagApiClient → Python RAG 服务 | HTTP 远程调用 | 文档向量化与语义检索（:8000） |
+| UserRepository | 数据访问 | 用户信息查询与验证 |
 
-## 部署与运维
+### 变更影响分析
 
-### 服务依赖
+- **KnowledgeBase 实体变更**：同时影响 REST API（KnowledgeBaseController）和 MCP 工具（IaihubToolHandler 的 kb_* 系列）两条调用路径
+- **RagApiClient 接口变更**：需要与 Python RAG 服务同步更新，属于跨服务变更，影响面较大
+- **collection 命名策略变更**：影响已有知识库的 ragCollection 名称映射，需谨慎处理数据迁移
+- **语义搜索参数变更**：前端搜索组件和 MCP 工具均需同步适配
 
-知识库模块正常运行需要以下服务同时可用：
+## 数据流图
 
-1. **MySQL 8.x** — 存储知识库元数据
-2. **Python RAG 服务** — 文档处理与向量搜索（默认地址 `http://172.53.3.98:8000`）
-3. **向量数据库** — 由 RAG 服务管理，Java 后端不直接访问
+```mermaid
+graph LR
+    subgraph Create[创建知识库]
+        C1[用户输入名称] --> C2[Java 后端创建元数据]
+        C2 --> C3[生成 ASCII 安全 ragCollection]
+        C3 --> C4[调用 RAG 初始化 config]
+    end
 
-### Nginx 代理配置
+    subgraph Upload[上传文档]
+        U1[前端直连 RAG :8000] --> U2[RAG 解析文档]
+        U2 --> U3[向量化存储]
+    end
 
-前端文档管理操作通过 Nginx 代理直连 RAG 服务，避免大文件上传经过 Java 层：
+    subgraph Search[语义搜索]
+        S1[前端发起搜索] --> S2[Java 后端代理]
+        S2 --> S3[RAG 执行向量检索]
+        S3 --> S4[可选 rerank]
+        S4 --> S5[返回结果]
+    end
 
+    subgraph Delete[删除知识库]
+        D1[Java 后端软删除] --> D2[调用 RAG 删除 collection]
+    end
 ```
-location /rag/ {
-    proxy_pass http://172.53.3.98:8000/;
-}
-```
 
-### 健康检查
+## 相关模块
 
-可通过以下方式验证知识库模块状态：
-- Java 后端：`GET /api/v1/knowledge`（返回空列表即表示服务正常）
-- RAG 服务：通过 `RagApiClient` 的 collection 配置接口验证连通性
-
----
-
-## 数据库表
-
-| 表名 | 说明 |
-|---|---|
-| `knowledge_base` | 知识库主表（name / description / ownerId / ragCollection / status） |
-| `kb_document` | 知识库文档表（与 RAG 服务同步的文档元数据） |
-
-> 文档的实际内容（文本、向量）存储在 Python RAG 服务的向量数据库中，Java 后端仅维护文档的元数据引用。数据库迁移由 Flyway 管理，知识库相关表结构在 V7~V9 版本中引入。
+- [工具广场](tool-plaza.md) — 共享用户体系，工具可通过标签关联知识库
+- [社交与概览](community-social.md) — 通知系统可在知识库操作完成后发送通知

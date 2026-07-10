@@ -1,278 +1,301 @@
 # 认证与用户管理
 
-认证与用户管理模块是 CodingHub 平台的安全基石，负责用户注册、登录认证、权限控制和账户全生命周期管理。该模块围绕 JWT（JSON Web Token）双令牌机制构建，结合 Spring Security 过滤链实现细粒度的访问控制，同时支持管理员审批流程以确保平台安全。
+## 模块简介
 
-本模块涵盖从用户注册到管理员审批、从登录获取令牌到携带令牌访问受保护资源的完整流程。所有认证相关的配置、异常处理和服务逻辑均集中在后端 `com.iaihub.toolbox` 包下，通过 RESTful API 与前端交互。
+认证与用户管理模块是 CodingHub 平台的安全核心，负责用户身份验证、角色权限管理和账户生命周期管控。该模块基于 JWT（JSON Web Token）实现无状态认证，采用 BCrypt 密码加密，并通过三级角色体系（USER / ADMIN / SUPER_ADMIN）实现细粒度的访问控制。
 
-## 认证流程架构
+模块包含 56 个组件，涵盖 3 个 Controller、1 个核心 Service、3 个 Model（含枚举）、11 个 DTO 以及 1 个 Repository。所有认证与用户管理操作均通过 RESTful API 暴露，前端与 MCP 工具均通过此模块完成用户身份验证。
+
+---
+
+## 架构总览
 
 ```mermaid
 graph TD
-    A[用户注册] --> B[状态 PENDING]
-    B --> C[SUPER_ADMIN 审批]
-    C -->|通过| D[状态 ACTIVE]
-    C -->|拒绝| E[状态 REJECTED]
-    D --> F[用户登录]
-    F --> G[验证 BCrypt 密码]
-    G -->|成功| H[签发 JWT Access Token 15min]
-    H --> I[签发 Refresh Token 7天]
-    I --> J[客户端携带 Bearer Token]
-    J --> K[JwtAuthenticationFilter 解析]
-    K --> L[Spring Security 权限校验]
-    L --> M[访问受保护资源]
-    H -->|过期| N[使用 Refresh Token 刷新]
-    N --> H
+    subgraph Controllers["Controller 层"]
+        AC["AuthController<br/>/api/v1/auth"]
+        UC["UserController<br/>/api/v1/users"]
+        ADC["AdminController<br/>/api/v1/admin"]
+    end
+
+    subgraph Service["Service 层"]
+        US["UserService<br/>核心业务逻辑"]
+    end
+
+    subgraph Models["Model 层"]
+        User["User 实体"]
+        Role["Role 枚举"]
+        AS["AccountStatus 枚举"]
+    end
+
+    subgraph Infra["基础设施"]
+        JWT["JwtUtil"]
+        BC["PasswordEncoder<br/>BCrypt"]
+        UR["UserRepository"]
+        UPL["UploadConfig"]
+    end
+
+    subgraph External["外部调用方"]
+        SEC["SecurityConfig<br/>JWT Filter"]
+        MCP["IaihubToolHandler<br/>MCP auth_login"]
+    end
+
+    AC --> US
+    UC --> US
+    ADC --> US
+    US --> UR
+    US --> JWT
+    US --> BC
+    US --> UPL
+    SEC --> US
+    MCP --> US
+    User --> Role
+    User --> AS
 ```
 
-## 组件职责
+---
+
+## 组件职责说明
 
 ### Controllers
 
-| 组件 | API 前缀 | 职责说明 |
-|------|----------|----------|
-| AuthController | `/api/v1/auth` | 处理用户登录（`/login`）、注册（`/register`）和令牌刷新（`/refresh`）端点 |
-| UserController | `/api/v1/users` | 管理个人资料查询与更新（`/profile`）、头像上传与删除（`/avatar`）、密码修改（`/password`）、我的工具列表（`/my-tools`） |
-| AdminController | `/api/v1/admin` | 管理员专属操作：审批用户（`/approve`）、拒绝用户（`/reject`）、待审批列表（`/pending-users`）、用户列表（`/users`）、用户状态管理（`/status`）、删除用户（`/delete`） |
+| 组件 | API 前缀 | 职责 |
+|------|----------|------|
+| **AuthController** | `/api/v1/auth` | 用户登录、注册、Token 刷新 |
+| **UserController** | `/api/v1/users` | 个人资料管理、头像上传/删除、密码修改、我的工具列表 |
+| **AdminController** | `/api/v1/admin` | 用户审批（通过/拒绝）、待审批列表、用户状态管理、用户删除 |
 
 ### Service
 
-**UserService** 是本模块的核心业务逻辑层，封装了以下关键能力：
+**UserService** 是模块的核心业务逻辑层，承担以下职责：
 
-| 功能 | 说明 |
-|------|------|
-| 用户注册 | 接收注册请求，使用 BCrypt 对密码进行加密存储，新用户初始状态为 `PENDING` |
-| 用户登录 | 验证用户名和密码（BCrypt 比对），成功后签发 JWT access token（15 分钟过期）和 refresh token（7 天过期） |
-| Token 刷新 | 验证 refresh token 有效性，签发新的 access token 和 refresh token 对 |
-| 头像管理 | 支持头像上传（存储到 `upload/{userId}/` 目录）和删除，限制文件大小 |
-| 密码修改 | 验证旧密码后使用 BCrypt 加密新密码并更新 |
-| 资料更新 | 更新用户昵称等个人资料字段 |
-| 管理员审批 | SUPER_ADMIN 审批 PENDING 状态用户，可批准或拒绝 |
+- **用户注册**：校验用户名/昵称唯一性，BCrypt 加密密码，初始状态设为 `PENDING`
+- **用户登录**：验证凭据，生成 JWT access token（15 分钟）和 refresh token（7 天）
+- **Token 刷新**：验证 refresh token 有效性，签发新的 access token
+- **头像管理**：上传头像文件（限制大小），按 userId 组织存储路径，支持删除
+- **密码修改**：验证旧密码，BCrypt 加密新密码
+- **个人资料更新**：更新昵称等可编辑字段
+- **管理员审批**：SUPER_ADMIN 审批 PENDING 用户，可批准或拒绝
 
 ### Models
 
-| 实体/枚举 | 字段/值 | 说明 |
-|-----------|---------|------|
-| User | username, nickname, password, role, status, avatarUrl, onCreate, onUpdate | 用户实体，包含 JPA 生命周期回调 `@PrePersist` / `@PreUpdate` 自动维护时间戳 |
-| Role | USER, ADMIN, SUPER_ADMIN | 角色枚举，决定用户的权限级别 |
-| AccountStatus | PENDING, ACTIVE, REJECTED | 账户状态枚举，控制用户是否可登录 |
+| 组件 | 说明 |
+|------|------|
+| **User** | 用户实体，包含 `username`、`nickname`、`password`、`role`、`status`、`avatarUrl`，具备 `onCreate` / `onUpdate` 生命周期回调 |
+| **Role** | 角色枚举：`USER`（普通用户）、`ADMIN`（管理员）、`SUPER_ADMIN`（超级管理员） |
+| **AccountStatus** | 账户状态枚举：`PENDING`（待审批）、`ACTIVE`（已激活）、`REJECTED`（已拒绝） |
 
 ### DTOs
 
 | DTO | 用途 |
 |-----|------|
-| LoginRequest | 登录请求体（username, password） |
-| LoginResponse | 登录响应体（accessToken, refreshToken, user 信息） |
-| RegisterRequest | 注册请求体（username, password, nickname） |
-| RefreshResponse | 令牌刷新响应体（新 accessToken, 新 refreshToken） |
-| AdminUserDTO | 管理员视角的用户信息（含角色、状态等管理字段） |
-| PendingUserDTO | 待审批用户信息（精简字段） |
-| PublicUserDTO | 公开用户信息（脱敏，不含密码和敏感数据） |
-| UserDTO | 当前用户完整信息（含角色、状态） |
-| UserStatusUpdateRequest | 用户状态变更请求 |
-| ChangePasswordRequest | 密码修改请求（oldPassword, newPassword） |
-| UpdateProfileRequest | 资料更新请求（nickname 等） |
-| AvatarUploadResponse | 头像上传响应（avatarUrl） |
+| **LoginRequest** | 登录请求（username + password） |
+| **LoginResponse** | 登录响应（accessToken + refreshToken + 用户信息） |
+| **RegisterRequest** | 注册请求（username + password + nickname） |
+| **RefreshResponse** | Token 刷新响应（新 accessToken） |
+| **AdminUserDTO** | 管理员视图的用户信息 |
+| **PendingUserDTO** | 待审批用户的精简信息 |
+| **PublicUserDTO** | 公开用户信息（脱敏） |
+| **UserDTO** | 标准用户信息传输对象 |
+| **UserStatusUpdateRequest** | 用户状态更新请求 |
+| **ChangePasswordRequest** | 密码修改请求（旧密码 + 新密码） |
+| **UpdateProfileRequest** | 个人资料更新请求 |
+| **AvatarUploadResponse** | 头像上传响应（头像 URL） |
 
 ### Repository
 
-**UserRepository** 继承 `JpaRepository<User, Long>`，提供以下自定义查询方法：
+**UserRepository** 提供以下数据访问方法：
 
-| 方法 | 说明 |
-|------|------|
-| `findByUsername(String)` | 根据用户名查找用户，返回 `Optional<User>` |
-| `findByRole(Role)` | 根据角色查找用户列表 |
-| `findByStatus(AccountStatus)` | 根据账户状态查找用户列表 |
-| `existsByUsername(String)` | 检查用户名是否已存在 |
-| `existsByNickname(String)` | 检查昵称是否已存在 |
+- `findByUsername(String username)` — 按用户名查找
+- `findByRole(Role role)` — 按角色查找
+- `findByStatus(AccountStatus status)` — 按状态查找
+- `existsByUsername(String username)` — 检查用户名是否存在
+- `existsByNickname(String nickname)` — 检查昵称是否存在
 
-## 数据模型详解
-
-### User 实体字段
-
-| 字段名 | 类型 | 约束 | 说明 |
-|--------|------|------|------|
-| id | Long | @Id @GeneratedValue | 主键，自增 |
-| username | String | @Column(unique, nullable) | 用户名，全局唯一，不可修改 |
-| nickname | String | @Column(unique) | 昵称，全局唯一，可修改 |
-| password | String | @Column(nullable) | BCrypt 加密后的密码 |
-| role | Role | @Enumerated(STRING) | 角色枚举，默认 USER |
-| status | AccountStatus | @Enumerated(STRING) | 账户状态，默认 PENDING |
-| avatarUrl | String | nullable | 头像文件 URL，为空表示使用默认头像 |
-| createdAt | LocalDateTime | @Column(updatable=false) | 创建时间，由 @PrePersist 自动设置 |
-| updatedAt | LocalDateTime | — | 更新时间，由 @PreUpdate 自动刷新 |
-
-### JPA 生命周期回调
-
-User 实体通过 JPA 生命周期注解自动维护时间戳字段：
-
-- `@PrePersist`：实体首次持久化时，自动设置 `createdAt` 和 `updatedAt` 为当前时间
-- `@PreUpdate`：实体更新时，自动刷新 `updatedAt` 为当前时间
-
-这些回调由 JPA Provider（Hibernate）在数据库操作前自动触发，业务代码无需手动设置时间字段。
-
-### 角色与状态枚举
-
-```
-Role 枚举:
-  USER          — 普通用户，基础操作权限
-  ADMIN         — 管理员，可管理他人内容
-  SUPER_ADMIN   — 超级管理员，拥有用户管理和系统配置权限
-
-AccountStatus 枚举:
-  PENDING       — 待审批，注册后默认状态，不可登录
-  ACTIVE        — 已激活，可正常登录和使用平台
-  REJECTED      — 已拒绝，注册被管理员拒绝，不可登录
-```
-
-## 认证时序图
-
-```mermaid
-sequenceDiagram
-    participant C as 前端客户端
-    participant AC as AuthController
-    participant US as UserService
-    participant UR as UserRepository
-    participant JWT as JwtUtil
-    participant DB as MySQL
-
-    C->>AC: POST /api/v1/auth/login
-    AC->>US: login(LoginRequest)
-    US->>UR: findByUsername(username)
-    UR->>DB: SELECT * FROM user WHERE username = ?
-    DB-->>UR: User record
-    UR-->>US: Optional User
-
-    alt 用户不存在
-        US-->>AC: throw UnauthorizedException
-        AC-->>C: 401 用户不存在
-    end
-
-    alt 账户状态非 ACTIVE
-        US-->>AC: throw ForbiddenException
-        AC-->>C: 403 账户未激活
-    end
-
-    US->>JWT: generateAccessToken(user)
-    JWT-->>US: accessToken (15min)
-    US->>JWT: generateRefreshToken(user)
-    JWT-->>US: refreshToken (7天)
-    US-->>AC: LoginResponse(tokens, userInfo)
-    AC-->>C: 200 LoginResponse
-
-    Note over C: 后续请求携带 Bearer Token
-    C->>AC: GET /api/v1/users/profile (Bearer Token)
-    AC->>JWT: validateToken(token)
-    JWT-->>AC: username
-    AC->>US: getUserProfile(username)
-    US->>UR: findByUsername(username)
-    UR-->>US: User
-    US-->>AC: UserDTO
-    AC-->>C: 200 UserDTO
-```
+---
 
 ## API 端点列表
 
-### 认证端点（公开）
+### 认证接口（AuthController）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/v1/auth/register` | 用户注册，初始状态 PENDING |
-| POST | `/api/v1/auth/login` | 用户登录，返回 JWT 令牌对 |
-| POST | `/api/v1/auth/refresh` | 刷新 access token |
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/auth/login` | 用户登录，返回 JWT Token 对 | 无 |
+| POST | `/api/v1/auth/register` | 用户注册（状态为 PENDING） | 无 |
+| POST | `/api/v1/auth/refresh` | 刷新 access token | 无（需 refreshToken） |
 
-### 用户端点（需认证）
+### 用户接口（UserController）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/users/profile` | 获取当前用户资料 |
-| PUT | `/api/v1/users/profile` | 更新个人资料 |
-| POST | `/api/v1/users/avatar` | 上传头像 |
-| DELETE | `/api/v1/users/avatar` | 删除头像 |
-| PUT | `/api/v1/users/password` | 修改密码 |
-| GET | `/api/v1/users/my-tools` | 获取我发布的工具列表 |
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| GET | `/api/v1/users/profile` | 获取当前用户资料 | 需要 |
+| PUT | `/api/v1/users/profile` | 更新个人资料 | 需要 |
+| POST | `/api/v1/users/avatar` | 上传头像 | 需要 |
+| DELETE | `/api/v1/users/avatar` | 删除头像 | 需要 |
+| PUT | `/api/v1/users/password` | 修改密码 | 需要 |
+| GET | `/api/v1/users/my-tools` | 获取我发布的工具列表 | 需要 |
 
-### 管理端点（需 SUPER_ADMIN）
+### 管理接口（AdminController）
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v1/admin/pending-users` | 获取待审批用户列表 |
-| POST | `/api/v1/admin/approve` | 审批通过用户 |
-| POST | `/api/v1/admin/reject` | 拒绝用户注册 |
-| GET | `/api/v1/admin/users` | 获取所有用户列表 |
-| PUT | `/api/v1/admin/status` | 修改用户状态 |
-| DELETE | `/api/v1/admin/delete` | 删除用户 |
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/v1/admin/approve/{userId}` | 审批通过用户 | SUPER_ADMIN |
+| POST | `/api/v1/admin/reject/{userId}` | 拒绝用户注册 | SUPER_ADMIN |
+| GET | `/api/v1/admin/pending-users` | 获取待审批用户列表 | SUPER_ADMIN |
+| GET | `/api/v1/admin/users` | 获取所有用户列表 | SUPER_ADMIN |
+| PUT | `/api/v1/admin/users/{userId}/status` | 更新用户状态 | SUPER_ADMIN |
+| DELETE | `/api/v1/admin/users/{userId}` | 删除用户 | SUPER_ADMIN |
 
-## 关键特性
+---
 
-### JWT 双令牌机制
+## 认证流程
 
-系统采用 access token + refresh token 的双令牌策略，兼顾安全性和用户体验：
+```mermaid
+graph LR
+    subgraph Registration["注册流程"]
+        R1["用户提交注册"] --> R2["校验唯一性"]
+        R2 --> R3["BCrypt 加密密码"]
+        R3 --> R4["创建用户<br/>status=PENDING"]
+        R4 --> R5["等待 SUPER_ADMIN 审批"]
+        R5 --> R6{"审批结果"}
+        R6 -->|"通过"| R7["status=ACTIVE"]
+        R6 -->|"拒绝"| R8["status=REJECTED"]
+    end
 
-- **Access Token**：有效期 15 分钟，携带在请求头 `Authorization: Bearer <token>` 中，用于 API 认证
-- **Refresh Token**：有效期 7 天，仅在 access token 过期后用于换取新令牌对
-- 令牌由 `JwtUtil` 工具类负责生成、验证和解析，签名密钥配置在 `application.yml` 中
+    subgraph Login["登录流程"]
+        L1["用户提交凭据"] --> L2["验证密码 BCrypt"]
+        L2 --> L3{"验证通过?"}
+        L3 -->|"是"| L4["生成 access token<br/>15 分钟"]
+        L3 -->|"否"| L5["返回 401"]
+        L4 --> L6["生成 refresh token<br/>7 天"]
+        L6 --> L7["返回 Token 对"]
+    end
 
-### 管理员审批流程
+    subgraph Refresh["Token 刷新"]
+        T1["携带 refresh token"] --> T2["验证有效性"]
+        T2 --> T3{"有效?"}
+        T3 -->|"是"| T4["签发新 access token"]
+        T3 -->|"否"| T5["返回 401"]
+    end
+```
 
-用户注册后并不能直接登录，必须经过以下审批流程：
+---
 
-1. 用户提交注册信息，系统创建 `PENDING` 状态的账户
-2. SUPER_ADMIN 通过 `/api/v1/admin/pending-users` 查看待审批列表
-3. SUPER_ADMIN 调用 `/api/v1/admin/approve` 或 `/api/v1/admin/reject` 进行审批
-4. 审批通过后账户状态变为 `ACTIVE`，用户方可登录
+## 角色权限矩阵
 
-### 三级角色权限
+```mermaid
+graph TD
+    subgraph Roles["角色层级"]
+        SA["SUPER_ADMIN<br/>超级管理员"]
+        AD["ADMIN<br/>管理员"]
+        USR["USER<br/>普通用户"]
+    end
 
-| 角色 | 权限范围 |
-|------|----------|
-| USER | 基础操作：浏览工具、发帖、评论、点赞、管理自己的内容 |
-| ADMIN | USER 权限 + 管理内容（删除他人帖子/工具等） |
-| SUPER_ADMIN | ADMIN 权限 + 用户管理（审批/删除用户、角色变更） |
+    subgraph Permissions["权限范围"]
+        P1["审批/拒绝用户"]
+        P2["删除用户"]
+        P3["管理所有用户状态"]
+        P4["发布/编辑/删除工具"]
+        P5["发布/编辑帖子和视频"]
+        P6["修改个人资料/头像"]
+        P7["点赞/评论/收藏"]
+    end
 
-### 头像文件管理
+    SA --> P1
+    SA --> P2
+    SA --> P3
+    SA --> P4
+    SA --> P5
+    SA --> P6
+    SA --> P7
+    AD --> P4
+    AD --> P5
+    AD --> P6
+    AD --> P7
+    USR --> P6
+    USR --> P7
+```
 
-头像文件存储在服务器本地 `upload/` 目录下，按 `userId` 组织子目录结构。上传时进行文件大小校验，删除时同步清理磁盘文件。
+| 操作 | SUPER_ADMIN | ADMIN | USER |
+|------|:-----------:|:-----:|:----:|
+| 审批/拒绝用户 | ✅ | ❌ | ❌ |
+| 删除用户 | ✅ | ❌ | ❌ |
+| 管理用户状态 | ✅ | ❌ | ❌ |
+| 发布/编辑/删除工具 | ✅ | ✅ | ✅（仅自己的） |
+| 发布/编辑帖子和视频 | ✅ | ✅ | ✅（仅自己的） |
+| 修改个人资料/头像 | ✅ | ✅ | ✅ |
+| 点赞/评论/收藏 | ✅ | ✅ | ✅ |
 
-## 与其他模块的关系
+---
 
-- **安全配置**：本模块依赖 [基础设施](infra.md) 中的 `SecurityConfig` 和 `JwtAuthenticationFilter` 完成请求级认证
-- **工具管理**：用户发布的工具通过 `UserController` 的 `/my-tools` 端点查询，工具实体关联用户外键
-- **MCP 认证**：MCP 工具操作通过 [MCP 服务](mcp-service.md) 中的 `auth_login` 工具进行独立认证
-- **通知系统**：用户相关事件（如审批结果）可触发通知推送
+## 依赖关系
 
-## 安全注意事项
+### 上游依赖（谁依赖本模块）
 
-### 密码安全
+| 依赖方 | 依赖方式 | 说明 |
+|--------|----------|------|
+| [SecurityConfig](infra.md) | JWT Filter 链 | `JwtAuthenticationFilter` 在每次请求中调用 `UserService` 加载用户信息进行认证 |
+| [IaihubToolHandler](mcp-service.md) | MCP 工具调用 | `auth_login` MCP 工具直接调用 `UserService.login()` 完成认证 |
+| ToolService | Service 引用 | 工具实体关联 User（创建者），查询工具时需加载用户信息 |
+| ForumPostService | Service 引用 | 帖子实体关联 User（作者），展示帖子时需加载作者信息 |
+| VideoService | Service 引用 | 视频实体关联 User（上传者），展示视频时需加载上传者信息 |
+| KnowledgeBaseService | Service 引用 | 知识库关联 User（创建者） |
 
-- 密码使用 BCrypt 加密存储，不可逆。BCrypt 内置随机盐（salt），相同密码每次加密结果不同
-- 注册时前端传输明文密码，后端使用 `BCryptPasswordEncoder` 进行加密
-- 登录时使用 `BCryptPasswordEncoder.matches()` 进行比对，不暴露原始密码
-- 密码修改需验证旧密码正确性后方可设置新密码
-- 系统初始 super_admin 默认密码为 `123456`，生产环境部署后应立即修改
+### 下游依赖（本模块依赖谁）
 
-### Token 安全
+| 依赖项 | 类型 | 说明 |
+|--------|------|------|
+| UserRepository | Repository | 用户数据持久化访问 |
+| JwtUtil | Util | JWT Token 的生成、验证与解析 |
+| PasswordEncoder（BCrypt） | Spring Bean | 密码加密与验证 |
+| [UploadConfig](infra.md) | Config | 头像文件存储路径配置 |
 
-- 所有认证端点在生产环境应使用 HTTPS 传输，防止 Token 被中间人截获
-- Access Token 短有效期（15 分钟）降低了令牌泄露的风险窗口
-- Refresh Token 每次刷新后会签发新令牌对，旧令牌失效（Rotation 策略）
-- JWT 签名密钥应通过环境变量注入，不应硬编码在配置文件中
-- Token 不存储在服务端（Stateless），无法主动吊销单个用户的 Token
+### 变更影响
 
-### 权限校验原则
+> **User 实体是本模块中影响范围最大的组件。**
 
-- 内容操作遵循 `isOwner || isAdmin` 权限校验原则：用户只能修改/删除自己创建的内容，ADMIN 及以上角色可管理任何内容
-- 用户管理操作（审批/拒绝/删除/状态变更）仅限 SUPER_ADMIN 角色执行
-- SecurityConfig 中的 URL 权限矩阵是第一道防线，Service 层的业务权限校验是第二道防线
+User 实体的任何字段变更（增删字段、类型修改、枚举值变更）都会产生广泛的级联影响：
 
-### 输入验证与防护
+- **ToolService** — 工具创建者信息展示
+- **ForumPostService** — 帖子作者信息展示
+- **VideoService** — 视频上传者信息展示
+- **KnowledgeBaseService** — 知识库创建者信息
+- **所有 DTO** — 可能需要对应调整映射逻辑
+- **SecurityConfig** — 如果 Role 枚举变更，权限规则需同步更新
+- **DataInitializer** — 启动时初始化的 super_admin 用户依赖 User + Role
 
-- 用户输入经过 [XSS 防护](infra.md) 处理，防止跨站脚本攻击
-- 用户名和昵称有唯一性约束，通过 `existsByUsername` / `existsByNickname` 在注册时校验
-- 头像上传限制文件大小和类型，防止恶意文件上传
-- 软删除策略：用户删除后标记为 `DELETED` 状态而非物理删除，保留数据审计追溯能力
+---
 
-### 已知限制与改进建议
+## 关键实现细节
 
-- 当前无登录失败次数限制（Rate Limiting），存在暴力破解风险，建议后续引入账户锁定或验证码机制
-- Refresh Token 无服务端存储，无法主动吊销，建议后续引入 Token 黑名单机制
-- 头像文件存储在本地磁盘，无 CDN 加速，大规模部署时建议迁移至对象存储（如 MinIO / OSS）
+### JWT 认证机制
+
+- **Access Token**：有效期 15 分钟，携带在 `Authorization: Bearer <token>` 请求头中
+- **Refresh Token**：有效期 7 天，仅用于换取新的 access token
+- Token 过期时返回特定的异常信息，客户端可据此决定是否尝试刷新
+
+### 注册审批流程
+
+1. 用户提交注册请求，系统校验用户名和昵称唯一性
+2. 密码经 BCrypt 加密后存储，账户状态设为 `PENDING`
+3. SUPER_ADMIN 在管理后台查看待审批列表
+4. 审批通过后状态变为 `ACTIVE`，用户可正常登录
+5. 审批拒绝后状态变为 `REJECTED`
+
+### 头像管理
+
+- 头像文件存储在 `upload` 目录下，按 `userId` 组织子目录
+- 上传时校验文件大小限制（由 [UploadConfig](infra.md) 配置）
+- 删除头像时同步清理磁盘文件
+
+### 管理员操作限制
+
+- 所有管理员操作（审批、拒绝、删除用户、修改用户状态）仅限 `SUPER_ADMIN` 角色
+- 此权限约束在 [SecurityConfig](infra.md) 的 URL 权限规则中强制执行
+
+---
+
+## 相关模块
+
+- [基础设施](infra.md) — SecurityConfig 安全过滤链、JwtUtil、UploadConfig
+- [MCP 服务](mcp-service.md) — auth_login MCP 工具调用本模块的登录功能

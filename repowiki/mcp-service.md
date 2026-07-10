@@ -1,214 +1,349 @@
 # MCP 服务
 
-MCP（Model Context Protocol）服务模块是 CodingHub 平台的 AI 能力网关，基于 MCP SDK 2.0.0 构建，将平台的核心业务能力以标准化协议暴露给 AI 客户端（如 Claude Desktop、Cursor、QoderWork 等）。该模块支持 Streamable HTTP 和 SSE 双传输层，提供 18 个工具（Tools）、3 个资源（Resources）和 6 个提示词（Prompts），使 AI 助手能够直接操作 CodingHub 的工具广场、论坛和知识库。
+## 模块简介
 
-MCP 服务独立于传统 REST API 运行，但复用相同的业务 Service 层，确保数据一致性。所有 MCP 工具操作均需要独立认证（通过 `auth_login` 工具传入用户名密码），不依赖 HTTP Session 或 JWT 令牌。
+MCP（Model Context Protocol）服务模块是 CodingHub 平台的 AI 能力网关，通过标准化的 MCP 协议将平台的工具管理、论坛发帖、知识库操作等功能暴露给 AI 助手。该模块实现了双传输层架构——Streamable HTTP（主实例）和 SSE（兼容旧客户端），使外部 AI 代理能够通过统一的协议接口与 CodingHub 进行交互。
 
-## MCP 服务架构
+模块包含 93 个组件，是项目中组件最多的模块之一。核心包括 MCP SDK 服务器配置、18 个工具处理器、3 个资源定义、6 个提示词模板，以及连接管理和通知服务。其中 `IaihubToolHandler` 是整个项目中影响范围最大的单一组件（影响 156 个符号），充当 MCP 协议与业务逻辑层之间的枢纽。
+
+---
+
+## 架构总览
 
 ```mermaid
 graph TD
-    A[AI 客户端] -->|Streamable HTTP| B["/mcp 端点"]
-    A -->|SSE 兼容| C["/sse 端点"]
-    B --> D[McpSdkServerConfig]
-    C --> D
-    D --> E[工具注册 18个]
-    D --> F[资源注册 3个]
-    D --> G[提示词注册 6个]
-    E --> H[IaihubToolHandler]
-    H --> I[McpSearchService]
-    H --> J[ToolService]
-    H --> K[ToolFileService]
-    H --> L[ForumPostService]
-    H --> M[UserService]
-    H --> N[KnowledgeBaseService]
-    H --> O[RagApiClient]
-    F --> P[McpResourceHandler]
-    G --> Q[McpPromptProvider]
-    H --> R[McpNotificationService]
-    R -->|resources/list_changed| A
-    R -->|resources/updated| A
-    D --> S[McpConnectionManager]
-    S -->|SSE 连接管理| C
+    subgraph Transport["双传输层"]
+        HTTP["Streamable HTTP<br/>/mcp<br/>主实例"]
+        SSE["SSE<br/>/sse<br/>兼容旧客户端"]
+    end
+
+    subgraph McpSdkServerConfig["McpSdkServerConfig"]
+        REG["工具注册<br/>18 Tools"]
+        RES["资源注册<br/>3 Resources"]
+        PRM["提示词注册<br/>6 Prompts"]
+    end
+
+    subgraph Handlers["处理器层"]
+        ITH["IaihubToolHandler<br/>18 个 MCP 工具"]
+        MRH["McpResourceHandler<br/>3 个 MCP 资源"]
+        MPP["McpPromptProvider<br/>6 个 MCP 提示词"]
+    end
+
+    subgraph Support["支撑组件"]
+        MCM["McpConnectionManager<br/>SSE 连接管理"]
+        MNS["McpNotificationService<br/>资源变更通知"]
+        MSS["McpSearchService<br/>搜索服务"]
+    end
+
+    subgraph Services["业务 Service 层"]
+        TS["ToolService"]
+        TFS["ToolFileService"]
+        FPS["ForumPostService"]
+        US["UserService"]
+        KBS["KnowledgeBaseService"]
+        RAG["RagApiClient"]
+        TAG["TagService"]
+    end
+
+    HTTP --> REG
+    SSE --> REG
+    HTTP --> RES
+    SSE --> RES
+    HTTP --> PRM
+    SSE --> PRM
+    REG --> ITH
+    RES --> MRH
+    PRM --> MPP
+    ITH --> TS
+    ITH --> TFS
+    ITH --> FPS
+    ITH --> US
+    ITH --> KBS
+    ITH --> RAG
+    ITH --> TAG
+    ITH --> MNS
+    ITH --> MSS
+    MCM --> SSE
 ```
 
-## 组件职责
+---
 
-### 核心配置
+## 组件职责说明
 
-| 组件 | 职责说明 |
-|------|----------|
-| McpSdkServerConfig | MCP 服务器核心配置类，配置双传输层（Streamable HTTP `/mcp` + SSE `/sse`），注册 18 个工具、3 个资源和 6 个提示词到每个传输层。设置 Server Capabilities 声明 |
+### McpSdkServerConfig（服务器配置）
 
-### 工具处理器
+MCP SDK 2.0.0 服务器配置类，负责创建和配置 MCP 服务器实例。
 
-| 组件 | 职责说明 |
-|------|----------|
-| IaihubToolHandler | MCP 工具的统一入口，实现 `ToolSpecification` 和 `ToolCallHandler`，处理全部 18 个工具调用，将 MCP 请求参数映射到对应的 Service 方法 |
+**双传输层配置：**
 
-### 资源与提示词
+| 传输层 | 端点 | 说明 |
+|--------|------|------|
+| Streamable HTTP | `/mcp` | 主实例，支持 HTTP 流式传输 |
+| SSE | `/sse` | 兼容旧客户端的 Server-Sent Events 传输 |
 
-| 组件 | 职责说明 |
-|------|----------|
-| McpResourceHandler | 提供 3 个 MCP Resource，暴露工具目录和详情数据供 AI 客户端主动拉取 |
-| McpPromptProvider | 提供 6 个 MCP Prompt，预定义常用操作的提示词模板，降低 AI 客户端的使用门槛 |
+两个传输层注册完全相同的 18 个工具、3 个资源和 6 个提示词。
 
-### 连接与通知
+**Server Capabilities：**
+- `tools` — listChanged = true
+- `resources` — subscribe = true, listChanged = true
+- `prompts` — listChanged = true
+- `logging` — 日志能力
 
-| 组件 | 职责说明 |
-|------|----------|
-| McpConnectionManager | SSE 连接管理器，维护活跃 SSE 连接列表，处理连接建立和断开 |
-| McpNotificationService | MCP 通知服务，在工具 CRUD 操作后向已连接客户端发送 `resources/list_changed` 和 `resources/updated` 通知 |
+### IaihubToolHandler（工具处理器）
 
-## MCP 工具清单
+核心工具处理器，实现 18 个 MCP 工具，是 MCP 协议与业务逻辑的桥梁。
 
-### 工具操作（8 个）
+**工具操作（9 个）：**
 
-| 工具名 | 说明 | 认证要求 |
-|--------|------|----------|
-| `tool_search` | 搜索工具，支持关键词和分类过滤 | 否 |
-| `tool_get` | 获取单个工具详情 | 否 |
-| `tool_files` | 获取工具的附件文件列表 | 否 |
-| `tool_download` | 下载工具附件 | 否 |
-| `tool_create` | 创建新工具（名称、描述、分类等） | 是（username + password） |
-| `tool_modify` | 修改已有工具信息 | 是（username + password） |
-| `tool_delete` | 删除工具（软删除） | 是（username + password） |
-| `tool_file_upload` | 上传工具附件文件 | 是（username + password） |
+| 工具名 | 功能 | 调用的 Service |
+|--------|------|---------------|
+| `tool_search` | 搜索工具（按名称/描述/分类） | ToolService, McpSearchService |
+| `tool_get` | 获取工具详情 | ToolService |
+| `tool_files` | 获取工具文件列表 | ToolFileService |
+| `tool_download` | 下载工具文件 | ToolFileService |
+| `tool_create` | 创建新工具 | ToolService |
+| `tool_modify` | 修改已有工具 | ToolService |
+| `tool_delete` | 删除工具（软删除） | ToolService |
+| `tool_file_upload` | 上传工具文件 | ToolFileService |
+| `tool_file_delete` | 删除工具文件 | ToolFileService |
 
-### 帖子操作（3 个）
+**帖子操作（3 个）：**
 
-| 工具名 | 说明 | 认证要求 |
-|--------|------|----------|
-| `post_search` | 搜索论坛帖子 | 否 |
-| `post_get` | 获取帖子详情 | 否 |
-| `post_create` | 创建论坛帖子 | 是（username + password） |
+| 工具名 | 功能 | 调用的 Service |
+|--------|------|---------------|
+| `post_search` | 搜索论坛帖子 | ForumPostService |
+| `post_get` | 获取帖子详情 | ForumPostService |
+| `post_create` | 创建新帖子 | ForumPostService |
 
-### 知识库操作（7 个）
+**知识库操作（7 个）：**
 
-| 工具名 | 说明 | 认证要求 |
-|--------|------|----------|
-| `kb_list` | 列出所有知识库 | 否 |
-| `kb_search` | 在知识库中语义搜索（调用 RAG 服务） | 否 |
-| `kb_create` | 创建新知识库 | 是（username + password） |
-| `kb_update` | 更新知识库信息 | 是（username + password） |
-| `kb_delete` | 删除知识库 | 是（username + password） |
-| `kb_upload_document` | 上传文档到知识库 | 是（username + password） |
-| `kb_document_status` | 查询文档处理状态 | 否 |
+| 工具名 | 功能 | 调用的 Service |
+|--------|------|---------------|
+| `kb_list` | 列出所有知识库 | KnowledgeBaseService |
+| `kb_search` | 语义搜索知识库内容 | RagApiClient |
+| `kb_create` | 创建知识库 | KnowledgeBaseService |
+| `kb_update` | 更新知识库信息 | KnowledgeBaseService |
+| `kb_delete` | 删除知识库 | KnowledgeBaseService |
+| `kb_upload_document` | 上传文档到知识库 | RagApiClient |
+| `kb_document_status` | 查询文档处理状态 | RagApiClient |
 
-### 认证工具（1 个）
+**认证工具（1 个）：**
 
-| 工具名 | 说明 | 认证要求 |
-|--------|------|----------|
-| `auth_login` | MCP 独立认证，传入 username 和 password 获取会话凭证 | 否（自身用于认证） |
+| 工具名 | 功能 | 调用的 Service |
+|--------|------|---------------|
+| `auth_login` | 用户登录认证 | UserService |
 
-## MCP Resources
+### McpResourceHandler（资源处理器）
 
-| Resource URI | 说明 |
-|-------------|------|
-| `codinghub://tools/catalog` | 全量工具目录，返回所有工具的精简信息列表 |
-| `codinghub://tools/recent` | 最近更新工具列表，返回近期新增或修改的工具 |
-| `codinghub://tool/{id}` | 单工具详情模板，根据工具 ID 返回完整信息 |
+提供 3 个 MCP 资源，供 AI 客户端订阅和读取：
 
-## MCP Prompts
+| 资源 URI | 说明 |
+|----------|------|
+| `codinghub://tools/catalog` | 工具全量目录——返回所有工具的精简列表 |
+| `codinghub://tools/recent` | 最近更新工具——返回近期更新/新增的工具 |
+| `codinghub://tool/{id}` | 单工具详情模板——按 ID 获取工具的完整信息 |
 
-| Prompt 名称 | 说明 |
-|-------------|------|
-| `search-tools` | 搜索工具的提示词模板，引导 AI 按关键词或分类查找工具 |
-| `install-tool` | 安装/下载工具的提示词模板 |
+### McpPromptProvider（提示词模板）
+
+提供 6 个预定义的提示词模板，帮助 AI 客户端更有效地与 CodingHub 交互：
+
+| 提示词名 | 用途 |
+|----------|------|
+| `search-tools` | 搜索工具的提示词模板 |
+| `install-tool` | 安装工具的引导提示词 |
 | `check-versions` | 检查工具版本的提示词模板 |
-| `publish-tool` | 发布新工具的提示词模板，引导填写必要字段 |
-| `update-tool` | 更新工具信息的提示词模板 |
-| `forum-post` | 论坛发帖的提示词模板 |
+| `publish-tool` | 发布新工具的引导提示词 |
+| `update-tool` | 更新已有工具的引导提示词 |
+| `forum-post` | 论坛发帖的引导提示词 |
 
-## Server Capabilities
+### 支撑组件
 
-MCP 服务器声明以下能力，供 AI 客户端发现和利用：
+| 组件 | 职责 |
+|------|------|
+| **McpConnectionManager** | 管理 SSE 连接的生命周期（建立、维护、断开） |
+| **McpNotificationService** | 工具 CRUD 操作后发送 `resources/list_changed` 和 `resources/updated` 通知，确保客户端资源缓存同步 |
+| **McpSearchService** | 为 MCP 工具搜索提供优化的查询逻辑 |
 
-| 能力 | 配置 | 说明 |
+---
+
+## MCP 工具→服务映射
+
+```mermaid
+graph LR
+    subgraph ToolOps["工具操作 (9)"]
+        T1["tool_search"]
+        T2["tool_get"]
+        T3["tool_files"]
+        T4["tool_download"]
+        T5["tool_create"]
+        T6["tool_modify"]
+        T7["tool_delete"]
+        T8["tool_file_upload"]
+        T9["tool_file_delete"]
+    end
+
+    subgraph PostOps["帖子操作 (3)"]
+        P1["post_search"]
+        P2["post_get"]
+        P3["post_create"]
+    end
+
+    subgraph KbOps["知识库操作 (7)"]
+        K1["kb_list"]
+        K2["kb_search"]
+        K3["kb_create"]
+        K4["kb_update"]
+        K5["kb_delete"]
+        K6["kb_upload_document"]
+        K7["kb_document_status"]
+    end
+
+    subgraph AuthOps["认证 (1)"]
+        A1["auth_login"]
+    end
+
+    TS["ToolService"]
+    TFS["ToolFileService"]
+    FPS["ForumPostService"]
+    KBS["KnowledgeBaseService"]
+    RAG["RagApiClient"]
+    US["UserService"]
+
+    T1 --> TS
+    T2 --> TS
+    T3 --> TFS
+    T4 --> TFS
+    T5 --> TS
+    T6 --> TS
+    T7 --> TS
+    T8 --> TFS
+    T9 --> TFS
+    P1 --> FPS
+    P2 --> FPS
+    P3 --> FPS
+    K1 --> KBS
+    K2 --> RAG
+    K3 --> KBS
+    K4 --> KBS
+    K5 --> KBS
+    K6 --> RAG
+    K7 --> RAG
+    A1 --> US
+```
+
+---
+
+## API 端点列表
+
+### MCP 传输端点
+
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| tools | `listChanged=true` | 支持工具列表变更通知 |
-| resources | `subscribe=true`, `listChanged=true` | 支持资源订阅和列表变更通知 |
-| prompts | `listChanged=true` | 支持提示词列表变更通知 |
-| logging | 启用 | 支持日志级别控制 |
+| POST | `/mcp` | Streamable HTTP 主传输端点 |
+| GET | `/sse` | SSE 事件流端点（建立连接） |
+| POST | `/sse` | SSE 消息发送端点 |
 
-## 关键特性
+### MCP 协议交互
 
-### 双传输层架构
+MCP 协议通过上述传输端点进行 JSON-RPC 2.0 通信，主要方法包括：
 
-MCP 服务同时支持两种传输协议，确保兼容性：
+| 方法 | 说明 |
+|------|------|
+| `tools/list` | 列出所有可用工具及其参数描述 |
+| `tools/call` | 调用指定工具，传入参数 |
+| `resources/list` | 列出所有可用资源 |
+| `resources/read` | 读取指定资源内容 |
+| `resources/subscribe` | 订阅资源变更通知 |
+| `prompts/list` | 列出所有提示词模板 |
+| `prompts/get` | 获取指定提示词模板 |
+| `notifications/resources/list_changed` | 服务器→客户端：资源列表已变更 |
+| `notifications/resources/updated` | 服务器→客户端：特定资源已更新 |
 
-- **Streamable HTTP (`/mcp`)**：MCP 2.0 主传输方式，基于 HTTP POST + Server-Sent Events，适用于新客户端
-- **SSE (`/sse`)**：兼容旧版 MCP 客户端（如早期 Claude Desktop），基于长连接 SSE 流
+---
 
-两个传输层注册完全相同的工具、资源和提示词，行为一致。
+## 依赖关系
 
-### MCP 独立认证机制
+### 上游依赖（谁依赖本模块）
 
-MCP 工具的认证独立于 REST API 的 JWT 机制：
+| 依赖方 | 依赖方式 | 说明 |
+|--------|----------|------|
+| McpSdkServerConfig | 配置注册 | 服务器配置类注册 IaihubToolHandler 的所有工具 |
+| REST API 层 | 共享 Service | [ToolController](auth-user.md) 和 [UserController](auth-user.md) 与 MCP 工具共享相同的 Service 层 |
+| 外部 AI 客户端 | MCP 协议 | Claude、Cursor 等 AI 助手通过 MCP 协议调用工具 |
 
-1. AI 客户端首先调用 `auth_login` 工具，传入 `username` 和 `password`
-2. 系统验证凭据后返回会话凭证
-3. 后续写操作（create/modify/delete/upload）需携带有效凭证
-4. 只读操作（search/get/list）无需认证
-5. 默认管理员密码为 `123456`（由 `DataInitializer` 初始化）
+### 下游依赖（本模块依赖谁）
 
-### 资源变更通知
+| 依赖项 | 类型 | 说明 |
+|--------|------|------|
+| [ToolService](auth-user.md) | Service | 工具 CRUD 业务逻辑 |
+| ToolFileService | Service | 工具文件管理 |
+| ForumPostService | Service | 论坛帖子业务逻辑 |
+| [UserService](auth-user.md) | Service | 用户认证和信息查询 |
+| KnowledgeBaseService | Service | 知识库管理 |
+| RagApiClient | Service | RAG 语义搜索和文档处理（调用 Python 服务） |
+| TagService | Service | 统一标签管理 |
+| McpSearchService | Service | MCP 搜索优化 |
+| McpNotificationService | Service | 资源变更通知 |
 
-当通过 MCP 工具执行 CRUD 操作后，`McpNotificationService` 会自动向已连接的客户端发送通知：
+### 变更影响
 
-- **工具创建/删除**：发送 `resources/list_changed` 通知，提示客户端刷新工具目录
-- **工具修改**：发送 `resources/updated` 通知，携带具体资源 URI，提示客户端更新缓存
+> **IaihubToolHandler 是整个项目中影响范围最大的组件（影响 156 个符号）。**
 
-### 依赖的 Service 层
+作为 MCP 协议与业务逻辑的枢纽，IaihubToolHandler 的任何变更都会产生广泛影响：
 
-`IaihubToolHandler` 作为 MCP 工具的统一处理器，依赖以下业务 Service：
+- **工具签名变更**（参数增删、类型修改） — 所有使用该工具的 AI 客户端需适配
+- **工具逻辑变更** — 影响通过 MCP 暴露的所有功能
+- **新增/删除工具** — 需同步更新 McpSdkServerConfig 的注册配置
+- **Service 调用变更** — 影响对应的业务功能
+- **认证逻辑变更** — 影响所有 MCP 工具的安全性
 
-| Service | 用途 |
-|---------|------|
-| McpSearchService | 工具搜索和聚合查询 |
-| ToolService | 工具 CRUD 业务逻辑 |
-| ToolFileService | 工具附件文件管理 |
-| ForumPostService | 论坛帖子操作 |
-| UserService | 用户认证和查询 |
-| KnowledgeBaseService | 知识库管理 |
-| RagApiClient | RAG 知识库 Python 服务调用（语义搜索、文档处理） |
+McpSdkServerConfig 变更影响：
 
-## 与其他模块的关系
+- **传输层配置变更** — 可能导致 AI 客户端连接失败
+- **能力声明变更** — 影响客户端对服务器能力的感知
 
-- **基础设施**：MCP 服务依赖 [基础设施](infra.md) 中的 `McpServerConfig` 进行传输层配置，使用 `XssSanitizer` 对工具输入进行消毒
-- **认证与用户管理**：MCP 的 `auth_login` 工具调用 [认证与用户管理](auth-user.md) 中的 `UserService` 进行用户认证，复用 BCrypt 密码验证逻辑
-- **业务 Service 层**：MCP 工具处理器直接调用各业务 Service，与 REST Controller 共享相同的数据访问和业务逻辑层
-- **RAG Python 服务**：知识库相关工具（`kb_search`、`kb_upload_document`、`kb_document_status`）通过 `RagApiClient` 调用 `rag/` 目录下的 Python MCP 服务
+---
 
-## 客户端接入指南
+## 认证机制
 
-### Streamable HTTP 方式
+MCP 工具操作采用独立的用户名/密码认证方式（非 JWT）：
 
-```
-POST /mcp
-Content-Type: application/json
+1. AI 客户端在调用工具时传入 `username` 和 `password` 参数
+2. `auth_login` 工具调用 [UserService](auth-user.md) 验证凭据
+3. 默认密码为 `123456`
+4. 认证成功后返回 Token，后续工具调用基于此 Token 执行
 
-{
-  "jsonrpc": "2.0",
-  "method": "tools/list",
-  "id": 1
-}
-```
+> **安全提示**：生产环境应修改默认密码，并考虑引入 API Key 或 OAuth2 等更安全的认证机制。
 
-### SSE 方式
+---
 
-```
-GET /sse
-Accept: text/event-stream
+## 资源变更通知机制
 
-→ 建立 SSE 连接后，通过 event stream 接收响应
-→ 通过 POST 请求发送工具调用
-```
+McpNotificationService 在以下场景发送通知：
 
-### 典型使用流程
+1. **工具创建/修改/删除后** — 发送 `resources/list_changed` 通知，告知客户端工具目录已变更
+2. **特定工具更新后** — 发送 `resources/updated` 通知，附带变更的资源 URI
 
-1. 连接 MCP 端点（`/mcp` 或 `/sse`）
-2. 调用 `auth_login` 获取认证凭证（如需写操作）
-3. 使用 `tool_search` / `kb_search` 等只读工具探索平台内容
-4. 使用 `tool_create` / `post_create` 等写操作工具进行内容管理
-5. 通过 MCP Resources 主动拉取工具目录数据
+此机制确保订阅了资源变更的 AI 客户端能够及时更新本地缓存，保持数据一致性。
+
+---
+
+## 双传输层设计
+
+双传输层共用完全相同的工具、资源和提示词注册，区别仅在于传输协议：
+
+| 特性 | Streamable HTTP (`/mcp`) | SSE (`/sse`) |
+|------|-------------------------|--------------|
+| 协议 | HTTP 流式传输 | Server-Sent Events |
+| 适用场景 | 新客户端，高性能场景 | 旧版 MCP 客户端兼容 |
+| 连接方式 | 请求-响应（支持流式） | 长连接 + 事件推送 |
+| 工具/资源/提示词 | 相同 | 相同 |
+
+McpConnectionManager 专门管理 SSE 连接的建立、心跳维持和断开清理。
+
+---
+
+## 相关模块
+
+- [认证与用户管理](auth-user.md) — UserService 提供 MCP auth_login 认证、用户信息查询
+- [基础设施](infra.md) — SecurityConfig 放行 `/mcp/**` 端点（公开访问），异常处理类供工具处理器使用

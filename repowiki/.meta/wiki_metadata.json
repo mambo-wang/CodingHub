@@ -1,6 +1,6 @@
 {
-  "commit_sha": "d7459f254c9f2e3299d6e9c7778586f3ebd1e049",
-  "generated_at": "2026-07-11T12:00:00+08:00",
+  "commit_sha": "e0a1fb38c94505db7d061b32a6ca73c62dc73ef9",
+  "generated_at": "2026-07-11T16:00:00+08:00",
   "modules": [
     "auth-user",
     "tool-plaza",
@@ -12,11 +12,11 @@
     "frontend-app",
     "rag-service"
   ],
-  "total_components": 966,
+  "total_components": 967,
   "codegraph_stats": {
-    "file_count": 372,
-    "node_count": 6272,
-    "edge_count": 11982
+    "file_count": 374,
+    "node_count": 6230,
+    "edge_count": 11869
   },
   "wiki_files": [
     "overview.md",

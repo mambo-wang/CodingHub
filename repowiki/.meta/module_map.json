@@ -8,16 +8,9 @@
       "backend/src/main/java/com/iaihub/toolbox/model/User.java",
       "backend/src/main/java/com/iaihub/toolbox/model/Role.java",
       "backend/src/main/java/com/iaihub/toolbox/model/AccountStatus.java",
-      "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/LoginRequest.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/LoginResponse.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/RegisterRequest.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/UserDTO.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/AdminUserDTO.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/PendingUserDTO.java",
-      "backend/src/main/java/com/iaihub/toolbox/dto/PublicUserDTO.java"
+      "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java"
     ],
-    "key_symbols": ["AuthController", "UserController", "AdminController", "UserService", "User", "Role", "AccountStatus"]
+    "key_symbols": ["AuthController", "UserController", "AdminController", "UserService", "User", "Role"]
   },
   "tool-plaza": {
     "files": [
@@ -25,38 +18,28 @@
       "backend/src/main/java/com/iaihub/toolbox/controller/ToolFileController.java",
       "backend/src/main/java/com/iaihub/toolbox/controller/CategoryController.java",
       "backend/src/main/java/com/iaihub/toolbox/controller/UnifiedInteractionController.java",
-      "backend/src/main/java/com/iaihub/toolbox/controller/AvatarStaticController.java",
-      "backend/src/main/java/com/iaihub/toolbox/controller/StaticController.java",
       "backend/src/main/java/com/iaihub/toolbox/service/ToolService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/ToolFileService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/CategoryService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/UnifiedCommentService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/UnifiedFavoriteService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/UnifiedLikeService.java",
-      "backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java",
       "backend/src/main/java/com/iaihub/toolbox/model/Tool.java",
       "backend/src/main/java/com/iaihub/toolbox/model/ToolFile.java",
       "backend/src/main/java/com/iaihub/toolbox/model/Category.java",
-      "backend/src/main/java/com/iaihub/toolbox/model/TargetType.java",
-      "backend/src/main/java/com/iaihub/toolbox/repository/ToolRepository.java",
-      "backend/src/main/java/com/iaihub/toolbox/repository/ToolFileRepository.java"
+      "backend/src/main/java/com/iaihub/toolbox/model/TargetType.java"
     ],
-    "key_symbols": ["ToolController", "ToolFileController", "UnifiedInteractionController", "ToolService", "ToolFileService", "Tool", "ToolFile"]
+    "key_symbols": ["ToolController", "ToolFileController", "UnifiedInteractionController", "ToolService", "ToolFileService", "Tool"]
   },
   "community-content": {
     "files": [
       "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
       "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumCategoryController.java",
-      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumTagController.java",
       "backend/src/main/java/com/iaihub/toolbox/controller/video/VideoController.java",
       "backend/src/main/java/com/iaihub/toolbox/controller/video/DanmakuController.java",
       "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumCategoryService.java",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumTagService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/video/VideoService.java",
       "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPost.java",
-      "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumCategory.java",
-      "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumTag.java",
       "backend/src/main/java/com/iaihub/toolbox/model/video/Video.java",
       "backend/src/main/java/com/iaihub/toolbox/model/video/Danmaku.java"
     ],
@@ -68,7 +51,6 @@
       "backend/src/main/java/com/iaihub/toolbox/service/kb/KnowledgeBaseService.java",
       "backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java",
       "backend/src/main/java/com/iaihub/toolbox/model/kb/KnowledgeBase.java",
-      "backend/src/main/java/com/iaihub/toolbox/model/kb/KbStatus.java",
       "backend/src/main/java/com/iaihub/toolbox/repository/kb/KnowledgeBaseRepository.java"
     ],
     "key_symbols": ["KnowledgeBaseController", "KnowledgeBaseService", "RagApiClient", "KnowledgeBase"]
@@ -80,8 +62,7 @@
       "backend/src/main/java/com/iaihub/toolbox/mcp/McpResourceHandler.java",
       "backend/src/main/java/com/iaihub/toolbox/mcp/McpPromptProvider.java",
       "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java",
-      "backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java",
-      "backend/src/main/java/com/iaihub/toolbox/config/McpServerConfig.java"
+      "backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java"
     ],
     "key_symbols": ["McpSdkServerConfig", "IaihubToolHandler", "McpResourceHandler", "McpPromptProvider", "McpNotificationService"]
   },
@@ -99,18 +80,15 @@
       "backend/src/main/java/com/iaihub/toolbox/model/notification/Notification.java",
       "backend/src/main/java/com/iaihub/toolbox/model/feedback/FeedbackMessage.java"
     ],
-    "key_symbols": ["TagController", "NotificationController", "FeedbackController", "OverviewController", "TagService", "NotificationService", "FeedbackService", "OverviewServiceImpl"]
+    "key_symbols": ["TagController", "NotificationController", "FeedbackController", "OverviewController", "TagService", "FeedbackService"]
   },
   "infra": {
     "files": [
       "backend/src/main/java/com/iaihub/toolbox/config/SecurityConfig.java",
       "backend/src/main/java/com/iaihub/toolbox/config/JwtAuthenticationFilter.java",
       "backend/src/main/java/com/iaihub/toolbox/config/UploadConfig.java",
-      "backend/src/main/java/com/iaihub/toolbox/config/VideoStorageConfig.java",
-      "backend/src/main/java/com/iaihub/toolbox/config/RagClientConfig.java",
       "backend/src/main/java/com/iaihub/toolbox/config/DataInitializer.java",
       "backend/src/main/java/com/iaihub/toolbox/exception/GlobalExceptionHandler.java",
-      "backend/src/main/java/com/iaihub/toolbox/exception/BusinessException.java",
       "backend/src/main/java/com/iaihub/toolbox/util/JwtUtil.java",
       "backend/src/main/java/com/iaihub/toolbox/util/XssSanitizer.java",
       "backend/src/main/resources/application.yml"
@@ -126,7 +104,7 @@
       "frontend/src/types/",
       "frontend/src/composables/"
     ],
-    "key_symbols": ["AppHeader", "authStore", "themeStore", "api.ts", "ToolPlazaPage", "VideoDetailPage"]
+    "key_symbols": ["AppHeader", "authStore", "themeStore", "api", "ToolPlazaPage", "VideoDetailPage"]
   },
   "rag-service": {
     "files": [
@@ -136,6 +114,6 @@
       "rag/ingest.py",
       "rag/search.py"
     ],
-    "key_symbols": ["FastAPI app", "ChromaDB", "semantic_chunking", "reranker", "embedding_model"]
+    "key_symbols": ["FastAPI app", "ChromaDB", "semantic_chunking", "reranker"]
   }
 }

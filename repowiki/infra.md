@@ -1,270 +1,252 @@
 # 基础设施
 
-基础设施模块为 CodingHub 平台提供底层支撑能力，涵盖安全配置、异常处理、通用工具和应用程序启动等核心功能。该模块不包含业务逻辑，而是作为横切关注点（cross-cutting concerns）服务于所有业务模块，确保整个应用的安全性、稳定性和可维护性。
+## 模块简介
 
-本模块的组件分布在 `config`、`exception`、`util` 和根包下，共计 59 个组件。它们通过 Spring Boot 的自动配置和依赖注入机制，在应用启动时自动加载并生效。
+基础设施模块是 CodingHub 平台的底层支撑，为所有业务模块提供安全认证、异常处理、工具类和启动配置等核心能力。该模块以 Spring Security 过滤链为核心，结合 JWT 无状态认证、全局异常处理、XSS 防护和数据初始化等机制，构建了完整的应用安全与运维基础。
+
+模块包含 59 个组件，涵盖 7 个配置类、9 个异常类、2 个工具类和 1 个主启动类。所有业务 Controller 和 Service 均直接或间接依赖本模块提供的能力。
+
+---
+
+## 架构总览
+
+```mermaid
+graph TD
+    subgraph Config["配置层"]
+        SC["SecurityConfig<br/>Spring Security 过滤链"]
+        JF["JwtAuthenticationFilter<br/>Bearer Token 解析"]
+        MCP_C["McpServerConfig<br/>MCP 端口配置"]
+        UPL["UploadConfig<br/>文件存储配置"]
+        RAG_C["RagClientConfig<br/>RAG 服务配置"]
+        VID_C["VideoStorageConfig<br/>视频存储配置"]
+        DI["DataInitializer<br/>启动数据初始化"]
+    end
+
+    subgraph Exception["异常处理层"]
+        GEX["GlobalExceptionHandler<br/>@RestControllerAdvice"]
+        BEX["BusinessException<br/>业务异常"]
+        RNF["ResourceNotFoundException<br/>404"]
+        FEX["ForbiddenException<br/>403"]
+        DRX["DuplicateResourceException<br/>重复资源"]
+        UEX["UnauthorizedException<br/>401"]
+        FVE["FileValidationException"]
+        AVE["AvatarValidationException"]
+        UNE["UserNotFoundException"]
+    end
+
+    subgraph Util["工具层"]
+        JWT["JwtUtil<br/>JWT 生成/验证/解析"]
+        XSS["XssSanitizer<br/>HTML 转义防 XSS"]
+    end
+
+    subgraph External["外部依赖"]
+        UR["UserRepository"]
+        APP["Application<br/>主启动类"]
+    end
+
+    SC --> JF
+    JF --> JWT
+    JF --> UR
+    DI --> UR
+    GEX --> BEX
+    GEX --> RNF
+    GEX --> FEX
+    GEX --> DRX
+    GEX --> UEX
+    GEX --> FVE
+    GEX --> AVE
+    GEX --> UNE
+```
+
+---
+
+## 组件职责说明
+
+### 配置类（Config）
+
+| 组件 | 职责 |
+|------|------|
+| **SecurityConfig** | Spring Security 过滤链配置，定义 CORS 策略、Session 管理（STATELESS）、URL 权限矩阵、JWT Filter 注册 |
+| **JwtAuthenticationFilter** | 拦截每个请求，从 `Authorization` 头提取 Bearer Token，调用 JwtUtil 验证并加载用户信息到 SecurityContext |
+| **McpServerConfig** | MCP 服务端口与传输层配置 |
+| **UploadConfig** | 文件上传存储路径、文件大小限制配置 |
+| **RagClientConfig** | RAG Python 服务的连接 URL 配置 |
+| **VideoStorageConfig** | 视频文件存储路径配置 |
+| **DataInitializer** | 应用启动时初始化 super_admin 账号和默认分类数据 |
+
+### 异常类（Exception）
+
+| 异常类 | HTTP 状态码 | 使用场景 |
+|--------|------------|----------|
+| **BusinessException** | 由 `code` 字段决定 | 通用业务异常基类，携带业务错误码 |
+| **ResourceNotFoundException** | 404 | 资源不存在（工具、帖子、视频等） |
+| **ForbiddenException** | 403 | 无权执行操作（非 owner 且非 admin） |
+| **DuplicateResourceException** | 409 | 重复资源（用户名、昵称已存在） |
+| **UnauthorizedException** | 401 | 未认证或认证失败 |
+| **FileValidationException** | 400 | 文件校验失败（类型、大小不合规） |
+| **AvatarValidationException** | 400 | 头像校验失败 |
+| **UserNotFoundException** | 404 | 用户不存在 |
+
+**GlobalExceptionHandler** 通过 `@RestControllerAdvice` 统一拦截所有异常，转换为标准化的 JSON 错误响应，避免向客户端暴露内部堆栈信息。
+
+### 工具类（Util）
+
+| 组件 | 职责 |
+|------|------|
+| **JwtUtil** | JWT Token 的生成（access/refresh）、验证（有效期、签名）、解析（提取 username/role），使用 HMAC 签名算法 |
+| **XssSanitizer** | 对用户输入的纯文本内容（评论、弹幕等）进行 HTML 实体转义，防止 XSS 注入攻击 |
+
+---
 
 ## 安全架构
 
 ```mermaid
 graph LR
-    A[HTTP 请求] --> B[CORS Filter]
-    B --> C[JwtAuthenticationFilter]
-    C -->|无 Token| D[公开端点放行]
-    C -->|Bearer Token| E[JWT 解析验证]
-    E -->|Token 过期| F[返回 401 TokenExpired]
-    E -->|Token 无效| G[返回 401 Invalid]
-    E -->|Token 有效| H[SecurityContext 设置]
-    H --> I[Spring Security 过滤链]
-    I --> J[URL 权限匹配]
-    J -->|允许| K[Controller 处理]
-    J -->|拒绝| L[返回 403 Forbidden]
-    K --> M[GlobalExceptionHandler]
-    M -->|BusinessException| N[返回业务错误码]
-    M -->|ResourceNotFound| O[返回 404]
-    M -->|ForbiddenException| P[返回 403]
-    M -->|其他异常| Q[返回 500]
+    REQ["HTTP 请求"] --> CORS["CORS Filter<br/>allowedOriginPatterns=*"]
+    CORS --> JWT_F["JwtAuthenticationFilter<br/>解析 Bearer Token"]
+    JWT_F --> JWT_U["JwtUtil<br/>验证签名+有效期"]
+    JWT_U -->|"Token 有效"| LOAD["UserDetailsService<br/>加载用户信息"]
+    JWT_U -->|"Token 过期"| EXPIRED["区分过期/无效<br/>返回特定异常"]
+    JWT_U -->|"无 Token"| SKIP["跳过<br/>公开端点"]
+    LOAD --> SEC_CTX["SecurityContext<br/>设置认证信息"]
+    SKIP --> AUTH_CHECK
+    SEC_CTX --> AUTH_CHECK["URL 权限检查<br/>基于角色矩阵"]
+    AUTH_CHECK -->|"允许"| CTRL["Controller 处理"]
+    AUTH_CHECK -->|"拒绝"| DENY["403 Forbidden"]
 ```
 
-## 组件职责
+### URL 权限矩阵
 
-### 配置类 (Config)
+SecurityConfig 定义了三级权限控制：
 
-| 组件 | 职责说明 |
-|------|----------|
-| SecurityConfig | Spring Security 核心配置，定义 CORS 策略（全开放 `allowedOriginPatterns=*`）、Session 管理（`STATELESS`）、CSRF 禁用、URL 权限矩阵和过滤链顺序 |
-| JwtAuthenticationFilter | 继承 `OncePerRequestFilter`，从请求头提取 `Authorization: Bearer <token>`，解析 JWT 并设置 `SecurityContext`；区分 Token 过期和 Token 无效两种错误场景 |
-| McpServerConfig | MCP 服务端口和传输层配置，定义 Streamable HTTP 和 SSE 双传输通道 |
-| UploadConfig | 文件存储配置，定义上传目录路径（`upload/`）和文件大小限制 |
-| RagClientConfig | RAG 知识库 Python 服务的连接配置，定义 RAG API 的基础 URL |
-| VideoStorageConfig | 视频文件存储路径配置，独立于普通上传目录 |
-| DataInitializer | 应用启动时的数据初始化器，通过 `CommandLineRunner` 创建默认 `super_admin` 账号和系统默认分类 |
+**公开端点（无需认证）：**
+- `/api/v1/auth/**` — 认证相关（登录/注册/刷新）
+- `/api/v1/tools` — 工具列表（GET）
+- `/api/v1/categories/**` — 分类列表
+- `/api/v1/videos` — 视频列表（GET）
+- `/api/forum/**` — 论坛（只读）
+- `/mcp/**` — MCP 服务
+- `/api/v1/knowledge/**` — 知识库（只读）
+- `/api/v1/feedback/**` — 留言反馈
+- `/api/v1/tags/**` — 标签
+- `/api/overview/**` — 概览统计
 
-### 异常处理 (Exception)
+**需认证端点（登录即可）：**
+- `/api/v1/tools` — 工具 CRUD（POST/PUT/DELETE）
+- `/api/v1/users/**` — 个人中心
+- `/api/v1/notifications/**` — 通知
+- `/api/v1/knowledge/**` — 知识库写操作
+- `/api/v1/interactions/**` — 互动操作
 
-| 组件 | HTTP 状态码 | 说明 |
-|------|-------------|------|
-| GlobalExceptionHandler | — | `@RestControllerAdvice` 全局异常拦截器，统一处理所有 Controller 层抛出的异常并格式化响应 |
-| BusinessException | 自定义 | 通用业务异常，携带业务错误码（`code`）和描述信息 |
-| ResourceNotFoundException | 404 | 资源未找到异常，用于工具、帖子、用户等实体不存在时 |
-| ForbiddenException | 403 | 权限不足异常，当用户无权执行某操作时抛出 |
-| DuplicateResourceException | 409 | 资源重复异常，如用户名或昵称已存在 |
-| UnauthorizedException | 401 | 未认证异常，当用户未登录或令牌无效时抛出 |
-| FileValidationException | 400 | 文件校验异常，用于上传文件类型或大小不合规 |
-| AvatarValidationException | 400 | 头像校验异常，专门处理头像上传相关的校验失败 |
-| UserNotFoundException | 404 | 用户未找到异常，`UserRepository` 查询失败时抛出 |
+**需 ADMIN / SUPER_ADMIN 端点：**
+- `/api/v1/admin/**` — 管理操作（SUPER_ADMIN）
 
-### 工具类 (Util)
+### CORS 配置
 
-| 组件 | 职责说明 |
-|------|----------|
-| JwtUtil | JWT 令牌工具类，提供 `generateAccessToken()`、`generateRefreshToken()`、`validateToken()`、`getUsernameFromToken()` 等方法，封装 JJWT 库操作 |
-| XssSanitizer | XSS 防护工具类，对 HTML 特殊字符（`<`、`>`、`&`、`"`、`'`）进行转义，用于评论内容、弹幕文本等纯文本输入场景 |
+- `allowedOriginPatterns = *`（全开放）
+- 允许所有 HTTP 方法和请求头
+- 允许携带凭据（`allowCredentials = true`）
 
-### 应用程序入口
+---
 
-**CodingHubApplication** 是 Spring Boot 主启动类，位于 `com.iaihub.toolbox` 根包下，通过 `@SpringBootApplication` 注解启用自动配置、组件扫描和 Spring Boot 启动流程。
-
-## GlobalExceptionHandler 统一异常响应
-
-`GlobalExceptionHandler` 使用 `@RestControllerAdvice` 注解拦截所有 Controller 层抛出的异常，返回统一的 JSON 错误响应格式：
-
-```json
-{
-  "code": "RESOURCE_NOT_FOUND",
-  "message": "工具不存在: id=42",
-  "timestamp": "2025-01-15T10:30:00"
-}
-```
-
-### 异常映射表
-
-| 异常类型 | HTTP 状态码 | 错误码 | 典型触发场景 |
-|----------|-------------|--------|-------------|
-| ResourceNotFoundException | 404 | RESOURCE_NOT_FOUND | 按 ID 查询工具/帖子/知识库不存在 |
-| UserNotFoundException | 404 | USER_NOT_FOUND | 按用户名或 ID 查询用户不存在 |
-| UnauthorizedException | 401 | UNAUTHORIZED | 未登录或令牌无效时访问受保护端点 |
-| ForbiddenException | 403 | FORBIDDEN | 非 owner 尝试修改/删除他人内容 |
-| DuplicateResourceException | 409 | DUPLICATE_RESOURCE | 注册时用户名/昵称已存在 |
-| BusinessException | 自定义 | 业务定义 | 通用业务规则违反 |
-| FileValidationException | 400 | FILE_VALIDATION_ERROR | 上传文件超过大小限制或类型不合规 |
-| AvatarValidationException | 400 | AVATAR_VALIDATION_ERROR | 头像文件格式不支持或尺寸超限 |
-| Exception（兜底） | 500 | INTERNAL_ERROR | 未预期的系统异常 |
-
-## JwtAuthenticationFilter 内部流程
+## 异常处理流程
 
 ```mermaid
 graph TD
-    A[接收 HTTP 请求] --> B{检查 Authorization 头}
-    B -->|无头| C[跳过认证, 进入过滤链]
-    B -->|有头| D{提取 Bearer Token}
-    D -->|格式错误| C
-    D -->|提取成功| E{JwtUtil.validateToken}
-    E -->|Token 过期| F[抛出 ExpiredJwtException]
-    F --> G[响应 401 Token Expired]
-    E -->|签名无效| H[抛出 JwtException]
-    H --> I[响应 401 Invalid Token]
-    E -->|验证通过| J[解析 username]
-    J --> K[UserDetailsService 加载用户]
-    K --> L[创建 UsernamePasswordAuthenticationToken]
-    L --> M[设置 SecurityContextHolder]
-    M --> C
-    C --> N[后续 Security 过滤链]
+    EX["Controller/Service 抛出异常"] --> GEX["GlobalExceptionHandler"]
+    GEX --> CHECK{"异常类型判断"}
+    CHECK -->|"ResourceNotFoundException"| R404["404 Not Found<br/>资源未找到"]
+    CHECK -->|"ForbiddenException"| R403["403 Forbidden<br/>无操作权限"]
+    CHECK -->|"UnauthorizedException"| R401["401 Unauthorized<br/>认证失败"]
+    CHECK -->|"DuplicateResourceException"| R409["409 Conflict<br/>资源重复"]
+    CHECK -->|"BusinessException"| RBIZ["自定义错误码<br/>业务异常"]
+    CHECK -->|"FileValidationException"| R400F["400 Bad Request<br/>文件校验失败"]
+    CHECK -->|"AvatarValidationException"| R400A["400 Bad Request<br/>头像校验失败"]
+    CHECK -->|"UserNotFoundException"| R404U["404 Not Found<br/>用户不存在"]
+    CHECK -->|"其他异常"| R500["500 Internal Error<br/>未知异常"]
 ```
 
-该过滤器继承 `OncePerRequestFilter`，确保每个请求只执行一次。关键行为：
+---
 
-- 无 `Authorization` 头的请求直接放行，由后续 Security 规则决定是否允许匿名访问
-- Token 过期和 Token 无效返回不同的错误信息，帮助客户端区分处理策略（过期应刷新，无效应重新登录）
-- 认证成功后将用户信息存入 `SecurityContextHolder`，后续 Controller 可通过 `SecurityContextHolder.getContext().getAuthentication()` 获取当前用户
+## 依赖关系
 
-## URL 权限矩阵
+### 上游依赖（谁依赖本模块）
 
-SecurityConfig 定义了完整的 URL 访问控制规则，分为三个层级：
+| 依赖方 | 依赖方式 | 说明 |
+|--------|----------|------|
+| 所有 Controller | 间接依赖 | SecurityConfig 定义的过滤链和权限规则控制所有 API 端点的访问 |
+| 所有 Service | 异常引用 | 业务 Service 抛出本模块定义的异常类，由 GlobalExceptionHandler 统一处理 |
+| [IaihubToolHandler](mcp-service.md) | 异常 + 工具 | MCP 工具处理器使用 XssSanitizer 和异常类 |
+| 评论/弹幕相关 Service | XSS 防护 | ForumPostService、VideoService 在保存评论和弹幕时调用 XssSanitizer |
 
-### 公开端点（无需认证）
+### 下游依赖（本模块依赖谁）
 
-| URL 模式 | 说明 |
-|----------|------|
-| `/api/v1/auth/**` | 认证相关（登录、注册、刷新令牌） |
-| `/api/v1/tools` (GET) | 工具列表浏览 |
-| `/api/v1/categories/**` | 分类列表 |
-| `/api/v1/videos` (GET) | 视频列表浏览 |
-| `/api/forum/**` (GET) | 论坛帖子和分类浏览 |
-| `/mcp/**` | MCP 服务端点（SSE / Streamable HTTP） |
-| `/api/v1/knowledge/**` (GET) | 知识库只读访问 |
-| `/api/v1/feedback/**` (GET) | 留言反馈浏览 |
-| `/api/v1/tags/**` | 标签查询 |
-| `/api/overview/**` | 统计数据（公开） |
+| 依赖项 | 类型 | 说明 |
+|--------|------|------|
+| [UserRepository](auth-user.md) | Repository | JwtAuthenticationFilter 通过 UserRepository 加载用户信息 |
+| Spring Security | 框架依赖 | SecurityConfig 基于 Spring Security 构建过滤链 |
+| JJWT 库 | 第三方依赖 | JwtUtil 基于 JJWT 实现 JWT 操作 |
+| Flyway | 数据库迁移 | 数据库 Schema 版本管理（V1~V9） |
+| MySQL | 数据库 | 连接 `ai_tool_square` 数据库 |
 
-### 需认证端点（登录用户）
+### 变更影响
 
-| URL 模式 | 说明 |
-|----------|------|
-| `/api/v1/tools/**` (POST/PUT/DELETE) | 工具创建、修改、删除 |
-| `/api/v1/users/**` | 个人中心操作 |
-| `/api/v1/notifications/**` | 通知管理 |
-| `/api/v1/knowledge/**` (POST/PUT/DELETE) | 知识库写入操作 |
-| `/api/v1/interactions/**` | 互动操作（点赞、评论） |
+> **SecurityConfig 是本模块中影响范围最大的组件。**
 
-### 需 ADMIN/SUPER_ADMIN 端点
+SecurityConfig 的权限规则变更会直接影响所有 API 端点的访问控制：
 
-| URL 模式 | 说明 |
-|----------|------|
-| `/api/v1/admin/**` | 管理后台操作（仅 SUPER_ADMIN） |
+- **URL 权限规则变更** — 可能导致某些端点变得不可访问或暴露未授权访问风险
+- **CORS 策略变更** — 影响前端跨域请求
+- **Session 管理变更** — 影响 JWT 认证的无状态特性
+- **Filter 链顺序变更** — 可能导致认证流程异常
 
-## 关键特性
+JwtUtil 的变更影响同样广泛：
 
-### CORS 全开放策略
+- **签名算法/密钥变更** — 所有已签发的 Token 失效，用户需重新登录
+- **Token 有效期变更** — 影响用户体验和安全性平衡
 
-当前配置 `allowedOriginPatterns=*`，允许所有来源的跨域请求。这是开发阶段的便利配置，生产环境应限制为具体的前端域名。
+---
 
-```
-CORS 配置要点：
-- allowedOriginPatterns: *（全开放）
-- allowedMethods: GET, POST, PUT, DELETE, OPTIONS
-- allowedHeaders: *（包含 Authorization）
-- allowCredentials: true
-```
+## DataInitializer 初始化数据
 
-### Stateless Session 管理
+应用启动时，DataInitializer 自动执行以下初始化：
 
-Session 创建策略设为 `SessionCreationPolicy.STATELESS`，服务端不创建或依赖 HTTP Session。所有认证状态通过 JWT 令牌在客户端维护，符合 RESTful 无状态设计原则。
+1. **创建 super_admin 账号** — 如果不存在 `super_admin` 用户，自动创建（默认密码）
+2. **创建默认分类** — 初始化工具分类和论坛分类数据
 
-### XSS 防护机制
+此机制确保首次部署后系统具有可用的管理员账号和基础分类结构。
 
-`XssSanitizer` 对以下纯文本内容进行 HTML 实体转义：
+---
 
-- 工具评论（`ToolComment`）
-- 论坛评论（`ForumComment`）
-- 视频弹幕（`Danmaku`）
-- 视频评论（`VideoComment`）
-- 留言反馈（`FeedbackMessage`）
+## 应用配置（application.yml）
 
-转义规则：`<` → `&lt;`、`>` → `&gt;`、`&` → `&amp;`、`"` → `&quot;`、`'` → `&#x27;`
-
-### DataInitializer 启动初始化
-
-应用每次启动时，`DataInitializer` 会检查并创建以下初始数据：
-
-1. **super_admin 账号**：用户名 `super_admin`，密码 `123456`（BCrypt 加密），角色 `SUPER_ADMIN`，状态 `ACTIVE`
-2. **默认工具分类**：如分类表为空则创建系统预设分类
-3. **默认论坛分类**：如论坛分类表为空则创建系统预设分类
-
-## application.yml 关键配置
+关键配置项：
 
 | 配置项 | 值 | 说明 |
 |--------|-----|------|
-| `spring.datasource.url` | `jdbc:mysql://localhost:3306/ai_tool_square` | MySQL 数据库连接 |
-| `spring.jpa.hibernate.ddl-auto` | `update` | JPA 自动更新表结构（开发模式） |
-| `spring.servlet.multipart.max-file-size` | `1GB` | 单文件上传大小限制 |
-| `spring.servlet.multipart.max-request-size` | `1GB` | 单次请求总大小限制 |
-| `server.port` | `8082` | 后端服务端口 |
-| `jwt.secret` | 配置项 | JWT 签名密钥 |
-| `jwt.access-token-expiration` | `900000`（15min） | Access Token 过期时间（毫秒） |
-| `jwt.refresh-token-expiration` | `604800000`（7天） | Refresh Token 过期时间（毫秒） |
+| 数据库 | MySQL `ai_tool_square` | 主数据库 |
+| JPA ddl-auto | `update` | 自动更新 Schema |
+| 上传限制 | 1GB | 单文件最大上传大小 |
+| 服务端口 | 8082 | 后端服务端口 |
 
-## Flyway 数据库迁移
+---
 
-数据库表结构通过 Flyway 进行版本化管理，迁移脚本位于 `backend/src/main/resources/db/migration/` 目录：
+## XSS 防护机制
 
-| 版本 | 文件名模式 | 说明 |
-|------|-----------|------|
-| V1 | V1__init_schema.sql | 初始化核心表：user, category, tool, tool_file, tool_like, tool_comment |
-| V2 | V2__forum_tables.sql | 论坛模块表：forum_category, forum_post, forum_comment, forum_like, forum_tag, forum_post_tag |
-| V3 | V3__video_tables.sql | 微课模块表：video, video_comment, video_like, video_favorite, danmaku |
-| V4 | V4__knowledge_base.sql | 知识库表：knowledge_base, kb_document |
-| V5 | V5__tag_system.sql | 统一标签系统：tag, tool_tag, video_tag |
-| V6 | V6__notification.sql | 通知系统：notification 表 |
-| V7 | V7__feedback.sql | 留言反馈：feedback_message 表 |
-| V8 | V8__post_favorite.sql | 帖子收藏：post_favorite 表 |
-| V9 | V9__indexes.sql | 性能索引优化 |
+XssSanitizer 使用 HTML 实体转义策略，对以下用户生成内容进行防护：
 
-Flyway 在应用启动时自动执行未应用的迁移脚本，确保数据库结构与代码版本一致。
+- 工具评论
+- 帖子评论
+- 视频弹幕
+- 留言板内容
 
-> 注意：当前 `ddl-auto` 设置为 `update`，JPA 会自动根据实体类调整表结构。这在开发阶段提供便利，但生产环境应改为 `validate` 或 `none`，完全依赖 Flyway 管理表结构。
+转义规则：将 `<`、`>`、`&`、`"`、`'` 等特殊字符转换为对应的 HTML 实体编码，防止恶意脚本注入。
 
-## 部署与运维
+> **注意**：XssSanitizer 用于纯文本内容。对于富文本内容，需要采用白名单过滤策略（当前未实现）。
 
-### 启动命令
+---
 
-```bash
-# 通过 Makefile 启动
-make backend     # 仅启动后端 (端口 8082)
-make run         # 同时启动后端 + 前端
-make db          # 创建数据库并初始化 Flyway 迁移
+## 相关模块
 
-# 直接 Gradle 启动
-./gradlew bootRun -p backend
-```
-
-### 环境依赖
-
-| 依赖 | 版本要求 | 说明 |
-|------|----------|------|
-| JDK | 17+ | Java 运行时 |
-| MySQL | 8.x | 数据库，字符集 utf8mb4 |
-| Gradle | 8.5+ | 构建工具（项目内置 wrapper） |
-| Python | 3.9+ | RAG 知识库服务（可选） |
-
-### 配置文件
-
-- 主配置：`backend/src/main/resources/application.yml`
-- 环境配置：`harness/config/environment.json`
-- MCP 配置：通过 `McpServerConfig` Java 类管理
-- 前端 API 代理：Vite 配置中转发 `/api` 和 `/mcp` 到 `localhost:8082`
-
-### 健康检查
-
-应用启动后可通过以下方式验证服务状态：
-
-- 访问 `http://localhost:8082/api/v1/categories` 验证 REST API 正常
-- 访问 `http://localhost:8082/mcp/sse` 验证 MCP SSE 端点可用
-- 查看控制台日志确认 Flyway 迁移和 DataInitializer 初始化成功
-
-## 与其他模块的关系
-
-- **认证与用户管理**：本模块的 `SecurityConfig` 和 `JwtAuthenticationFilter` 为 [认证与用户管理](auth-user.md) 模块提供请求级认证和权限控制
-- **MCP 服务**：`McpServerConfig` 为 [MCP 服务](mcp-service.md) 提供传输层配置；`XssSanitizer` 用于 MCP 工具输入消毒
-- **所有业务模块**：`GlobalExceptionHandler` 统一处理所有 Controller 抛出的异常；`XssSanitizer` 被评论、弹幕等业务 Service 调用
-- **数据库**：Flyway 迁移脚本（V1~V9）位于 `backend/src/main/resources/db/migration/`，管理表结构版本演进
+- [认证与用户管理](auth-user.md) — UserService 提供认证业务逻辑，UserRepository 被 JwtAuthenticationFilter 使用
+- [MCP 服务](mcp-service.md) — MCP 工具处理器使用本模块的异常类和 XssSanitizer
