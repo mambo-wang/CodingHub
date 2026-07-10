@@ -92,19 +92,22 @@ public class McpSdkServerConfig {
     @Bean(destroyMethod = "close")
     public McpSyncServer streamableMcpServer(HttpServletStreamableServerTransportProvider transportProvider,
                                              IaihubToolHandler toolHandler,
-                                             McpResourceHandler resourceHandler) {
+                                             McpResourceHandler resourceHandler,
+                                             McpPromptProvider promptProvider) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
                         .resources(true, true)
+                        .prompts(true)
                         .logging()
                         .build())
                 .build();
 
         registerAllTools(server, toolHandler);
         registerAllResources(server, resourceHandler);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools and 3 resources");
+        registerAllPrompts(server, promptProvider);
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools, 3 resources, 6 prompts");
         return server;
     }
 
@@ -114,19 +117,22 @@ public class McpSdkServerConfig {
     @Bean(destroyMethod = "close")
     public McpSyncServer sseMcpServer(HttpServletSseServerTransportProvider transportProvider,
                                       IaihubToolHandler toolHandler,
-                                      McpResourceHandler resourceHandler) {
+                                      McpResourceHandler resourceHandler,
+                                      McpPromptProvider promptProvider) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
                         .resources(true, true)
+                        .prompts(true)
                         .logging()
                         .build())
                 .build();
 
         registerAllTools(server, toolHandler);
         registerAllResources(server, resourceHandler);
-        logger.info("MCP Server (SSE, /sse) initialized with 18 tools and 3 resources");
+        registerAllPrompts(server, promptProvider);
+        logger.info("MCP Server (SSE, /sse) initialized with 18 tools, 3 resources, 6 prompts");
         return server;
     }
 
@@ -633,5 +639,17 @@ public class McpSdkServerConfig {
 
         logger.info("Registered 3 MCP resources (catalog, recent, tool/{id} template) on {}",
                 server.hashCode());
+    }
+
+    // ── Prompt 注册 ───────────────────────────────────────────────
+
+    /**
+     * 在所有 McpServer 实例上注册 6 个工作流 Prompt 模板。
+     */
+    private void registerAllPrompts(McpSyncServer server, McpPromptProvider promptProvider) {
+        for (McpServerFeatures.SyncPromptSpecification spec : promptProvider.buildAll()) {
+            server.addPrompt(spec);
+        }
+        logger.info("Registered 6 MCP prompts on server {}", server.hashCode());
     }
 }
