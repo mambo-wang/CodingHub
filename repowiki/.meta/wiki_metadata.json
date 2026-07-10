@@ -1,0 +1,33 @@
+{
+  "commit_sha": "d7459f254c9f2e3299d6e9c7778586f3ebd1e049",
+  "generated_at": "2026-07-11T12:00:00+08:00",
+  "modules": [
+    "auth-user",
+    "tool-plaza",
+    "community-content",
+    "knowledge-base",
+    "mcp-service",
+    "community-social",
+    "infra",
+    "frontend-app",
+    "rag-service"
+  ],
+  "total_components": 966,
+  "codegraph_stats": {
+    "file_count": 372,
+    "node_count": 6272,
+    "edge_count": 11982
+  },
+  "wiki_files": [
+    "overview.md",
+    "auth-user.md",
+    "tool-plaza.md",
+    "community-content.md",
+    "knowledge-base.md",
+    "mcp-service.md",
+    "community-social.md",
+    "infra.md",
+    "frontend-app.md",
+    "rag-service.md"
+  ]
+}
