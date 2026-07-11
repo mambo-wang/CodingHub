@@ -111,6 +111,6 @@ bash scripts/lint-arch.sh
 
 ---
 
-**生成工具**: Task(code-explorer) 子代理 + scripts/lint-arch.sh 静态分析
+**生成工具**: CodeGraph MCP（codegraph_callers / codegraph_callees / codegraph_impact）+ CodeWiki MCP（query_wiki）+ scripts/lint-arch.sh
 **生成时间**: <YYYY-MM-DD HH:MM>
 **基础**: openspec/changes/<change-name>/proposal.md

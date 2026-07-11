@@ -228,25 +228,85 @@ artifacts:
     template: impact-analysis.md
     instruction: |
       【条件必选 artifact】执行规则：
+
+      ## 前置判定
       1. 读取 design.md 中的文件列表、类列表、源码文件与测试文件对应关系
       2. 判定改动类型：
-         - design.md 中所有源码文件均为新增 → 跳过此 artifact
+         - design.md 中所有源码文件均为新增 → 跳过此 artifact，在 tasks.md 中记录跳过原因
          - design.md 中存在任意现有源码文件 → 必须执行
-      3. 若需执行，使用 Task(code-explorer) 子代理扫描代码库：
-         - 以 design.md 中列出的现有类/函数/组件/API 作为 codegraph 入口
-         - 追踪直接调用方与传递调用方（深度 2-3 层）
-         - 列出依赖的上游服务（repository、config、util）
-         - 找出受影响的测试文件
-         - 检查 design.md 的源码文件与测试文件对应关系是否完整
-         - 评估改动风险等级（L0 纯新增 / L1 修改公共 API / L2 修改 schema 或业务规则）
-         - 生成回归测试建议清单
-      4. 校验后端层级依赖仍合法：
-         ```bash
-         bash scripts/lint-arch.sh
-         ```
-         若 FAIL 必须修复 design 后再继续
-      5. 若发现 design.md 漏掉受影响文件/测试，必须在报告中列出“设计修正建议”
-      6. 报告保存到 impact-analysis.md
+
+      ## 第一步：查询 LLM Wiki 获取受影响模块的历史上下文
+
+      对 design.md 中涉及的现有模块，先用 CodeWiki MCP 查询历史经验：
+      ```json
+      {
+        “query”: “<被修改的模块名/类名> 踩坑 经验 注意事项”,
+        “include_notes”: true,
+        “include_code_refs”: true,
+        “max_results”: 10
+      }
+      ```
+      将查询到的历史踩坑经验记录在报告的「风险 / 权衡」部分，避免重蹈覆辙。
+
+      ## 第二步：使用 CodeGraph MCP 扫描调用图
+
+      对 design.md 中列出的每个**被修改的现有类/函数**，依次调用 CodeGraph 工具：
+
+      **2.1 查找直接调用方（谁调用了它）：**
+      对每个被修改的核心符号调用 `codegraph_callers`（`limit: 15`），记录：
+      - 调用方类名.方法名、所在文件路径、行号
+      - 判断调用方属于哪个业务模块
+
+      **2.2 查找下游依赖（它调用了谁）：**
+      对每个被修改的核心符号调用 `codegraph_callees`（`limit: 15`），记录：
+      - 被调用的类/函数，用于评估改动是否会级联影响下游
+
+      **2.3 评估变更影响范围：**
+      对关键被修改符号调用 `codegraph_impact`（`depth: 2`），获取：
+      - 所有直接和间接受影响的符号列表
+      - 受影响的文件路径
+
+      **2.4 追踪传递调用方（深度 2-3 层）：**
+      基于 2.1 得到的直接调用方，再对它们调用 `codegraph_callers`，构建完整的反向调用链。
+      将结果整理为树形结构：
+      ```
+      [被改动的类/函数]
+        ├── [调用方 1] (file:line)
+        │     ├── [传递调用方 1.1] (file:line)
+        │     └── [传递调用方 1.2] (file:line)
+        └── [调用方 2] (file:line)
+      ```
+
+      如果 CodeGraph MCP 不可用，回退到使用 grep/代码搜索手动追踪调用关系。
+
+      ## 第三步：识别受影响的测试文件
+
+      基于调用图结果，找出所有受影响的单元测试：
+      - 直接测试被修改类的测试文件（`*Test.java` / `*Spec.java`）
+      - 测试调用方逻辑的测试文件（如果调用方行为因本次修改而变化）
+      - 集成测试中涉及被修改 API 端点的测试
+      - 检查 design.md 的源码文件与测试文件对应关系是否完整
+
+      ## 第四步：评估风险等级
+
+      | 风险等级 | 触发条件 | 缓解措施 |
+      |----------|----------|----------|
+      | **L0** | 纯新增，不影响现有代码 | 无 |
+      | **L1** | 修改函数签名/公共 API | 全量回归受影响模块的单元测试 |
+      | **L2** | 修改数据库 schema / 业务规则 / 跨模块契约 | 完整测试套件 + 通知相关模块负责人 |
+
+      ## 第五步：层级依赖校验
+
+      校验后端是否仍满足 `controller → service → repository → model` 单向依赖：
+      ```bash
+      bash scripts/lint-arch.sh
+      ```
+      若 FAIL 必须修复 design 后再继续。
+
+      ## 第六步：生成报告
+
+      按 impact-analysis.md 模板填写报告，若发现 design.md 漏掉受影响文件/测试，必须在报告中列出「设计修正建议」。
+      报告保存到 impact-analysis.md。
     requires:
       - design
 
@@ -310,6 +370,12 @@ artifacts:
       **重要：严格遵循以下模板。** apply 阶段会解析
       checkbox 格式来追踪进度。不使用 `- [ ]` 的任务无法被追踪。
 
+      ## 前置参考（必读）
+
+      - 如 design.md 涉及修改现有源码，则必须先生成 impact-analysis.md，并参考其调用图、受影响测试、回归测试建议和设计修正建议。
+      - 如 impact-analysis.md 已跳过（全部源码文件为新增），在 tasks.md 中记录跳过原因，再按 design.md 拆分任务。
+      - impact-analysis.md 中标记为 L1/L2 风险的受影响模块，其回归测试任务必须排在实现任务之后、作为高优先级任务单独成组。
+
       ## 单元测试要求（强制）
 
       后端代码必须编写单元测试并保证全部通过：
@@ -319,6 +385,14 @@ artifacts:
       - 实现完成后必须运行单元测试并确认全部通过，测试失败不得标记任务完成
       - 运行命令：`cd backend && ./gradlew test`
       - 前端代码不强制要求单元测试
+
+      ## 受影响模块回归测试（强制，基于 impact-analysis.md）
+
+      当 impact-analysis.md 已生成且列出了受影响的现有测试时，必须添加回归测试任务组：
+      - 逐个列出 impact-analysis.md 第 4 节（受影响的测试）中的测试文件
+      - 标注每个测试需要的行动（无需改动 / 修改断言 / 修改 mock / 新增测试用例）
+      - 回归测试任务排在所有实现任务之后，作为最后的验收步骤
+      - L2 风险的受影响模块必须跑通全部相关单元测试后才能标记任务完成
 
       指南：
       - 用 ## 编号标题分组相关任务
@@ -339,6 +413,12 @@ artifacts:
       - [ ] 2.1 实现数据导出功能
       - [ ] 2.2 添加 CSV 格式化工具
       - [ ] 2.3 为 ExportService 编写单元测试并确认通过
+
+      ## 3. 受影响模块回归测试（基于 impact-analysis.md）
+
+      - [ ] 3.1 跑通 UserServiceTest（L1 风险 — 修改了 getUserList 签名）
+      - [ ] 3.2 更新 OrderServiceTest 的 mock 断言（L1 风险 — 返回值结构变化）
+      - [ ] 3.3 跑通集成测试 OrderControllerIT（L2 风险 — API 契约变化）
       ```
 
       参考规格了解需要构建什么，参考设计了解如何构建。
