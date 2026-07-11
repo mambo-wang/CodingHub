@@ -1,4 +1,4 @@
-name: spec-driven
+name: sdd-with-ui-design-unittest-wiki
 version: 1
 description: 默认 OpenSpec 工作流 - 提案 → 规格 → 设计 → 任务
 artifacts:
@@ -94,6 +94,42 @@ artifacts:
       - 新增外部依赖或重要的数据模型变更
       - 涉及安全、性能或迁移复杂度
       - 需要在编码前明确技术决策以消除歧义
+
+      ## 第一步：查询 LLM Wiki 获取历史上下文
+
+      **在撰写设计文档之前**，必须先查询项目的 LLM Wiki，收集相关模块的历史上下文作为设计参考。
+      不要通过检索代码来查找这些信息——代码只有 what（做了什么），没有 why（为什么这么做）和 lesson（踩过什么坑）。
+
+      执行以下查询（如果 CodeWiki MCP 可用）：
+
+      1. **查询相关模块的架构和设计**：
+         ```json
+         {
+           "query": "<本次变更涉及的核心模块/功能>",
+           "include_notes": true,
+           "include_code_refs": true,
+           "max_results": 10,
+           "expand_terms": ["<模块别名>", "<相关术语>"]
+         }
+         ```
+
+      2. **查询历史决策和经验教训**：
+         ```json
+         {
+           "query": "<本次变更相关的技术主题> 决策 踩坑 经验",
+           "include_notes": true,
+           "max_results": 10,
+           "expand_terms": ["设计决策", "架构选型", "性能问题", "兼容性"]
+         }
+         ```
+
+      **如何使用查询结果：**
+      - 将相关模块的架构说明纳入设计文档的「背景（Context）」章节
+      - 将历史决策记录作为「决策（Decisions）」章节的参考——避免重复讨论已决定的事项，或在推翻旧决策时说明原因
+      - 将踩坑经验纳入「风险 / 权衡（Risks / Trade-offs）」章节——前人踩过的坑不必再踩
+      - 如果 Wiki 中有相关 bug_fix 笔记，检查本次设计是否可能触发同类问题
+
+      如果 CodeWiki MCP 不可用或查询无结果，跳过此步骤继续设计，并在文档中标注「未查询到历史上下文」。
 
       章节：
       - **背景（Context）**：背景、现状、约束、相关方

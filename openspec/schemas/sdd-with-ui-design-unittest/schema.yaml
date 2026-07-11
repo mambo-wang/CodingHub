@@ -1,4 +1,4 @@
-name: spec-driven
+name: sdd-with-ui-design-unittest
 version: 1
 description: 默认 OpenSpec 工作流 - 提案 → 规格 → 设计 → 任务
 artifacts:
