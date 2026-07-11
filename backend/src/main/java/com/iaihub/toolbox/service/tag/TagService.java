@@ -6,15 +6,21 @@ import com.iaihub.toolbox.model.tag.Tag;
 import com.iaihub.toolbox.model.tag.TagType;
 import com.iaihub.toolbox.repository.tag.TagRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class TagService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TagService.class);
 
     private final TagRepository tagRepository;
 
@@ -60,6 +66,36 @@ public class TagService {
                         .tagType(tagType)
                         .usageCount(0)
                         .build()));
+    }
+
+    /**
+     * 批量解析标签名列表为标签 ID 列表。
+     * 按名称查找已有标签，不存在的标签自动创建。
+     * 处理并发场景：捕获唯一约束冲突后回退查询。
+     */
+    @Transactional
+    public List<Long> resolveOrCreateTags(List<String> names, TagType tagType) {
+        List<Long> tagIds = new ArrayList<>();
+        for (String name : names) {
+            if (name == null || name.isBlank()) continue;
+            Tag tag = tagRepository.findByNameAndTagType(name, tagType)
+                    .orElseGet(() -> {
+                        try {
+                            return tagRepository.save(Tag.builder()
+                                    .name(name)
+                                    .tagType(tagType)
+                                    .usageCount(0)
+                                    .build());
+                        } catch (DataIntegrityViolationException e) {
+                            // 并发创建场景：回退查询已有记录
+                            logger.warn("Concurrent tag creation for name={}, type={}, falling back to query", name, tagType);
+                            return tagRepository.findByNameAndTagType(name, tagType)
+                                    .orElseThrow(() -> new RuntimeException("标签创建失败: " + name));
+                        }
+                    });
+            tagIds.add(tag.getId());
+        }
+        return tagIds;
     }
 
     @Transactional

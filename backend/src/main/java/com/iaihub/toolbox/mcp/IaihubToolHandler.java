@@ -28,6 +28,8 @@ import com.iaihub.toolbox.dto.kb.KbSearchRequest;
 import com.iaihub.toolbox.dto.kb.KbSearchResultResponse;
 import com.iaihub.toolbox.dto.kb.KbUpdateRequest;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
+import com.iaihub.toolbox.service.tag.TagService;
+import com.iaihub.toolbox.model.tag.TagType;
 import com.iaihub.toolbox.service.RagApiClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
@@ -78,6 +80,7 @@ public class IaihubToolHandler {
     private final RagApiClient ragApiClient;
     private final ObjectMapper objectMapper;
     private final McpNotificationService mcpNotificationService;
+    private final TagService tagService;
     private final String ragBaseUrl;
 
     public IaihubToolHandler(McpSearchService searchService,
@@ -89,6 +92,7 @@ public class IaihubToolHandler {
                              RagApiClient ragApiClient,
                              ObjectMapper objectMapper,
                              McpNotificationService mcpNotificationService,
+                             TagService tagService,
                              @Value("${app.rag.base-url}") String ragBaseUrl) {
         this.searchService = searchService;
         this.toolService = toolService;
@@ -99,6 +103,7 @@ public class IaihubToolHandler {
         this.ragApiClient = ragApiClient;
         this.objectMapper = objectMapper;
         this.mcpNotificationService = mcpNotificationService;
+        this.tagService = tagService;
         this.ragBaseUrl = ragBaseUrl;
     }
 
@@ -237,6 +242,7 @@ public class IaihubToolHandler {
      * 处理创建工具（认证参数由 MCP 客户端传入）
      */
     public McpSchema.CallToolResult handleToolCreate(String name, Long categoryId, String content, String version,
+                                                      String description, List<String> tags,
                                                       String username, String password) {
         logger.info("MCP create tool: name={}, categoryId={}, version={}, username={}", name, categoryId, version, username);
         try {
@@ -248,12 +254,20 @@ public class IaihubToolHandler {
             LoginResponse loginResult = userService.login(loginRequest);
             Long userId = loginResult.getUser().getId();
 
+            // 解析标签名列表为标签 ID 列表
+            List<Long> tagIds = null;
+            if (tags != null && !tags.isEmpty()) {
+                tagIds = tagService.resolveOrCreateTags(tags, TagType.TOOL);
+            }
+
             // 调用创建工具
             CreateToolRequest request = CreateToolRequest.builder()
                     .name(name)
                     .categoryId(categoryId)
                     .content(content)
                     .version(version)
+                    .description(description)
+                    .tagIds(tagIds)
                     .build();
 
             ToolSummaryDTO created = toolService.createTool(request, userId);
@@ -323,6 +337,7 @@ public class IaihubToolHandler {
      */
     public McpSchema.CallToolResult handleToolModify(Long toolId, String name, Long categoryId,
                                                       String content, String version,
+                                                      String description, List<String> tags,
                                                       String username, String password) {
         logger.info("MCP modify tool: toolId={}, name={}, categoryId={}, version={}, username={}",
                 toolId, name, categoryId, version, username);
@@ -351,12 +366,24 @@ public class IaihubToolHandler {
                 logger.info("Auto-incremented version: {} -> {}", currentVersion, version);
             }
 
+            // 解析标签名列表为标签 ID 列表（null 表示不更新标签，空列表表示清除所有标签）
+            List<Long> tagIds = null;
+            if (tags != null) {
+                if (tags.isEmpty()) {
+                    tagIds = List.of();
+                } else {
+                    tagIds = tagService.resolveOrCreateTags(tags, TagType.TOOL);
+                }
+            }
+
             // 调用更新工具
             UpdateToolRequest request = UpdateToolRequest.builder()
                     .name(name != null && !name.isBlank() ? name : null)
                     .categoryId(categoryId)
                     .content(content != null && !content.isBlank() ? content : null)
                     .version(version)
+                    .description(description)
+                    .tagIds(tagIds)
                     .build();
 
             ToolDetailDTO updated = toolService.updateTool(toolId, request, mcpUser);

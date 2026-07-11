@@ -251,8 +251,10 @@ public class McpSdkServerConfig {
                     "properties":{
                         "name":{"type":"string","description":"工具名称"},
                         "categoryId":{"type":"integer","description":"分类ID"},
-                        "content":{"type":"string","description":"工具内容/文档"},
+                        "content":{"type":"string","description":"工具介绍、安装使用方法，字数限制在1000字符以内"},
                         "version":{"type":"string","description":"版本号，如1.0.0"},
+                        "description":{"type":"string","description":"简短描述，最大200字符"},
+                        "tags":{"type":"array","items":{"type":"string"},"description":"标签名列表，系统自动匹配或创建标签"},
                         "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
@@ -265,9 +267,12 @@ public class McpSdkServerConfig {
                     Long categoryId = ((Number) args.get("categoryId")).longValue();
                     String content = String.valueOf(args.get("content"));
                     String version = String.valueOf(args.get("version"));
+                    String description = args.containsKey("description") ? String.valueOf(args.get("description")) : null;
+                    @SuppressWarnings("unchecked")
+                    List<String> tags = args.containsKey("tags") ? (List<String>) args.get("tags") : null;
                     String username = String.valueOf(args.get("username"));
                     String password = String.valueOf(args.get("password"));
-                    return toolHandler.handleToolCreate(name, categoryId, content, version, username, password);
+                    return toolHandler.handleToolCreate(name, categoryId, content, version, description, tags, username, password);
                 });
 
         registerTool(server, "h3_coding_hub_post_create", "创建新帖子。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456",
@@ -340,6 +345,8 @@ public class McpSdkServerConfig {
                         "categoryId":{"type":"integer","description":"新的分类ID"},
                         "content":{"type":"string","description":"新的工具描述/文档"},
                         "version":{"type":"string","description":"版本号，不传则自动递增最后一位"},
+                        "description":{"type":"string","description":"简短描述，最大200字符"},
+                        "tags":{"type":"array","items":{"type":"string"},"description":"标签名列表，系统自动匹配或创建标签。传入空数组则清除所有标签"},
                         "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
@@ -353,9 +360,12 @@ public class McpSdkServerConfig {
                     Long categoryId = args.containsKey("categoryId") ? ((Number) args.get("categoryId")).longValue() : null;
                     String content = args.containsKey("content") ? String.valueOf(args.get("content")) : null;
                     String version = args.containsKey("version") ? String.valueOf(args.get("version")) : null;
+                    String description = args.containsKey("description") ? String.valueOf(args.get("description")) : null;
+                    @SuppressWarnings("unchecked")
+                    List<String> tags = args.containsKey("tags") ? (List<String>) args.get("tags") : null;
                     String username = String.valueOf(args.get("username"));
                     String password = String.valueOf(args.get("password"));
-                    return toolHandler.handleToolModify(toolId, name, categoryId, content, version, username, password);
+                    return toolHandler.handleToolModify(toolId, name, categoryId, content, version, description, tags, username, password);
                 });
 
         registerTool(server, "h3_coding_hub_tool_file_delete", """

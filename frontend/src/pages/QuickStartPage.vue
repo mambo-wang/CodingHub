@@ -6,7 +6,7 @@ const copiedTip = ref<number | null>(null)
 const copySkillSuccess = ref(false)
 const copiedSkillTip = ref<number | null>(null)
 
-const skillPrompt = '使用CodingHub MCP获取codinghub SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。'
+const skillPrompt = '使用CodingHub MCP获取codinghub SKILL的完整信息和文件列表，安装到当前项目的.codebuddy/skills目录下，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。'
 
 const skillTips = [
   '使用CodingHub SKILL查询工具列表',

@@ -53,7 +53,7 @@ const fetchTool = async () => {
     const response = await api.get(`/tools/${toolId.value}`)
     const tool: ToolDetail = response.data.data
 
-    if (tool.uploaderId !== authStore.user?.id) {
+    if (tool.uploaderId !== authStore.user?.id && !authStore.isAdmin) {
       router.push('/')
       return
     }

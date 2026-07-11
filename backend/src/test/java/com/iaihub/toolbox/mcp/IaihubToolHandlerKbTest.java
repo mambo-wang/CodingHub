@@ -11,11 +11,13 @@ import com.iaihub.toolbox.exception.ForbiddenException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.service.McpSearchService;
+import com.iaihub.toolbox.service.RagApiClient;
 import com.iaihub.toolbox.service.ToolFileService;
 import com.iaihub.toolbox.service.ToolService;
 import com.iaihub.toolbox.service.UserService;
 import com.iaihub.toolbox.service.forum.ForumPostService;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
+import com.iaihub.toolbox.service.tag.TagService;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,12 @@ class IaihubToolHandlerKbTest {
     private UserService userService;
     @Mock
     private KnowledgeBaseService knowledgeBaseService;
+    @Mock
+    private RagApiClient ragApiClient;
+    @Mock
+    private McpNotificationService mcpNotificationService;
+    @Mock
+    private TagService tagService;
 
     private IaihubToolHandler handler;
     private ObjectMapper objectMapper;
@@ -55,7 +63,8 @@ class IaihubToolHandlerKbTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         handler = new IaihubToolHandler(searchService, toolService, toolFileService,
-                postService, userService, knowledgeBaseService, objectMapper);
+                postService, userService, knowledgeBaseService, ragApiClient,
+                objectMapper, mcpNotificationService, tagService, "");
     }
 
     // ── handleKbList ──────────────────────────────────────────
@@ -64,7 +73,7 @@ class IaihubToolHandlerKbTest {
     void handleKbList_defaultParams_returnsSuccess() {
         KbResponse kb = KbResponse.builder().id(1L).name("test-kb").build();
         Page<KbResponse> page = new PageImpl<>(List.of(kb));
-        when(knowledgeBaseService.listKnowledgeBases(0, 20, null)).thenReturn(page);
+        when(knowledgeBaseService.listKnowledgeBases(0, 20, null, null)).thenReturn(page);
 
         McpSchema.CallToolResult result = handler.handleKbList(null, null, null);
 
@@ -78,12 +87,12 @@ class IaihubToolHandlerKbTest {
     @Test
     void handleKbList_sortByHot_returnsSuccess() {
         Page<KbResponse> page = new PageImpl<>(Collections.emptyList());
-        when(knowledgeBaseService.listKnowledgeBases(0, 10, "hot")).thenReturn(page);
+        when(knowledgeBaseService.listKnowledgeBases(0, 10, "hot", null)).thenReturn(page);
 
         McpSchema.CallToolResult result = handler.handleKbList(0, 10, "hot");
 
         assertFalse(result.isError());
-        verify(knowledgeBaseService).listKnowledgeBases(0, 10, "hot");
+        verify(knowledgeBaseService).listKnowledgeBases(0, 10, "hot", null);
     }
 
     // ── handleKbSearch ────────────────────────────────────────

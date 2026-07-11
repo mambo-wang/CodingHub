@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { Eye, EyeOff } from '@lucide/vue'
 import api from '@/services/api'
 
@@ -7,7 +7,7 @@ interface DanmakuItem {
   id: number
   content: string
   timeSeconds: number
-  type: string
+  danmakuType: string
   color: string
 }
 
@@ -99,7 +99,7 @@ watch(() => props.currentTime, (newTime) => {
 
     shownIds.value.add(dm.id)
 
-    if (dm.type === 'SCROLL') {
+    if (dm.danmakuType === 'SCROLL') {
       const lane = findAvailableLane(newTime)
       laneFreeAt.value[lane] = newTime + SCROLL_DURATION * 0.4
       toAdd.push({
@@ -125,7 +125,7 @@ watch(() => props.currentTime, (newTime) => {
 
   // Remove expired danmaku
   activeItems.value = activeItems.value.filter(item => {
-    if (item.type === 'SCROLL') {
+    if (item.danmakuType === 'SCROLL') {
       return newTime - item.timeSeconds < SCROLL_DURATION
     }
     // TOP and BOTTOM: show for 4 seconds
@@ -146,11 +146,10 @@ const getDanmakuStyle = (item: ActiveDanmaku): Record<string, string> => {
     opacity: String(opacity.value)
   }
 
-  if (item.type === 'SCROLL') {
+  if (item.danmakuType === 'SCROLL') {
     base.top = `${item.top}px`
-    base.animationDuration = `${SCROLL_DURATION}s`
-    base.animationName = 'danmaku-scroll'
-  } else if (item.type === 'TOP') {
+    base['--travel'] = `${travelDistance.value}px`
+  } else if (item.danmakuType === 'TOP') {
     base.top = `${getFixedPosition(item, 'top')}px`
     base.left = '50%'
     base.transform = 'translateX(-50%)'
@@ -169,11 +168,16 @@ const getDanmakuStyle = (item: ActiveDanmaku): Record<string, string> => {
 // Calculate stacked position for TOP/BOTTOM danmaku
 const getFixedPosition = (item: ActiveDanmaku, _direction: 'top' | 'bottom'): number => {
   const sameType = activeItems.value.filter(
-    d => d.type === item.type && d.id !== item.id && d.timeSeconds <= item.timeSeconds
+    d => d.danmakuType === item.danmakuType && d.id !== item.id && d.timeSeconds <= item.timeSeconds
   )
   const index = sameType.length % MAX_LANES
   return index * DANMAKU_HEIGHT + 8
 }
+
+// Container width for computing accurate scroll travel distance
+const travelDistance = computed(() => {
+  return containerRef.value?.offsetWidth || 960
+})
 
 const toggleVisibility = () => {
   visible.value = !visible.value
@@ -188,9 +192,9 @@ const toggleVisibility = () => {
         :key="item.key"
         class="danmaku-item"
         :class="{
-          'danmaku-scroll': item.type === 'SCROLL',
-          'danmaku-top': item.type === 'TOP',
-          'danmaku-bottom': item.type === 'BOTTOM'
+          'danmaku-scroll': item.danmakuType === 'SCROLL',
+          'danmaku-top': item.danmakuType === 'TOP',
+          'danmaku-bottom': item.danmakuType === 'BOTTOM'
         }"
         :style="getDanmakuStyle(item)"
       >
@@ -255,7 +259,7 @@ const toggleVisibility = () => {
 
 .danmaku-scroll {
   right: 0;
-  animation: danmaku-scroll linear forwards;
+  animation: danmaku-scroll 8s linear forwards;
 }
 
 .danmaku-top,
@@ -268,7 +272,7 @@ const toggleVisibility = () => {
     transform: translateX(100%);
   }
   to {
-    transform: translateX(calc(-100% - 100vw));
+    transform: translateX(calc(-100% - var(--travel, 100vw)));
   }
 }
 

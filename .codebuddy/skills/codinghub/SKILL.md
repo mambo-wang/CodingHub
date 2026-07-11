@@ -1,12 +1,16 @@
 ---
 name: codinghub
 description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或通过 MCP 与 CodingHub 平台交互时使用。前提是已配置 CodingHub MCP 连接（SSE 模式）。
-version: 2.0.0
+version: 2.1.0
 ---
 
 # CodingHub 操作指南
 
 通过 MCP（Model Context Protocol）与 CodingHub 工具广场交互，支持工具发现、安装、发布、更新、论坛交流，以及知识库管理（创建、文档上传、语义检索）。
+
+## 网站访问
+。
+当用户说"打开codinghub网站"、"访问codinghub"时，打开浏览器访问 CodingHub 网站，地址为CodingHub MCP Server的IP地址
 
 ## MCP 连接信息
 

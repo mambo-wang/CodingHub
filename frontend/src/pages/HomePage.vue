@@ -55,7 +55,8 @@ const uploadForm = ref<CreateToolRequest>({
   name: '',
   categoryId: 0,
   content: '',
-  version: '1.0.0'
+  version: '1.0.0',
+  description: ''
 })
 
 const md = new MarkdownIt()
@@ -276,7 +277,7 @@ const handleUploadSubmit = async () => {
 }
 
 const resetUploadForm = () => {
-  uploadForm.value = { name: '', categoryId: categories.value[0]?.id || 0, content: '', version: '1.0.0' }
+  uploadForm.value = { name: '', categoryId: categories.value[0]?.id || 0, content: '', version: '1.0.0', description: '' }
   previewContent.value = ''
   selectedFiles.value = []
   uploadProgress.value = 0
@@ -448,7 +449,7 @@ onMounted(() => {
                     <span>热门</span>
                   </span>
                 </div>
-                <h3 class="tool-name">{{ tool.name }}</h3>
+                <h3 class="tool-name">{{ tool.name }}<span v-if="tool.version" class="version-badge" :title="tool.version">v{{ tool.version }}</span></h3>
                 <p class="tool-description">{{ tool.description || '\u00A0' }}</p>
                 <div class="tool-tags">
                   <template v-if="tool.tags && tool.tags.length > 0">
@@ -639,6 +640,18 @@ onMounted(() => {
                   <span class="char-count">{{ uploadForm.version.length }}/50</span>
                 </div>
                 <div class="input-hint">使用语义化版本号格式，如 1.0.0、2.1.3-alpha</div>
+              </div>
+
+              <!-- Short Description -->
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-icon">💬</span>
+                  简短描述
+                </label>
+                <div class="input-wrapper">
+                  <input v-model="uploadForm.description" type="text" class="form-input" placeholder="一句话介绍这个工具（选填）" maxlength="200" />
+                  <span class="char-count">{{ (uploadForm.description || '').length }}/200</span>
+                </div>
               </div>
 
               <!-- Content -->
@@ -892,6 +905,8 @@ onMounted(() => {
 
 .tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); }
 .tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
+.version-badge { display: inline-flex; align-items: center; padding: 2px 8px; margin-left: 8px; border-radius: 6px; font-size: 12px; font-weight: 500; font-family: var(--font-mono); background: rgba(6, 182, 212, 0.1); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.2); vertical-align: middle; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.version-badge:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2); }
 .tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; min-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 12px; min-height: 26px; }
 .tags-more { font-size: 11px; color: var(--text-muted); }
@@ -1104,6 +1119,16 @@ onMounted(() => {
 [data-theme="light"] .mcp-code-block {
   background: rgba(0, 0, 0, 0.05);
   color: #1a1a2e;
+}
+
+[data-theme="light"] .version-badge {
+  background: rgba(8, 145, 178, 0.08);
+  color: #0e7490;
+  border-color: rgba(8, 145, 178, 0.15);
+}
+
+[data-theme="light"] .version-badge:hover {
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.15);
 }
 
 @media (max-width: 768px) {
