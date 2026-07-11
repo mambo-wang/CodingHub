@@ -1,0 +1,246 @@
+[
+  {
+    "module": "认证与用户模块",
+    "path": [
+      "后端服务 (Backend)",
+      "认证与用户模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\AuthController.java::AuthController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\UserController.java::UserController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\AvatarStaticController.java::AvatarStaticController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UserService.java::UserService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\User.java::User",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\Role.java::Role",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\AccountStatus.java::AccountStatus",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\util\\JwtUtil.java::JwtUtil",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\SecurityConfig.java::SecurityConfig",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\JwtAuthenticationFilter.java::JwtAuthenticationFilter",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\UserRepository.java::UserRepository"
+    ]
+  },
+  {
+    "module": "工具广场模块",
+    "path": [
+      "后端服务 (Backend)",
+      "工具广场模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\ToolController.java::ToolController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\ToolFileController.java::ToolFileController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\CategoryController.java::CategoryController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\ToolService.java::ToolService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\ToolFileService.java::ToolFileService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\CategoryService.java::CategoryService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\Tool.java::Tool",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\ToolFile.java::ToolFile",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\ToolLike.java::ToolLike",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\ToolComment.java::ToolComment",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\Category.java::Category",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\ToolRepository.java::ToolRepository",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\ToolFileRepository.java::ToolFileRepository"
+    ]
+  },
+  {
+    "module": "论坛社区模块",
+    "path": [
+      "后端服务 (Backend)",
+      "论坛社区模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\forum\\ForumPostController.java::ForumPostController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\forum\\ForumCategoryController.java::ForumCategoryController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\forum\\ForumTagController.java::ForumTagController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\forum\\ForumPostService.java::ForumPostService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\forum\\ForumCategoryService.java::ForumCategoryService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\forum\\ForumTagService.java::ForumTagService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\forum\\ForumPost.java::ForumPost",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\forum\\ForumCategory.java::ForumCategory",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\forum\\ForumTag.java::ForumTag",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\forum\\ForumPostTag.java::ForumPostTag",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\forum\\ForumPostRepository.java::ForumPostRepository"
+    ]
+  },
+  {
+    "module": "微课视频模块",
+    "path": [
+      "后端服务 (Backend)",
+      "微课视频模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\video\\VideoController.java::VideoController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\video\\DanmakuController.java::DanmakuController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\video\\VideoService.java::VideoService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\video\\DanmakuService.java::DanmakuService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\video\\Video.java::Video",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\video\\Danmaku.java::Danmaku",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\video\\VideoStatus.java::VideoStatus",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\video\\VideoRepository.java::VideoRepository",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\VideoStorageConfig.java::VideoStorageConfig"
+    ]
+  },
+  {
+    "module": "知识库模块",
+    "path": [
+      "后端服务 (Backend)",
+      "知识库模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\kb\\KnowledgeBaseController.java::KnowledgeBaseController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\kb\\KnowledgeBaseService.java::KnowledgeBaseService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\kb\\KnowledgeBase.java::KnowledgeBase",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\kb\\KbStatus.java::KbStatus",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\kb\\KnowledgeBaseRepository.java::KnowledgeBaseRepository",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\RagApiClient.java::RagApiClient",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\RagClientConfig.java::RagClientConfig"
+    ]
+  },
+  {
+    "module": "统一互动服务模块",
+    "path": [
+      "后端服务 (Backend)",
+      "统一互动服务模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\UnifiedInteractionController.java::UnifiedInteractionController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\tag\\TagController.java::TagController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\notification\\NotificationController.java::NotificationController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\feedback\\FeedbackController.java::FeedbackController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedCommentService.java::UnifiedCommentService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedFavoriteService.java::UnifiedFavoriteService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedLikeService.java::UnifiedLikeService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\tag\\TagService.java::TagService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\notification\\NotificationService.java::NotificationService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\feedback\\FeedbackService.java::FeedbackService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\UnifiedComment.java::UnifiedComment",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\UnifiedFavorite.java::UnifiedFavorite",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\UnifiedLike.java::UnifiedLike",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\TargetType.java::TargetType",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\tag\\Tag.java::Tag",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\notification\\Notification.java::Notification",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\feedback\\FeedbackMessage.java::FeedbackMessage"
+    ]
+  },
+  {
+    "module": "概览与管理模块",
+    "path": [
+      "后端服务 (Backend)",
+      "概览与管理模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\OverviewController.java::OverviewController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\AdminController.java::AdminController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\OverviewService.java::OverviewService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\OverviewServiceImpl.java::OverviewServiceImpl",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\StatsDto.java::StatsDto"
+    ]
+  },
+  {
+    "module": "MCP 服务模块",
+    "path": [
+      "后端服务 (Backend)",
+      "MCP 服务模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\McpController.java::McpController",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::IaihubToolHandler",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpConnectionManager.java::McpConnectionManager",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpNotificationService.java::McpNotificationService",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpPromptProvider.java::McpPromptProvider",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpResourceHandler.java::McpResourceHandler",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\McpServerConfig.java::McpServerConfig",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\McpSdkServerConfig.java::McpSdkServerConfig",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\McpSearchService.java::McpSearchService"
+    ]
+  },
+  {
+    "module": "基础设施与异常模块",
+    "path": [
+      "后端服务 (Backend)",
+      "基础设施与异常模块"
+    ],
+    "is_leaf": true,
+    "components": [
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\ToolSquareApplication.java::ToolSquareApplication",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\DataInitializer.java::DataInitializer",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\config\\UploadConfig.java::UploadConfig",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\exception\\GlobalExceptionHandler.java::GlobalExceptionHandler",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\exception\\BusinessException.java::BusinessException",
+      "backend\\src\\main\\java\\com\\iaihub\\toolbox\\util\\XssSanitizer.java::XssSanitizer"
+    ]
+  },
+  {
+    "module": "后端服务 (Backend)",
+    "path": [
+      "后端服务 (Backend)"
+    ],
+    "is_leaf": false,
+    "children": [
+      "认证与用户模块",
+      "工具广场模块",
+      "论坛社区模块",
+      "微课视频模块",
+      "知识库模块",
+      "统一互动服务模块",
+      "概览与管理模块",
+      "MCP 服务模块",
+      "基础设施与异常模块"
+    ],
+    "components": []
+  },
+  {
+    "module": "前端应用 (Frontend)",
+    "path": [
+      "前端应用 (Frontend)"
+    ],
+    "is_leaf": true,
+    "components": [
+      "frontend\\src\\services\\api.ts",
+      "frontend\\src\\services\\tool.ts",
+      "frontend\\src\\services\\forum.ts",
+      "frontend\\src\\services\\video.ts",
+      "frontend\\src\\services\\knowledge.ts",
+      "frontend\\src\\services\\interaction.ts",
+      "frontend\\src\\services\\notification.ts",
+      "frontend\\src\\services\\overview.ts",
+      "frontend\\src\\services\\feedback.ts",
+      "frontend\\src\\stores\\forum.ts",
+      "frontend\\src\\stores\\theme.ts",
+      "frontend\\src\\composables\\useInteraction.ts",
+      "frontend\\src\\composables\\useContentPermissions.ts",
+      "frontend\\src\\types\\index.ts",
+      "frontend\\src\\types\\tool.ts",
+      "frontend\\src\\types\\forum.ts",
+      "frontend\\src\\types\\video.ts",
+      "frontend\\src\\types\\knowledge.ts",
+      "frontend\\src\\types\\overview.ts",
+      "frontend\\src\\types\\feedback.ts"
+    ]
+  },
+  {
+    "module": "RAG 知识库服务 (RAG)",
+    "path": [
+      "RAG 知识库服务 (RAG)"
+    ],
+    "is_leaf": true,
+    "components": [
+      "rag\\api\\app.py",
+      "rag\\server.py",
+      "rag\\core\\service.py",
+      "rag\\core\\chunker.py",
+      "rag\\core\\embeddings.py",
+      "rag\\core\\vector_store.py",
+      "rag\\core\\reranker.py",
+      "rag\\core\\database.py",
+      "rag\\core\\async_engine.py"
+    ]
+  }
+]

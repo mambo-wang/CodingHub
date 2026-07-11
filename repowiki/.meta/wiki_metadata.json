@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "project": "CodingHub",
+  "generated_at": "2026-07-11",
+  "generator": "codewiki-wiki-generator (enhanced mode, CodeGraph + CodeWiki-CN)",
+  "doc_count": 13,
+  "documents": [
+    { "file": "overview.md", "module": "overview", "type": "repository_overview", "lines": 0 },
+    { "file": "backend.md", "module": "backend", "type": "parent_overview", "lines": 0 },
+    { "file": "auth-user.md", "module": "auth-user", "type": "leaf", "lines": 0 },
+    { "file": "tool-plaza.md", "module": "tool-plaza", "type": "leaf", "lines": 0 },
+    { "file": "forum.md", "module": "forum", "type": "leaf", "lines": 0 },
+    { "file": "video.md", "module": "video", "type": "leaf", "lines": 0 },
+    { "file": "knowledge-base.md", "module": "knowledge-base", "type": "leaf", "lines": 0 },
+    { "file": "unified-services.md", "module": "unified-services", "type": "leaf", "lines": 0 },
+    { "file": "overview-admin.md", "module": "overview-admin", "type": "leaf", "lines": 0 },
+    { "file": "mcp-service.md", "module": "mcp-service", "type": "leaf", "lines": 0 },
+    { "file": "infra.md", "module": "infra", "type": "leaf", "lines": 0 },
+    { "file": "frontend-app.md", "module": "frontend-app", "type": "leaf", "lines": 0 },
+    { "file": "rag-service.md", "module": "rag-service", "type": "leaf", "lines": 0 }
+  ],
+  "conventions": {
+    "mermaid_required": true,
+    "auto_crosslink": true,
+    "cross_reference_format": "[[{module_name}]]({{module_name}}.md)"
+  },
+  "stats": {
+    "backend_leaf_modules": 9,
+    "frontend_pages": 28,
+    "frontend_components": 36,
+    "rag_mcp_tools": 12,
+    "backend_mcp_tools": 18,
+    "total_source_components": 1027
+  }
+}

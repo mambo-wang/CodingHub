@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "project": "CodingHub",
+  "generated_at": "2026-07-11",
+  "modules": [
+    {
+      "name": "overview",
+      "title": "CodingHub Wiki 总览",
+      "file": "overview.md",
+      "type": "repository_overview",
+      "children": ["backend", "frontend-app", "rag-service"]
+    },
+    {
+      "name": "backend",
+      "title": "后端服务",
+      "file": "backend.md",
+      "type": "parent",
+      "children": [
+        "auth-user",
+        "tool-plaza",
+        "forum",
+        "video",
+        "knowledge-base",
+        "unified-services",
+        "overview-admin",
+        "mcp-service",
+        "infra"
+      ]
+    },
+    {
+      "name": "auth-user",
+      "title": "认证与用户模块",
+      "file": "auth-user.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "tool-plaza",
+      "title": "工具广场模块",
+      "file": "tool-plaza.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "forum",
+      "title": "论坛社区模块",
+      "file": "forum.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "video",
+      "title": "微课视频模块",
+      "file": "video.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "knowledge-base",
+      "title": "知识库模块",
+      "file": "knowledge-base.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "unified-services",
+      "title": "统一互动服务模块",
+      "file": "unified-services.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "overview-admin",
+      "title": "概览与管理模块",
+      "file": "overview-admin.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "mcp-service",
+      "title": "MCP 服务模块",
+      "file": "mcp-service.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "infra",
+      "title": "基础设施与异常模块",
+      "file": "infra.md",
+      "type": "leaf",
+      "parent": "backend"
+    },
+    {
+      "name": "frontend-app",
+      "title": "前端应用",
+      "file": "frontend-app.md",
+      "type": "leaf",
+      "parent": "overview"
+    },
+    {
+      "name": "rag-service",
+      "title": "RAG 知识库服务",
+      "file": "rag-service.md",
+      "type": "leaf",
+      "parent": "overview"
+    }
+  ]
+}
