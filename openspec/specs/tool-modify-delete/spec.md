@@ -85,3 +85,67 @@ MCP 工具 SHALL 在每次调用时验证调用方传入的 username/password，
 - **GIVEN** 工具 toolId=42 由某用户创建
 - **WHEN** 调用 `h3_coding_hub_tool_modify` 或 `h3_coding_hub_tool_file_delete` 时传入错误的 username/password
 - **THEN** 返回认证失败的错误信息，工具/文件未修改或未删除
+
+## ADDED Requirements（新增需求）
+
+### Requirement: 管理员前端编辑工具权限
+
+EditToolPage SHALL 允许工具所有者或管理员（ADMIN/SUPER_ADMIN 角色）进入编辑页面。当 `tool.uploaderId !== authStore.user.id && !authStore.isAdmin` 时，重定向到首页。
+
+#### Scenario: 工具所有者进入编辑页
+- **GIVEN** 用户 wangbao（id=1）是工具 toolId=42 的创建者
+- **WHEN** 用户 wangbao 访问 `/me/tools/42/edit`
+- **THEN** 正常加载编辑页面，表单预填充工具数据
+
+#### Scenario: 管理员进入他人工具的编辑页
+- **GIVEN** 用户 admin（role=ADMIN）不是工具 toolId=42 的创建者
+- **WHEN** 用户 admin 访问 `/me/tools/42/edit`
+- **THEN** 正常加载编辑页面，表单预填充工具数据
+
+#### Scenario: 普通用户进入他人工具的编辑页
+- **GIVEN** 用户 userA（role=USER）不是工具 toolId=42 的创建者
+- **WHEN** 用户 userA 访问 `/me/tools/42/edit`
+- **THEN** 重定向到首页 `/`
+
+#### Scenario: 管理员从工具详情页点击编辑按钮
+- **GIVEN** 管理员正在查看他人工具的详情页 `/tools/42`
+- **WHEN** 管理员点击编辑按钮
+- **THEN** 跳转到 `/me/tools/42/edit` 并正常加载编辑页面
+
+### Requirement: 工具短描述字段
+
+系统 SHALL 在 `Tool` 实体上新增 `description` 字段（VARCHAR 200，纯文本），用于存储工具的简短描述。该字段独立于现有的 `content` 字段（Markdown 正文），两者互不影响。
+
+#### Scenario: 创建工具时设置描述
+- **WHEN** 已登录用户创建工具，请求体包含 `description: "一个快速的数据格式转换工具"`
+- **THEN** 工具创建成功，`description` 字段保存该文本
+
+#### Scenario: 创建工具时不传描述
+- **WHEN** 用户创建工具，请求体不包含 `description`
+- **THEN** 工具创建成功，`description` 字段为 null（向后兼容）
+
+#### Scenario: 描述字段长度限制
+- **WHEN** 用户创建或更新工具，传入的 `description` 超过 200 字符
+- **THEN** 返回 400 Bad Request，提示"描述不能超过 200 字符"
+
+### Requirement: 工具列表卡片展示描述
+
+系统 SHALL 在工具列表接口的响应中包含 `description` 字段，前端工具卡片在名称下方展示描述文字。
+
+#### Scenario: 工具列表返回描述
+- **WHEN** 用户请求工具列表 `GET /api/v1/tools`
+- **THEN** 每个工具的 `ToolSummaryDTO` 响应中 SHALL 包含 `description` 字段
+
+#### Scenario: 工具详情返回描述
+- **WHEN** 用户请求工具详情 `GET /api/v1/tools/{id}`
+- **THEN** `ToolDetailDTO` 响应中 SHALL 包含 `description` 字段
+
+#### Scenario: 前端卡片展示描述
+- **GIVEN** 工具 toolId=1 的 description 为 "一个快速的数据格式转换工具"
+- **WHEN** 前端渲染工具卡片
+- **THEN** 卡片在工具名称下方以次文字色（`--text-secondary`）展示描述，单行 ellipsis 截断
+
+#### Scenario: 描述为空时卡片不展示描述行
+- **GIVEN** 工具 toolId=2 的 description 为 null
+- **WHEN** 前端渲染工具卡片
+- **THEN** 卡片名称下方不展示描述行（避免空白）
