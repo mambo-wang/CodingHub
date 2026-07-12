@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodingHub MCP 功能测试报告</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded',()=>mermaid.initialize({startOnLoad:true}));</script>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:32px;color:#1f2937;line-height:1.6}
+  h1{border-bottom:3px solid #6366f1;padding-bottom:8px}
+  table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px}
+  th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
+  th{background:#f3f4f6}
+  tr.ok{background:#f0fdf4} tr.bad{background:#fef2f2}
+  .ok{color:#16a34a;font-weight:700} .bad{color:#dc2626;font-weight:700}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px}
+  code{background:#eef2ff;padding:1px 5px;border-radius:4px;font-size:13px}
+  .summary{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+  .card{flex:1;min-width:150px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px;text-align:center}
+  .card .n{font-size:26px;font-weight:800;color:#6366f1}
+  .mermaid{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin:12px 0}
+  .tool{border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin:12px 0}
+</style></head><body>
+<h1>CodingHub MCP 功能测试报告（测试版）</h1>
+<p>生成时间：2026/7/12 08:55:09 ｜ 服务端：H3CodingHub-MCP-Server v2.0.0 ｜ 协议：Streamable HTTP <code>/mcp</code></p>
+<div class="summary">
+  <div class="card"><div class="n">18</div>注册工具</div>
+  <div class="card"><div class="n">18</div>可调用 PASS</div>
+  <div class="card"><div class="n">15</div>主路径成功</div>
+  <div class="card"><div class="n">3</div>优雅/环境错误</div>
+  <div class="card"><div class="n">0</div>崩溃</div>
+</div>
+<div class="mermaid">flowchart LR
+  C[测试客户端 Node.js] -->|POST /mcp| S[McpSyncServer v2.0.0]
+  S --> H[IaihubToolHandler 18工具]
+  H --> T[Tool/ForumPost Service]
+  H --> K[KnowledgeBaseService]
+  H --> U[UserService 鉴权]
+  T --> DB[(MySQL)]
+  K --> DB
+  K -->|语义检索| R[(RAG 172.53.3.98:8000)]
+  R -. 不可达 .-> K
+  style R stroke:#e74c3c,color:#e74c3c
+</div>
+<h2>结果明细</h2>
+<table><thead><tr><th>#</th><th>工具</th><th>分类</th><th>期望</th><th>HTTP</th><th>结果</th><th>耗时(ms)</th><th>判定</th></tr></thead>
+<tbody><tr class="ok">
+  <td>1</td><td><code>h3_coding_hub_tool_search</code></td><td>工具-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>1641</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>2</td><td><code>h3_coding_hub_tool_get</code></td><td>工具-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>1696</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>3</td><td><code>h3_coding_hub_tool_files</code></td><td>工具-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>1827</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>4</td><td><code>h3_coding_hub_post_search</code></td><td>论坛-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>1915</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>5</td><td><code>h3_coding_hub_post_get</code></td><td>论坛-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>2040</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>6</td><td><code>h3_coding_hub_tool_download</code></td><td>工具-文件</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>2092</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>7</td><td><code>h3_coding_hub_kb_list</code></td><td>知识库-查询</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>2129</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>8</td><td><code>h3_coding_hub_tool_create</code></td><td>工具-写</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>3520</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>9</td><td><code>h3_coding_hub_post_create</code></td><td>论坛-写</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>3709</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>10</td><td><code>h3_coding_hub_tool_file_upload</code></td><td>工具-文件</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>3731</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>11</td><td><code>h3_coding_hub_tool_modify</code></td><td>工具-写</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>3943</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>12</td><td><code>h3_coding_hub_tool_file_delete</code></td><td>工具-写</td>
+  <td>graceful-error</td><td>200</td><td>GRACEFUL_ERROR</td>
+  <td>4158</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>13</td><td><code>h3_coding_hub_kb_search</code></td><td>知识库-写</td>
+  <td>rag-dependency</td><td>200</td><td>GRACEFUL_ERROR</td>
+  <td>4194</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>14</td><td><code>h3_coding_hub_kb_create</code></td><td>知识库-写</td>
+  <td>env-blocked</td><td>200</td><td>SUCCESS</td>
+  <td>14926</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>15</td><td><code>h3_coding_hub_kb_update</code></td><td>知识库-写</td>
+  <td>graceful-error</td><td>200</td><td>SUCCESS</td>
+  <td>15123</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>16</td><td><code>h3_coding_hub_kb_delete</code></td><td>知识库-写</td>
+  <td>graceful-error</td><td>200</td><td>SUCCESS</td>
+  <td>25335</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>17</td><td><code>h3_coding_hub_kb_upload_document</code></td><td>知识库-写</td>
+  <td>success</td><td>200</td><td>SUCCESS</td>
+  <td>25350</td><td><b>PASS</b></td></tr><tr class="ok">
+  <td>18</td><td><code>h3_coding_hub_kb_document_status</code></td><td>知识库-写</td>
+  <td>rag-dependency</td><td>200</td><td>GRACEFUL_ERROR</td>
+  <td>25362</td><td><b>PASS</b></td></tr></tbody></table>
+<h2>逐工具详情</h2>
+<div class="tool">
+  <h3>1. <code>h3_coding_hub_tool_search</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：1641ms</p>
+  <p>参数：query=MCP, limit=5</p>
+  <pre>{"tools":[{"id":3,"name":"GitLab-MCP","description":"# dfs","category":"MCP","version":"1.0.0","createdAt":"2026-06-10T07:03:35.512688","tags":[]},{"id":2,"name":"SSH-MCP-Server","description":"#","category":"MCP","version":"1.0.0","createdAt":"2026-06-10T07:02:59.169420","tags":[]}],"count":2}</pre>
+</div><div class="tool">
+  <h3>2. <code>h3_coding_hub_tool_get</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：1696ms</p>
+  <p>参数：toolId=4</p>
+  <pre>{"id":4,"name":"openspec-browser-test","version":"1.0.0","content":"---\nname: openspec-browser-test\ndescription: OpenSpec工作流完成后手动触发，使用opencli-browser做UI端到端自动化测试\n---\n# openspec-browser-test\n\n&amp;gt; **重要**: 这是一个**手动触发**的 skill，用于在开发任务和单元测试全部完成后，对 UI 进行端到端浏览器自动化测试验证。\n\n## 何时使用\n\n在以下条件满足后执行：\n- ✅ 所有 TDD 任务已完成（RED/GREEN/REFACTOR）\n- ✅ UI 实现任务已完成\n- ✅ 单元测试全部通过\n- ✅ 开发服务器已启动 (`npm run dev`)\n\n## 前置条件检查\n\n```bash\nopencli doctor\n```\n\n必须确保 `doctor` 通过，否则浏览器测试无法执行。\n\n## 测试用例编写规范\n\n基于 specs/**/*.md 中的 GIVEN/WHEN/THEN 场景转换为测试用例：\n\n```bash\n# 示例：测试概览页面统计卡片加载\nopencli browser overview open &amp;qu</pre>
+</div><div class="tool">
+  <h3>3. <code>h3_coding_hub_tool_files</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：1827ms</p>
+  <p>参数：toolId=4 (有2个文件)</p>
+  <pre>{"files":[{"fileName":"SKILL.md","fileSize":3072,"downloadUrl":"/api/v1/tools/4/files/1/download","createdAt":"2026-06-13T14:45:30.446357"},{"fileName":"readme.md","fileSize":40,"downloadUrl":"/api/v1/tools/4/files/2/download","createdAt":"2026-06-13T14:45:30.460546"}],"count":2,"toolId":4}</pre>
+</div><div class="tool">
+  <h3>4. <code>h3_coding_hub_post_search</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：论坛-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：1915ms</p>
+  <p>参数：query=空, limit=5</p>
+  <pre>{"posts":[{"id":2,"title":"OpenSpec 定制化：打造契合团队的工作流引擎","summary":"# OpenSpec 定制化：打造契合团队的工作流引擎\n\n&gt; OpenSpec 是一个开源、Schema 驱动的工作流框架，它定义了从「提案」到「归档」的完整变更生命周期。但开源工具拿过来不是终点，定...","authorName":"wangbao","createdAt":"2026-06-13T14:39:21.514359"},{"id":1,"title":"UI-UX Pro Max体验","summary":"# 安装\n\n# 使用","authorName":"wangbao","createdAt":"2026-06-10T06:32:51.388700"}],"count":2}</pre>
+</div><div class="tool">
+  <h3>5. <code>h3_coding_hub_post_get</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：论坛-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：2040ms</p>
+  <p>参数：postId=1</p>
+  <pre>{"id":1,"title":"UI-UX Pro Max体验","content":"# 安装\n\n# 使用","authorId":1,"createdAt":"2026-06-10T06:32:51.388700"}</pre>
+</div><div class="tool">
+  <h3>6. <code>h3_coding_hub_tool_download</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-文件 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：2092ms</p>
+  <p>参数：toolId=4, fileId=1 (真实文件)</p>
+  <pre>{"fileId":1,"fileName":"SKILL.md","fileSize":3072,"contentType":"application/octet-stream","downloadUrl":"/api/v1/tools/4/files/1/download","createdAt":"2026-06-13T14:45:30.446357"}</pre>
+</div><div class="tool">
+  <h3>7. <code>h3_coding_hub_kb_list</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：知识库-查询 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：2129ms</p>
+  <p>参数：page=0, size=20</p>
+  <pre>{"knowledgeBases":[],"totalElements":0,"totalPages":0,"page":0,"size":20}</pre>
+</div><div class="tool">
+  <h3>8. <code>h3_coding_hub_tool_create</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-写 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：3520ms</p>
+  <p>参数：name=MCP_E2E_TOOL_1783817204589, categoryId=2, tags=[mcp-test,e2e]</p>
+  <pre>{"id":8,"name":"MCP_E2E_TOOL_1783817204589","version":"1.0.0","description":"MCP e2e test","categoryName":"MCP","categoryIcon":"🔌","uploaderId":1,"uploaderUsername":"wangbao","uploaderNickname":"wb","createdAt":"2026-07-12T08:46:47.4031598","score":0,"pinned":false,"viewCount":0,"likeCount":0,"commentCount":0,"tags":[{"id":1,"name":"mcp-test","tagType":"TOOL","usageCount":1},{"id":2,"name":"e2e","tagType":"TOOL","usageCount":1}]}</pre>
+</div><div class="tool">
+  <h3>9. <code>h3_coding_hub_post_create</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：论坛-写 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：3709ms</p>
+  <p>参数：title=MCP_E2E_POST_1783817204589, categoryId=3</p>
+  <pre>{"id":3,"title":"MCP_E2E_POST_1783817204589","content":"MCP 端到端自动化测试帖子内容。","authorId":1,"authorName":"wangbao","authorNickname":"wb","categoryId":3,"categoryName":"MCP服务","viewCount":0,"likeCount":0,"commentCount":0,"createdAt":"2026-07-12T08:46:48.2626188","updatedAt":"2026-07-12T08:46:48.2626188","score":0,"pinned":false,"visibility":"PUBLIC","tags":[]}</pre>
+</div><div class="tool">
+  <h3>10. <code>h3_coding_hub_tool_file_upload</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-文件 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：3731ms</p>
+  <p>参数：toolId=8 (返回上传接口信息)</p>
+  <pre>{"toolId":8,"toolName":"MCP_E2E_TOOL_1783817204589","uploadUrl":"/api/v1/tools/8/files","httpMethod":"POST","contentType":"multipart/form-data","formFields":"files (必填, 文件列表), readme (可选, markdown文本)","limits":"50MB per file, 200MB total","instruction":"使用 HTTP POST 请求 /api/v1/tools/8/files，Content-Type 设为 multipart/form-data，表单字段: files (必填, 文件列表), readme (可选, markdown文本)"}</pre>
+</div><div class="tool">
+  <h3>11. <code>h3_coding_hub_tool_modify</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：工具-写 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：3943ms</p>
+  <p>参数：toolId=8, 更新content</p>
+  <pre>{"id":8,"name":"MCP_E2E_TOOL_1783817204589","version":"1.0.1","description":"MCP e2e test","categoryName":"MCP","categoryIcon":"🔌","content":"MCP 端到端测试：更新后的工具描述。","uploaderId":1,"uploaderUsername":"wangbao","uploaderNickname":"wb","createdAt":"2026-07-12T08:46:47.40316","updatedAt":"2026-07-12T08:46:48.5062464","viewCount":0,"likeCount":0,"commentCount":0,"score":0.00,"tags":[{"id":1,"name":"mcp-test","tagType":"TOOL","usageCount":1},{"id":2,"name":"e2e","tagType":"TOOL","usageCount":1}]}</pre>
+</div><div class="tool">
+  <h3>12. <code>h3_coding_hub_tool_file_delete</code> — <span class="ok">PASS</span> (GRACEFUL_ERROR)</h3>
+  <p>分类：工具-写 ｜ 期望：graceful-error ｜ HTTP：200 ｜ 耗时：4158ms</p>
+  <p>参数：toolId=8, fileId=999 (不存在, 验证安全错误处理)</p>
+  <pre>{"error":"删除文件失败: 文件不存在"}</pre>
+</div><div class="tool">
+  <h3>13. <code>h3_coding_hub_kb_search</code> — <span class="ok">PASS</span> (GRACEFUL_ERROR)</h3>
+  <p>分类：知识库-写 ｜ 期望：rag-dependency ｜ HTTP：200 ｜ 耗时：4194ms</p>
+  <p>参数：kbId=2 (真实知识库, RAG 服务 172.53.3.98:8000 不可达)</p>
+  <pre>{"error":"搜索知识库失败: RAG 服务不可用: HTTP connect timed out"}</pre>
+</div><div class="tool">
+  <h3>14. <code>h3_coding_hub_kb_create</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：知识库-写 ｜ 期望：env-blocked ｜ HTTP：200 ｜ 耗时：14926ms</p>
+  <p>参数：name=MCP_E2E_KB_1783817204589 (依赖RAG服务, 当前RAG不可用)</p>
+  <pre>{"id":1,"name":"MCP_E2E_KB_1783817204589","description":"MCP e2e kb","ownerId":1,"ownerNickname":"wb","ragCollection":"mcp-e2e-kb-1783817204589-1","ragBaseUrl":"/rag","documentsUrl":"/rag/api/collections/mcp-e2e-kb-1783817204589-1/documents","createdAt":"2026-07-12T08:46:48.9677104"}</pre>
+</div><div class="tool">
+  <h3>15. <code>h3_coding_hub_kb_update</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：知识库-写 ｜ 期望：graceful-error ｜ HTTP：200 ｜ 耗时：15123ms</p>
+  <p>参数：kbId=1 (知识库不存在)</p>
+  <pre>{"id":1,"name":"x","description":"MCP e2e kb","ownerId":1,"ownerNickname":"wb","ragCollection":"mcp-e2e-kb-1783817204589-1","ragBaseUrl":"/rag","documentsUrl":"/rag/api/collections/mcp-e2e-kb-1783817204589-1/documents","createdAt":"2026-07-12T08:46:48.96771"}</pre>
+</div><div class="tool">
+  <h3>16. <code>h3_coding_hub_kb_delete</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：知识库-写 ｜ 期望：graceful-error ｜ HTTP：200 ｜ 耗时：25335ms</p>
+  <p>参数：kbId=1 (知识库不存在)</p>
+  <pre>{"kbId":1,"deleted":true}</pre>
+</div><div class="tool">
+  <h3>17. <code>h3_coding_hub_kb_upload_document</code> — <span class="ok">PASS</span> (SUCCESS)</h3>
+  <p>分类：知识库-写 ｜ 期望：success ｜ HTTP：200 ｜ 耗时：25350ms</p>
+  <p>参数：kbId=2 (真实知识库)</p>
+  <pre>{"kbId":2,"kbName":"MCP_E2E_KB_PROBE_...","uploadUrl":"http://172.53.3.98:8000/api/collections/.../documents/batch","httpMethod":"POST","contentType":"multipart/form-data","formFields":"files (必填, 支持多文件批量上传，最多 20 个)","limits":"单次最多 20 个文件","requiresAuth":"无需认证","supportedFileTypes":["md","txt","pdf","docx","pptx","xlsx","py","js","ts","java","go"]}</pre>
+</div><div class="tool">
+  <h3>18. <code>h3_coding_hub_kb_document_status</code> — <span class="ok">PASS</span> (GRACEFUL_ERROR)</h3>
+  <p>分类：知识库-写 ｜ 期望：rag-dependency ｜ HTTP：200 ｜ 耗时：25362ms</p>
+  <p>参数：kbId=2 (真实知识库, RAG 服务不可达)</p>
+  <pre>{"error":"查询文档状态失败: RAG 服务不可用: HTTP connect timed out"}</pre>
+</div>
+<h2>发现与建议</h2>
+<table><thead><tr><th>编号</th><th>类型</th><th>发现</th><th>严重度</th><th>建议</th></tr></thead><tbody>
+<tr><td>F1</td><td>环境依赖</td><td>kb_search / kb_document_status 依赖 RAG，本环境不可达，优雅返回“RAG 服务不可用”</td><td>中</td><td>联调时保证 RAG 可达；降级正确无需改码</td></tr>
+<tr><td>F2</td><td>文档不一致</td><td>文档标注 MCP 为 17 tools，实际 18 个</td><td>低</td><td>同步文档</td></tr>
+<tr><td>F3</td><td>测试产物</td><td>测试创建的工具/帖子/知识库已清理，库内无残留</td><td>提示</td><td>已清理</td></tr>
+</tbody></table>
+</body></html>

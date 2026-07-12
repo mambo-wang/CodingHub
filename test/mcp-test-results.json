@@ -1,0 +1,236 @@
+{
+  "generatedAt": "2026-07-12T00:47:09.952Z",
+  "server": {
+    "name": "H3CodingHub-MCP-Server",
+    "version": "2.0.0"
+  },
+  "registeredToolCount": 18,
+  "registeredTools": [
+    "h3_coding_hub_tool_search",
+    "h3_coding_hub_tool_get",
+    "h3_coding_hub_tool_files",
+    "h3_coding_hub_post_search",
+    "h3_coding_hub_post_get",
+    "h3_coding_hub_tool_download",
+    "h3_coding_hub_tool_create",
+    "h3_coding_hub_post_create",
+    "h3_coding_hub_tool_file_upload",
+    "h3_coding_hub_tool_modify",
+    "h3_coding_hub_tool_file_delete",
+    "h3_coding_hub_kb_list",
+    "h3_coding_hub_kb_search",
+    "h3_coding_hub_kb_create",
+    "h3_coding_hub_kb_update",
+    "h3_coding_hub_kb_delete",
+    "h3_coding_hub_kb_upload_document",
+    "h3_coding_hub_kb_document_status"
+  ],
+  "credentials": {
+    "user": "wangbao",
+    "passwordNote": "via offline bcrypt verification"
+  },
+  "results": [
+    {
+      "name": "h3_coding_hub_tool_search",
+      "category": "工具-查询",
+      "expectation": "success",
+      "args": "query=MCP, limit=5",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 1641,
+      "excerpt": "{\"tools\":[{\"id\":3,\"name\":\"GitLab-MCP\",\"description\":\"# dfs\",\"category\":\"MCP\",\"version\":\"1.0.0\",\"createdAt\":\"2026-06-10T07:03:35.512688\",\"tags\":[]},{\"id\":2,\"name\":\"SSH-MCP-Server\",\"description\":\"#\",\"category\":\"MCP\",\"version\":\"1.0.0\",\"createdAt\":\"2026-06-10T07:02:59.169420\",\"tags\":[]}],\"count\":2}"
+    },
+    {
+      "name": "h3_coding_hub_tool_get",
+      "category": "工具-查询",
+      "expectation": "success",
+      "args": "toolId=4",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 1696,
+      "excerpt": "{\"id\":4,\"name\":\"openspec-browser-test\",\"version\":\"1.0.0\",\"content\":\"---\\nname: openspec-browser-test\\ndescription: OpenSpec工作流完成后手动触发，使用opencli-browser做UI端到端自动化测试\\n---\\n# openspec-browser-test\\n\\n&gt; **重要**: 这是一个**手动触发**的 skill，用于在开发任务和单元测试全部完成后，对 UI 进行端到端浏览器自动化测试验证。\\n\\n## 何时使用\\n\\n在以下条件满足后执行：\\n- ✅ 所有 TDD 任务已完成（RED/GREEN/REFACTOR）\\n- ✅ UI 实现任务已完成\\n- ✅ 单元测试全部通过\\n- ✅ 开发服务器已启动 (`npm run dev`)\\n\\n## 前置条件检查\\n\\n```bash\\nopencli doctor\\n```\\n\\n必须确保 `doctor` 通过，否则浏览器测试无法执行。\\n\\n## 测试用例编写规范\\n\\n基于 specs/**/*.md 中的 GIVEN/WHEN/THEN 场景转换为测试用例：\\n\\n```bash\\n# 示例：测试概览页面统计卡片加载\\nopencli browser overview open &qu"
+    },
+    {
+      "name": "h3_coding_hub_tool_files",
+      "category": "工具-查询",
+      "expectation": "success",
+      "args": "toolId=4 (有2个文件)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 1827,
+      "excerpt": "{\"files\":[{\"fileName\":\"SKILL.md\",\"fileSize\":3072,\"downloadUrl\":\"/api/v1/tools/4/files/1/download\",\"createdAt\":\"2026-06-13T14:45:30.446357\"},{\"fileName\":\"readme.md\",\"fileSize\":40,\"downloadUrl\":\"/api/v1/tools/4/files/2/download\",\"createdAt\":\"2026-06-13T14:45:30.460546\"}],\"count\":2,\"toolId\":4}"
+    },
+    {
+      "name": "h3_coding_hub_post_search",
+      "category": "论坛-查询",
+      "expectation": "success",
+      "args": "query=空, limit=5",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 1915,
+      "excerpt": "{\"posts\":[{\"id\":2,\"title\":\"OpenSpec 定制化：打造契合团队的工作流引擎\",\"summary\":\"# OpenSpec 定制化：打造契合团队的工作流引擎\\n\\n> OpenSpec 是一个开源、Schema 驱动的工作流框架，它定义了从「提案」到「归档」的完整变更生命周期。但开源工具拿过来不是终点，定...\",\"authorName\":\"wangbao\",\"createdAt\":\"2026-06-13T14:39:21.514359\"},{\"id\":1,\"title\":\"UI-UX Pro Max体验\",\"summary\":\"# 安装\\n\\n# 使用\",\"authorName\":\"wangbao\",\"createdAt\":\"2026-06-10T06:32:51.388700\"}],\"count\":2}"
+    },
+    {
+      "name": "h3_coding_hub_post_get",
+      "category": "论坛-查询",
+      "expectation": "success",
+      "args": "postId=1",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 2040,
+      "excerpt": "{\"id\":1,\"title\":\"UI-UX Pro Max体验\",\"content\":\"# 安装\\n\\n# 使用\",\"authorId\":1,\"createdAt\":\"2026-06-10T06:32:51.388700\"}"
+    },
+    {
+      "name": "h3_coding_hub_tool_download",
+      "category": "工具-文件",
+      "expectation": "success",
+      "args": "toolId=4, fileId=1 (真实文件)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 2092,
+      "excerpt": "{\"fileId\":1,\"fileName\":\"SKILL.md\",\"fileSize\":3072,\"contentType\":\"application/octet-stream\",\"downloadUrl\":\"/api/v1/tools/4/files/1/download\",\"createdAt\":\"2026-06-13T14:45:30.446357\"}"
+    },
+    {
+      "name": "h3_coding_hub_kb_list",
+      "category": "知识库-查询",
+      "expectation": "success",
+      "args": "page=0, size=20",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 2129,
+      "excerpt": "{\"knowledgeBases\":[],\"totalElements\":0,\"totalPages\":0,\"page\":0,\"size\":20}"
+    },
+    {
+      "name": "h3_coding_hub_tool_create",
+      "category": "工具-写",
+      "expectation": "success",
+      "args": "name=MCP_E2E_TOOL_1783817204589, categoryId=2, tags=[mcp-test,e2e]",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 3520,
+      "excerpt": "{\"id\":8,\"name\":\"MCP_E2E_TOOL_1783817204589\",\"version\":\"1.0.0\",\"description\":\"MCP e2e test\",\"categoryName\":\"MCP\",\"categoryIcon\":\"🔌\",\"uploaderId\":1,\"uploaderUsername\":\"wangbao\",\"uploaderNickname\":\"wb\",\"createdAt\":\"2026-07-12T08:46:47.4031598\",\"score\":0,\"pinned\":false,\"viewCount\":0,\"likeCount\":0,\"commentCount\":0,\"tags\":[{\"id\":1,\"name\":\"mcp-test\",\"tagType\":\"TOOL\",\"usageCount\":1},{\"id\":2,\"name\":\"e2e\",\"tagType\":\"TOOL\",\"usageCount\":1}]}"
+    },
+    {
+      "name": "h3_coding_hub_post_create",
+      "category": "论坛-写",
+      "expectation": "success",
+      "args": "title=MCP_E2E_POST_1783817204589, categoryId=3",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 3709,
+      "excerpt": "{\"id\":3,\"title\":\"MCP_E2E_POST_1783817204589\",\"content\":\"MCP 端到端自动化测试帖子内容。\",\"authorId\":1,\"authorName\":\"wangbao\",\"authorNickname\":\"wb\",\"categoryId\":3,\"categoryName\":\"MCP服务\",\"viewCount\":0,\"likeCount\":0,\"commentCount\":0,\"createdAt\":\"2026-07-12T08:46:48.2626188\",\"updatedAt\":\"2026-07-12T08:46:48.2626188\",\"score\":0,\"pinned\":false,\"visibility\":\"PUBLIC\",\"tags\":[]}"
+    },
+    {
+      "name": "h3_coding_hub_tool_file_upload",
+      "category": "工具-文件",
+      "expectation": "success",
+      "args": "toolId=8 (返回上传接口信息)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 3731,
+      "excerpt": "{\"toolId\":8,\"toolName\":\"MCP_E2E_TOOL_1783817204589\",\"uploadUrl\":\"/api/v1/tools/8/files\",\"httpMethod\":\"POST\",\"contentType\":\"multipart/form-data\",\"formFields\":\"files (必填, 文件列表), readme (可选, markdown文本)\",\"limits\":\"50MB per file, 200MB total\",\"instruction\":\"使用 HTTP POST 请求 /api/v1/tools/8/files，Content-Type 设为 multipart/form-data，表单字段: files (必填, 文件列表), readme (可选, markdown文本)\"}"
+    },
+    {
+      "name": "h3_coding_hub_tool_modify",
+      "category": "工具-写",
+      "expectation": "success",
+      "args": "toolId=8, 更新content",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 3943,
+      "excerpt": "{\"id\":8,\"name\":\"MCP_E2E_TOOL_1783817204589\",\"version\":\"1.0.1\",\"description\":\"MCP e2e test\",\"categoryName\":\"MCP\",\"categoryIcon\":\"🔌\",\"content\":\"MCP 端到端测试：更新后的工具描述。\",\"uploaderId\":1,\"uploaderUsername\":\"wangbao\",\"uploaderNickname\":\"wb\",\"createdAt\":\"2026-07-12T08:46:47.40316\",\"updatedAt\":\"2026-07-12T08:46:48.5062464\",\"viewCount\":0,\"likeCount\":0,\"commentCount\":0,\"score\":0.00,\"tags\":[{\"id\":1,\"name\":\"mcp-test\",\"tagType\":\"TOOL\",\"usageCount\":1},{\"id\":2,\"name\":\"e2e\",\"tagType\":\"TOOL\",\"usageCount\":1}]}"
+    },
+    {
+      "name": "h3_coding_hub_tool_file_delete",
+      "category": "工具-写",
+      "expectation": "graceful-error",
+      "args": "toolId=8, fileId=999 (不存在, 验证安全错误处理)",
+      "httpStatus": 200,
+      "isError": true,
+      "outcome": "GRACEFUL_ERROR",
+      "latencyMs": 4158,
+      "excerpt": "{\"error\":\"删除文件失败: 文件不存在\"}"
+    },
+    {
+      "name": "h3_coding_hub_kb_search",
+      "category": "知识库-写",
+      "expectation": "rag-dependency",
+      "args": "kbId=2 (真实知识库, RAG 服务 172.53.3.98:8000 不可达)",
+      "httpStatus": 200,
+      "isError": true,
+      "outcome": "GRACEFUL_ERROR",
+      "latencyMs": 4194,
+      "excerpt": "{\"error\":\"搜索知识库失败: RAG 服务不可用: HTTP connect timed out\"}"
+    },
+    {
+      "name": "h3_coding_hub_kb_create",
+      "category": "知识库-写",
+      "expectation": "env-blocked",
+      "args": "name=MCP_E2E_KB_1783817204589 (依赖RAG服务, 当前RAG不可用)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 14926,
+      "excerpt": "{\"id\":1,\"name\":\"MCP_E2E_KB_1783817204589\",\"description\":\"MCP e2e kb\",\"ownerId\":1,\"ownerNickname\":\"wb\",\"ragCollection\":\"mcp-e2e-kb-1783817204589-1\",\"ragBaseUrl\":\"/rag\",\"documentsUrl\":\"/rag/api/collections/mcp-e2e-kb-1783817204589-1/documents\",\"createdAt\":\"2026-07-12T08:46:48.9677104\"}"
+    },
+    {
+      "name": "h3_coding_hub_kb_update",
+      "category": "知识库-写",
+      "expectation": "graceful-error",
+      "args": "kbId=1 (知识库不存在)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 15123,
+      "excerpt": "{\"id\":1,\"name\":\"x\",\"description\":\"MCP e2e kb\",\"ownerId\":1,\"ownerNickname\":\"wb\",\"ragCollection\":\"mcp-e2e-kb-1783817204589-1\",\"ragBaseUrl\":\"/rag\",\"documentsUrl\":\"/rag/api/collections/mcp-e2e-kb-1783817204589-1/documents\",\"createdAt\":\"2026-07-12T08:46:48.96771\"}"
+    },
+    {
+      "name": "h3_coding_hub_kb_delete",
+      "category": "知识库-写",
+      "expectation": "graceful-error",
+      "args": "kbId=1 (知识库不存在)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 25335,
+      "excerpt": "{\"kbId\":1,\"deleted\":true}"
+    },
+    {
+      "name": "h3_coding_hub_kb_upload_document",
+      "category": "知识库-写",
+      "expectation": "success",
+      "args": "kbId=2 (真实知识库)",
+      "httpStatus": 200,
+      "isError": false,
+      "outcome": "SUCCESS",
+      "latencyMs": 25350,
+      "excerpt": "{\"kbId\":2,\"kbName\":\"MCP_E2E_KB_PROBE_...\",\"uploadUrl\":\"http://172.53.3.98:8000/api/collections/.../documents/batch\",\"httpMethod\":\"POST\",\"contentType\":\"multipart/form-data\",\"formFields\":\"files (必填, 支持多文件批量上传，最多 20 个)\",\"limits\":\"单次最多 20 个文件\",\"requiresAuth\":\"无需认证\",\"supportedFileTypes\":[\"md\",\"txt\",\"pdf\",\"docx\",\"pptx\",\"xlsx\",\"py\",\"js\",\"ts\",\"java\",\"go\"]}"
+    },
+    {
+      "name": "h3_coding_hub_kb_document_status",
+      "category": "知识库-写",
+      "expectation": "rag-dependency",
+      "args": "kbId=2 (真实知识库, RAG 服务不可达)",
+      "httpStatus": 200,
+      "isError": true,
+      "outcome": "GRACEFUL_ERROR",
+      "latencyMs": 25362,
+      "excerpt": "{\"error\":\"查询文档状态失败: RAG 服务不可用: HTTP connect timed out\"}"
+    }
+  ],
+  "ctx": {
+    "createdToolId": 8,
+    "createdPostId": 3
+  }
+}

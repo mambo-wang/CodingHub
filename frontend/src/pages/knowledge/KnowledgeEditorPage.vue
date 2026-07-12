@@ -187,6 +187,7 @@ const handleSubmit = async () => {
                   <span class="form-hint">相邻分块重叠的 token 数</span>
                 </div>
               </div>
+            </div>
 
           </details>
 
