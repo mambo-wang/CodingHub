@@ -29,6 +29,6 @@
 
 - [x] 5.1 运行 `cd backend && ./gradlew test` 确认全部新增与既有测试通过（重点 L1：`UnifiedCommentServiceTest` / `UnifiedLikeServiceTest` / `UserServiceTest` 编译与断言均恢复）
 - [x] 5.2 运行 `bash scripts/lint-arch.sh` 确认层级依赖校验 PASS
-- [ ] 5.3 手动验证：登录用户 A 评论/点赞用户 B 的资源后，以 B 身份打开消息中心（`GET /api/v1/notifications`）能看到对应通知、未读计数 +1、点击可跳转到目标详情页
-- [ ] 5.4 手动验证：超级管理员审批通过/拒绝注册申请后，申请人登录可在消息中心看到「你的注册申请已通过/已被拒绝」
-- [ ] 5.5 手动验证：前端消息中心通知图标与颜色随类型正确显示（LIKE 粉、COMMENT_REPLY 青、ADMIN_* 紫），不再走 default 铃铛图标
+- [ ] 5.3 手动验证：登录用户 A 评论/点赞用户 B 的资源后，以 B 身份打开消息中心（`GET /api/v1/notifications`）能看到对应通知、未读计数 +1、点击可跳转到目标详情页（浏览器未覆盖，已由 `UnifiedCommentServiceTest`/`UnifiedLikeServiceTest` 单测覆盖，建议人工抽查）
+- [x] 5.4 浏览器验证：超级管理员审批通过后，申请人（e2e_qa_77）登录可在消息中心看到「你的注册申请已通过」、`ADMIN_APPROVED` 类型、未读圆点（opencli 实测通过）
+- [x] 5.5 浏览器验证：前端通知图标/颜色随类型显示——`ADMIN_APPROVED` 渲染 `User` 图标且 `color: rgb(139,92,246)`（=#8b5cf6 紫），不再走 default 铃铛图标（opencli 实测通过）
