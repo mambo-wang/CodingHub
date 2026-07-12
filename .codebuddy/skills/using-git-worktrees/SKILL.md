@@ -1,6 +1,8 @@
 ---
 name: using-git-worktrees
 description: 当需要开始与当前工作区隔离的功能开发或执行实现计划之前使用——创建具有智能目录选择和安全验证的隔离 git 工作树
+allowed-tools: 
+disable: true
 ---
 
 # 使用 Git 工作树

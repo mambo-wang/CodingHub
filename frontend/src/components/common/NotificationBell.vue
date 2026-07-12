@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell, Heart, MessageCircle, Star, User, CheckCheck } from '@lucide/vue'
+import { Bell, Heart, MessageCircle, User, CheckCheck } from '@lucide/vue'
 import { ElPopover, ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { notificationService, type NotificationItem } from '@/services/notification'
@@ -122,11 +122,10 @@ const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'LIKE':
       return Heart
-    case 'COMMENT':
+    case 'COMMENT_REPLY':
       return MessageCircle
-    case 'FAVORITE':
-      return Star
-    case 'FOLLOW':
+    case 'ADMIN_APPROVED':
+    case 'ADMIN_REJECTED':
       return User
     default:
       return Bell
@@ -137,11 +136,10 @@ const getNotificationIconColor = (type: string) => {
   switch (type) {
     case 'LIKE':
       return '#ec4899'
-    case 'COMMENT':
+    case 'COMMENT_REPLY':
       return '#06b6d4'
-    case 'FAVORITE':
-      return '#f59e0b'
-    case 'FOLLOW':
+    case 'ADMIN_APPROVED':
+    case 'ADMIN_REJECTED':
       return '#8b5cf6'
     default:
       return 'var(--text-secondary)'

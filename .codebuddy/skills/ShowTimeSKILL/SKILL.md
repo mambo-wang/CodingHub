@@ -1,3 +1,8 @@
+---
+name: ShowTimeSKILL
+disable: true
+---
+
 # ShowTime SKILL
 
 ## 触发条件

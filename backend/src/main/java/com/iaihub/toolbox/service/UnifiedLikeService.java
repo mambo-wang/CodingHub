@@ -19,6 +19,7 @@ import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
@@ -42,6 +43,7 @@ public class UnifiedLikeService {
     private final ForumPostRepository forumPostRepository;
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Toggle like for a target resource. Supports both logged-in and anonymous users.
@@ -89,6 +91,21 @@ public class UnifiedLikeService {
         }
 
         likeCount = updateLikeCount(targetType, targetId, liked);
+
+        // Send LIKE notification to target owner (best-effort, only on like action)
+        if (liked && userId != null) {
+            try {
+                Long ownerId = resolveTargetOwnerId(targetType, targetId);
+                if (ownerId != null && !ownerId.equals(userId)) {
+                    String actorName = userRepository.findById(userId).map(User::getNickname).orElse(null);
+                    notificationService.createLikeNotification(
+                            ownerId, targetType.name(), targetId, userId, actorName);
+                }
+            } catch (Exception e) {
+                log.warn("发送点赞通知失败: targetType={}, targetId={}, actorId={}", targetType, targetId, userId, e);
+            }
+        }
+
         return InteractionResponse.likeToggle(liked, likeCount);
     }
 
@@ -217,6 +234,17 @@ public class UnifiedLikeService {
                 .page(page)
                 .size(size)
                 .build();
+    }
+
+    private Long resolveTargetOwnerId(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case TOOL -> toolRepository.findByIdAndStatusNormal(targetId)
+                    .map(t -> t.getUploader() != null ? t.getUploader().getId() : null).orElse(null);
+            case FORUM_POST -> forumPostRepository.findById(targetId)
+                    .map(ForumPost::getAuthorId).orElse(null);
+            case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
+                    .map(Video::getUploaderId).orElse(null);
+        };
     }
 
     private void validateTargetExists(TargetType targetType, Long targetId) {

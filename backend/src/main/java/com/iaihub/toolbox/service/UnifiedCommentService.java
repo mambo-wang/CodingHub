@@ -15,6 +15,7 @@ import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import com.iaihub.toolbox.util.XssSanitizer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,6 +42,7 @@ public class UnifiedCommentService {
     private final ForumPostRepository forumPostRepository;
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Add a comment (top-level or nested reply). Supports logged-in and anonymous users.
@@ -94,6 +96,20 @@ public class UnifiedCommentService {
 
         // Update commentCount on target
         incrementCommentCount(targetType, targetId);
+
+        // Send COMMENT_REPLY notification to target owner (best-effort)
+        if (userId != null) {
+            try {
+                Long ownerId = resolveTargetOwnerId(targetType, targetId);
+                if (ownerId != null && !ownerId.equals(userId)) {
+                    String actorName = userNickname != null ? userNickname : "用户";
+                    notificationService.createCommentNotification(
+                            ownerId, targetType.name(), targetId, userId, actorName, sanitizedContent);
+                }
+            } catch (Exception e) {
+                log.warn("发送评论通知失败: targetType={}, targetId={}, actorId={}", targetType, targetId, userId, e);
+            }
+        }
 
         return InteractionResponse.builder()
                 .id(comment.getId())
@@ -228,6 +244,18 @@ public class UnifiedCommentService {
                 .commentLikeCount(comment.getLikeCount())
                 .createdAt(comment.getCreatedAt())
                 .build();
+    }
+
+    private Long resolveTargetOwnerId(TargetType targetType, Long targetId) {
+        return switch (targetType) {
+            case TOOL -> toolRepository.findByIdAndStatusNormal(targetId)
+                    .map(t -> t.getUploader() != null ? t.getUploader().getId() : null)
+                    .orElse(null);
+            case FORUM_POST -> forumPostRepository.findById(targetId)
+                    .map(ForumPost::getAuthorId).orElse(null);
+            case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
+                    .map(Video::getUploaderId).orElse(null);
+        };
     }
 
     private void validateTargetExists(TargetType targetType, Long targetId) {

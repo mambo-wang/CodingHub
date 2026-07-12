@@ -1,3 +1,8 @@
+---
+name: show-time-chat
+disable: true
+---
+
 # show-time-chat
 
 ## 触发条件

@@ -1,82 +1,87 @@
 ---
 name: codewiki-wiki-generator
-description: "使用 CodeWiki-CN MCP 工具为代码仓库生成 Wiki 文档。当用户要求生成 Wiki、代码文档、仓库文档或分析代码库结构时使用此技能。需要已配置 CodeWiki-CN MCP 服务器。"
-version: 2.0.0
+description: "使用 CodeWiki-CN MCP 工具为代码仓库生成 Wiki 文档并管理 LLM Wiki 知识库。当用户要求生成 Wiki、代码文档、仓库文档、分析代码库结构时使用；也适用于查询已有 Wiki（query_wiki）、归档设计决策和经验教训（ingest_note）、检查文档一致性（lint_wiki）。需要已配置 CodeWiki-CN MCP 服务器。可选搭配 CodeGraph MCP 获得调用图和影响范围分析增强。"
+version: 4.0.0
 ---
 
 # CodeWiki 文档生成器
 
-你是一位代码文档生成专家。使用 CodeWiki-CN 的 MCP 工具为代码仓库生成全面的 Wiki 文档。所有 8 个工具均**无需配置 LLM**——你提供全部智能推理能力，CodeWiki 提供工具链。
+使用 CodeWiki-CN MCP 工具链为代码仓库生成全面的 Wiki 文档。CodeWiki 提供工具链，你提供全部智能推理能力。
+
+## 使用边界
+
+**做什么：** 代码仓库文档生成、Wiki 知识库管理（查询/归档/一致性检查）。
+
+**不做什么：**
+- 不处理非代码类文档生成（报告、PPT、邮件等）
+- 不用代码搜索替代 Wiki 查询——「为什么」和「踩过什么坑」类问题只用 `query_wiki`
+- 子代理不得自行调用 `analyze_repo` 创建新 session，必须共享主代理的 session_id
+- Mermaid 节点 ID 禁止使用中文、空格、冒号
+
+## 阶段 0：环境检测
+
+1. 检查 MCP 工具列表中是否存在 `analyze_repo`。不存在 → 提示用户安装（详见 [安装指南](references/installation.md)）
+2. 检查是否存在 `codegraph_status`：
+   - 存在 → **增强模式**（标注 `🔗 CodeGraph 增强` 的步骤）
+   - 不存在 → **标准模式**（跳过增强步骤）
+
+两种模式产出的文档结构和质量一致，增强模式在模块聚类精度和调用关系描述上更优。
+
+## schema.yaml 配置
+
+`schema.yaml` 是项目的文档"宪法"，控制命名规范、必需章节、文档维度、Mermaid 要求、行数限制、交叉链接开关、lint 阈值等。
+
+- **全局默认值**：CodeWiki-CN 安装目录下的 `config.yaml` 定义与语言无关的默认配置，首次 `analyze_repo` 时自动读取并生成 `output_dir/schema.yaml`
+- **自定义**：修改 `config.yaml` 改变全局默认值；修改 `output_dir/schema.yaml` 只影响该项目（增量更新时自动合并保留自定义字段，`project` 字段始终自动更新）
 
 ## 核心机制：文件侧通道
 
-CodeWiki MCP 采用**文件侧通道**架构：大体量数据（组件索引、源码、处理顺序）写入磁盘文件，MCP 只返回文件路径和精简摘要。你需要**用自己的文件读取能力**读取 workspace 文件获取完整数据。
+CodeWiki MCP 采用**文件侧通道**架构：大体量数据写入磁盘文件，MCP 只返回路径和精简摘要。你需要用自己的文件读取能力读取 workspace 文件获取完整数据。
 
-Workspace 目录位于 `{repo_path}/.codewiki/sessions/{session_id}/`，包含：
+Workspace 目录：`{repo_path}/.codewiki/sessions/{session_id}/`
 
-- `component_index.json` — 完整组件索引（每项含 id/type/file）
-- `leaf_nodes.json` — 完整叶子节点 ID 列表
-- `languages.json` — 语言统计
-- `summary.json` — 分析摘要
-- `changes.json` — 增量变更信息（可选）
-- `processing_order.json` — 文档生成顺序
-- `sources/` — 组件源码文件（每个组件一个 `.src` 文件）
+完整文件清单和读取时机见 [文件侧通道详解](references/sidechannel.md)。
 
-## 前置条件
+## 五阶段工作流
 
-开始前，确认 CodeWiki MCP 服务器可用。MCP 工具列表中应包含以下 8 个工具：`analyze_repo`、`read_code_components`、`write_doc_file`、`edit_doc_file`、`save_module_tree`、`get_processing_order`、`get_prompt`、`close_session`。
-
-如果工具不可用，请提示用户安装并配置 CodeWiki-CN：
-
-```bash
-git clone https://github.com/mambo-wang/CodeWiki-CN.git
-cd CodeWiki-CN && pip install -e .
-```
-
-然后在 MCP 配置中添加：
-
-```json
-{"mcpServers":{"codewiki":{"command":"python","args":["-m","codewiki.mcp.server"],"cwd":"/path/to/CodeWiki-CN"}}}
-```
-
-## 五阶段工作流程
-
-严格按以下顺序执行。阶段 1 之后的所有工具调用都需要 `analyze_repo` 返回的 `session_id`。
+严格按顺序执行。阶段 1 之后的所有工具调用都需要 `analyze_repo` 返回的 `session_id`。
 
 ### 阶段 1：分析仓库
 
-调用 `analyze_repo`：
-
-```json
-{ "repo_path": "<仓库绝对路径>", "output_dir": "<仓库路径>/repowiki" }
+```
+analyze_repo → {"repo_path": "<仓库绝对路径>", "output_dir": "<仓库路径>/repowiki"}
 ```
 
-返回内容：`session_id`、`workspace_dir`（workspace 根目录路径）、`stats`（组件/叶子节点数量、语言统计）、`files`（各数据文件的路径）、`changes`（增量变更信息）。
+返回 `session_id`、`workspace_dir`、`stats`、`files`、`changes`。**牢记 session_id。**
 
-**接下来必须读取 workspace 文件获取完整数据：**
+接下来：
 
-1. 读取 `{workspace_dir}/component_index.json` — 完整组件列表
-2. 读取 `{workspace_dir}/leaf_nodes.json` — 叶子节点 ID 列表
-3. 根据 `stats` 了解仓库规模，规划聚类策略
+1. `list_components` → `{"session_id": "...", "summary": true}` → 读取返回的 `component_summary.json`
+2. 读取 `{workspace_dir}/summary.json`
+3. 根据 stats 规划聚类策略
+4. **阶段 3 生成文档时**，再调用 `list_components(file_prefix: "模块目录/")` 获取完整组件 ID
 
-**牢记 `session_id`**——后续每一步都需要它。
+🔗 增强模式额外步骤见 [CodeGraph 增强](references/codegraph.md#阶段-1-增强)。
 
 ### 阶段 2：模块聚类
 
-这是最需要理解力的阶段。你需要将组件分组为逻辑模块。
+这是最需要理解力的阶段。
 
-1. **获取聚类规则**：调用 `get_prompt`，参数 `{"prompt_type": "cluster"}`
-2. **阅读源码**：调用 `read_code_components` 传入组件 ID 列表，源码会写入 workspace 的 `sources/` 目录，然后直接读取这些 `.src` 文件理解各组件的功能和关联。每批可传入任意数量的组件 ID（无上限、无截断）
-3. **如需补充读取仓库中任意文件**：直接用文件读取工具读取仓库内的源码文件
-4. **按以下原则分组**：
-   - 功能内聚：关系紧密的组件放入同一模块
-   - 文件归属：同一文件/目录下的组件倾向归入同一模块
-   - 规模控制：通常 3-8 个顶层模块，每个模块 5-30 个组件
-   - 组件 ID 必须原样保留（含 `::` 分隔符）
-5. **保存模块树**：调用 `save_module_tree`：
+1. `get_prompt` → `{"prompt_type": "cluster"}` 获取聚类规则
+2. `read_code_components` 读取组件源码（传入 ID 列表 → 写入 `sources/*.src` → 读取 `.src` 文件）
+3. 如需补充，直接读取仓库内源文件
+4. 分组原则：
+   - **功能内聚**：关系紧密的组件放入同一模块
+   - **文件归属**：同文件/目录的组件倾向同一模块
+   - **规模控制**：3-8 个顶层模块，每模块 5-30 个组件
+   - **ID 保留**：组件 ID 原样保留（含 `::` 分隔符）
+
+🔗 增强模式：用 `codegraph_callers`/`codegraph_callees` 验证聚类，详见 [CodeGraph 增强](references/codegraph.md#阶段-2-验证聚类)。
+
+5. 保存模块树：
 
 ```json
-{
+save_module_tree → {
   "session_id": "<session_id>",
   "module_tree": {
     "模块名": {
@@ -87,95 +92,120 @@ cd CodeWiki-CN && pip install -e .
 }
 ```
 
-返回结果中包含 `processing_order_file` 路径——读取该文件获取叶优先的文档生成顺序。
+读取返回的 `processing_order_file` 获取叶优先的处理顺序。
 
 ### 阶段 3：逐模块生成文档
 
-读取 `processing_order.json` 获取处理顺序，**先处理叶模块**，再处理父模块。
+读取 `processing_order.json`，**先处理叶模块，再处理父模块**。
 
-**每个叶模块**（is_leaf=true）：
+**并发约束（共享 session_id）：**
 
-1. 获取系统提示词：`get_prompt` → `{"prompt_type": "system_leaf", "variables": {"module_name": "<模块名>"}}`
-2. 读取源码：`read_code_components` → 该模块所有组件 ID，然后读取 `sources/` 下的文件
-3. 如需更多上下文，直接用文件读取工具读取仓库内相关源文件
-4. 撰写文档，包含：模块简介与核心功能、架构图（至少 1 个 Mermaid 图表）、各组件职责说明、交叉引用 `[模块名](模块名.md)`
-5. 保存：`write_doc_file` → `{"session_id": "...", "filename": "<模块名>.md", "content": "..."}`
+| 可并发 | 必须串行 |
+|--------|----------|
+| `write_doc_file` / `edit_doc_file` | `list_components`（写同一文件） |
+| `read_code_components` | |
 
-如果 Mermaid 校验失败，修正语法后用 `edit_doc_file`（`command: "str_replace"`）修改。
+**推荐模式**：主代理串行调用 `list_components(file_prefix)` 获取组件 ID → 2-3 个子代理并发执行（读源码 → 撰写 → 写文档）→ 批次完成后取下一批。
 
-**每个父模块**（is_leaf=false）：
+子代理必须使用主代理传入的 `session_id` 和预获取的组件 ID 列表，**不得**自行调用 `analyze_repo` 或 `list_components`。CodeWiki MCP 最多维护 10 个 session，超出后静默驱逐最久未访问的。
 
-1. 直接用文件读取工具读取所有子模块已生成的 `.md` 文件
-2. 获取总览提示词：`get_prompt` → `{"prompt_type": "overview_module", "variables": {"module_name": "<模块名>"}}`
-3. 综合子模块文档，生成父模块总览
-4. 用 `write_doc_file` 保存
+**叶模块**（is_leaf=true）：
+
+1. `get_prompt` → `{"prompt_type": "system_leaf", "variables": {"module_name": "<模块名>"}}`
+2. `read_code_components` → 读取源码
+3. 🔗 增强模式：收集调用关系数据（详见 [CodeGraph 增强](references/codegraph.md#阶段-3-调用关系)）
+4. 撰写文档：模块简介、架构图（≥1 个 Mermaid）、组件职责、交叉引用 `[模块名](模块名.md)`
+5. `write_doc_file` → `{"session_id": "...", "filename": "<模块名>.md", "content": "..."}`
+
+**父模块**（is_leaf=false）：
+
+1. 读取所有子模块已生成的 `.md` 文件
+2. `get_prompt` → `{"prompt_type": "overview_module", "variables": {"module_name": "<模块名>"}}`
+3. 综合子模块文档生成总览 → `write_doc_file` 保存
 
 ### 阶段 4：生成仓库总览
 
-1. 获取提示词：`get_prompt` → `{"prompt_type": "overview_repo", "variables": {"repo_name": "<仓库名>"}}`
-2. 用文件读取工具读取所有已生成的模块文档
-3. 撰写仓库级总览，包含：项目简介、端到端架构图（Mermaid）、各模块文档的引用链接
-4. 保存：`write_doc_file` → `filename: "overview.md"`
+1. `get_prompt` → `{"prompt_type": "overview_repo", "variables": {"repo_name": "<仓库名>"}}`
+2. 读取所有模块文档
+3. 撰写总览：项目简介 + 端到端架构图（Mermaid）+ 各模块引用链接
+4. `write_doc_file` → `filename: "overview.md"`
 
 ### 阶段 5：清理
 
-调用 `close_session` → `{"session_id": "<session_id>"}` 释放内存并清理 workspace 文件。
+```
+close_session → {"session_id": "<session_id>"}
+```
 
-## 增量更新模式
+🔗 增强模式额外保存增量更新元数据，详见 [CodeGraph 增强](references/codegraph.md#增量元数据)。
 
-当仓库已生成过文档（`output_dir` 下存在 `metadata.json` 和 `module_tree.json`），`analyze_repo` 的返回结果会包含 `changes` 字段，完整数据写入 `changes.json` 文件（不再截断 changed_files 列表）。
+## 增量更新
 
-**变更检测策略**：优先使用 `git diff`（对比 commit SHA + 检查工作区未提交变更），非 git 仓库回退到对比文件修改时间。
+当 `output_dir/.meta/` 下存在元数据时，`analyze_repo` 返回 `changes` 字段（完整数据在 `changes.json`）。
 
-**增量更新流程**：
+**标准模式**：
 
-1. 调用 `analyze_repo`，检查返回的 `changes` 字段或读取 `changes.json` 文件
-2. 如果 `no_changes: true`，告知用户文档已是最新，无需操作
-3. 如果 `no_changes: false`，**只更新 `affected_modules` 中列出的模块**：
-   - 用 `read_code_components` 读取变更组件的新源码（写入 workspace 文件后读取）
-   - 用 `edit_doc_file`（`str_replace`）局部修改对应文档，而非整篇重写
-4. 对 `cascade_modules` 中的父模块，读取已更新的子文档后同步刷新总览
-5. 最后更新 `overview.md`
+1. 检查 `changes` → `no_changes: true` 则告知用户文档已是最新
+2. `no_changes: false` → **只更新 `affected_modules`** 中的模块
+3. 用 `edit_doc_file(str_replace)` 局部修改，不整篇重写
+4. 级联刷新 `cascade_modules` 的父模块总览 → 更新 `overview.md`
 
-增量更新的粒度是**模块级**——一个模块内任一组件变更，该模块文档需要更新。
+**增强模式**：用 `codegraph_impact(depth: 2)` 实现符号级精度的变更追踪，详见 [CodeGraph 增量更新](references/codegraph.md#增量更新)。
 
-## 工具速查表
+**回退全量重生成的条件**：元数据文件缺失、>50% 模块受影响、新增/删除了不属于任何现有模块的源文件、用户明确要求。
 
-| 工具 | 用途 | 数据流 |
-|------|------|--------|
-| `analyze_repo` | 分析仓库，构建依赖图 | 写文件到 workspace，返回路径 + 统计 |
-| `read_code_components` | 获取组件源码 | 每个组件写入 `sources/*.src`，返回路径 |
-| `write_doc_file` | 创建 .md 文档（自动 Mermaid 校验） | 直接写文件 |
-| `edit_doc_file` | 编辑文档：`str_replace` / `insert` / `undo` | 直接改文件 |
-| `save_module_tree` | 保存模块聚类结果 | 写 module_tree.json + processing_order.json |
-| `get_processing_order` | 获取叶优先的处理顺序 | 写 processing_order.json，返回路径 |
-| `get_prompt` | 获取提示词模板 | 内联返回（数据量小） |
-| `close_session` | 关闭会话释放资源 | 清理 workspace 文件 |
+## LLM Wiki 知识库
+
+Wiki 生成后，三个知识管理工具**无需活跃 session**，通过 `output_dir` 定位 Wiki 即可使用。完整用法和示例见 [知识库详解](references/knowledge-base.md)。
+
+### 工具选择原则
+
+| 信息类型 | 工具 | 禁止用 |
+|----------|------|--------|
+| 历史踩坑、设计决策、架构约定 | `query_wiki` | grep / 代码搜索 |
+| 函数实现、调用链、文件内容 | grep / 代码搜索 / 直接读文件 | `query_wiki` |
+
+**核心规则**：代码里只有 what，没有 why 和 lesson——后者只存在于 Wiki 笔记中。
+
+### 快速参考
+
+**query_wiki** — 搜索文档和笔记：
+```json
+{"query": "自然语言问题", "include_notes": true, "expand_terms": ["同义词1", "同义词2"]}
+```
+
+**ingest_note** — 归档经验到知识库：
+```json
+{"note_type": "decision|lesson|architecture|bug_fix|general", "title": "标题", "content": "Markdown 内容", "related_modules": ["模块名"]}
+```
+
+**lint_wiki** — 文档-代码一致性检查（5 项：过时引用、断链、未文档化组件、循环依赖、覆盖率）：
+```json
+{}
+```
+
+## Mermaid 规范
+
+- 节点 ID 仅用字母和数字
+- 节点标签用方括号：`A[显示文本]`
+- 子图：`subgraph title ... end`
+- 禁止 `click`、`linkStyle` 等交互语法
+- 校验失败 → 用 `edit_doc_file(str_replace)` 修正
 
 ## 文档质量标准
 
-- **语言**：默认中文撰写（除非用户指定其他语言）
-- **Mermaid 图表**：每个模块至少 1 个架构图，优先使用 `graph TD` 或 `graph LR`
-- **交叉引用**：引用其他模块时使用 `[模块名](模块名.md)` 格式
+- **语言**：默认中文
+- **图表**：每个叶模块 ≥1 个 Mermaid 架构图，优先 `graph TD` 或 `graph LR`
+- **交叉引用**：`[模块名](模块名.md)`
+- **篇幅**：叶模块 200-500 行，父模块 100-300 行，仓库总览 80-200 行
 - **代码示例**：关键函数/类展示签名和简要用法
-- **篇幅**：叶模块文档 200-500 行，父模块总览 100-300 行，仓库总览 80-200 行
 
-## Mermaid 语法规范
+## 参考文档
 
-```mermaid
-graph TD
-    A[ComponentA] --> B[ComponentB]
-    A --> C[ComponentC]
-```
+按需加载以下参考文档，不要在开始时全部读取：
 
-- 节点 ID 仅使用字母和数字（避免中文、空格、冒号）
-- 节点标签用方括号包裹：`A[显示文本]`
-- 子图语法：`subgraph title ... end`
-- 禁止使用 `click`、`linkStyle` 等交互语法
-
-## 错误处理
-
-- **Mermaid 校验失败**：工具会返回校验错误信息，修正语法后用 `edit_doc_file` + `str_replace` 重试
-- **会话过期**（2 小时超时）：重新调用 `analyze_repo` 创建新会话
-- **大型仓库**：`analyze_repo` 可能需要约 30 秒，可通过 `include_patterns`/`exclude_patterns` 缩小分析范围。不再有组件数量或源码长度的截断限制
-- **组件 ID 格式**：始终使用 `component_index.json` 中的原始 ID（如 `src/main.py::MyClass`），保留 `::` 分隔符
+- [安装指南](references/installation.md) — CodeWiki-CN 和 CodeGraph 的安装与 MCP 配置
+- [文件侧通道详解](references/sidechannel.md) — workspace 文件清单与读取时机
+- [CodeGraph 增强](references/codegraph.md) — 增强模式的安装、配置和详细步骤
+- [知识库详解](references/knowledge-base.md) — LLM Wiki 工具的完整参数和示例
+- [工具速查表](references/tools.md) — 全部 MCP 工具的参数速查
+- [错误处理](references/errors.md) — 常见错误场景与解决方案

@@ -1,7 +1,9 @@
 ---
 name: codegraph-wiki-generator
-description: "Generate Wiki documentation for code repositories using CodeGraph MCP tools. Use this skill when the user asks to generate a Wiki, code documentation, repository documentation, or analyze codebase structure using CodeGraph. Requires CodeGraph MCP server to be configured with all tools enabled."
+description: Generate Wiki documentation for code repositories using CodeGraph MCP tools. Use this skill when the user asks to generate a Wiki, code documentation, repository documentation, or analyze codebase structure using CodeGraph. Requires CodeGraph MCP server to be configured with all tools enabled.
 version: 1.1.0
+allowed-tools: 
+disable: true
 ---
 
 # CodeGraph Wiki Generator

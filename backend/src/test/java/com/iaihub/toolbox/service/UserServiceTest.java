@@ -11,7 +11,9 @@ import com.iaihub.toolbox.exception.UnauthorizedException;
 import com.iaihub.toolbox.model.AccountStatus;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
+import com.iaihub.toolbox.model.notification.NotificationType;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import com.iaihub.toolbox.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,9 @@ class UserServiceTest {
     @Mock
     private UploadConfig uploadConfig;
 
+    @Mock
+    private NotificationService notificationService;
+
     private UserService userService;
 
     private User activeUser;
@@ -54,7 +59,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder, jwtUtil, uploadConfig);
+        userService = new UserService(userRepository, passwordEncoder, jwtUtil, uploadConfig, notificationService);
 
         activeUser = User.builder()
                 .id(1L)
@@ -343,6 +348,28 @@ class UserServiceTest {
         verify(userRepository).save(captor.capture());
         assertEquals(AccountStatus.REJECTED, captor.getValue().getStatus());
     }
+
+    @Test
+    void approveUser_sendsApprovedNotification() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(pendingUser));
+        lenient().when(userRepository.save(any(User.class))).thenReturn(pendingUser);
+
+        userService.approveUser(2L);
+
+        verify(notificationService).createAdminNotification(eq(2L), eq(NotificationType.ADMIN_APPROVED));
+    }
+
+    @Test
+    void rejectUser_sendsRejectedNotification() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(pendingUser));
+        lenient().when(userRepository.save(any(User.class))).thenReturn(pendingUser);
+
+        userService.rejectUser(2L);
+
+        verify(notificationService).createAdminNotification(eq(2L), eq(NotificationType.ADMIN_REJECTED));
+    }
+
+
 
     @Test
     void updateUserStatus_banUser() {

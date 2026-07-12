@@ -15,6 +15,7 @@ import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +51,9 @@ class UnifiedCommentServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private UnifiedCommentService commentService;
 
     private Tool testTool;
@@ -58,7 +62,7 @@ class UnifiedCommentServiceTest {
     @BeforeEach
     void setUp() {
         commentService = new UnifiedCommentService(
-                commentRepository, toolRepository, forumPostRepository, videoRepository, userRepository);
+                commentRepository, toolRepository, forumPostRepository, videoRepository, userRepository, notificationService);
 
         testTool = Tool.builder()
                 .id(1L).name("Test Tool")
@@ -423,5 +427,53 @@ class UnifiedCommentServiceTest {
 
         assertNotNull(response);
         assertEquals(1, video.getCommentCount());
+    }
+
+    // ==================== addComment: notification ====================
+
+    @Test
+    void addComment_notifiesTargetOwner_whenCommentingOthersResource() {
+        User owner = User.builder().id(200L).username("owner").nickname("Owner").build();
+        Tool ownedTool = Tool.builder()
+                .id(1L).name("Owned Tool").commentCount(2).status(Tool.Status.NORMAL)
+                .uploader(owner)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(ownedTool));
+        when(userRepository.findById(100L)).thenReturn(Optional.of(testUser));
+        when(commentRepository.save(any(UnifiedComment.class))).thenAnswer(inv -> {
+            UnifiedComment c = inv.getArgument(0);
+            c.setId(30L);
+            c.setCreatedAt(LocalDateTime.now());
+            return c;
+        });
+
+        commentService.addComment("TOOL", 1L, 100L, null, "Nice tool!", null);
+
+        verify(notificationService).createCommentNotification(
+                eq(200L), eq("TOOL"), eq(1L), eq(100L), eq("Test User"), any());
+    }
+
+    @Test
+    void addComment_doesNotNotify_whenCommentingOwnResource() {
+        User owner = User.builder().id(100L).username("owner").nickname("Test User").build();
+        Tool ownedTool = Tool.builder()
+                .id(1L).name("Own Tool").commentCount(2).status(Tool.Status.NORMAL)
+                .uploader(owner)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(ownedTool));
+        when(userRepository.findById(100L)).thenReturn(Optional.of(testUser));
+        when(commentRepository.save(any(UnifiedComment.class))).thenAnswer(inv -> {
+            UnifiedComment c = inv.getArgument(0);
+            c.setId(31L);
+            c.setCreatedAt(LocalDateTime.now());
+            return c;
+        });
+
+        commentService.addComment("TOOL", 1L, 100L, null, "My own tool!", null);
+
+        verify(notificationService, never()).createCommentNotification(
+                any(), any(), any(), any(), any(), any());
     }
 }

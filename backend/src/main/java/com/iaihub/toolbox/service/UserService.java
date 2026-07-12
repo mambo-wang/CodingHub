@@ -10,7 +10,9 @@ import com.iaihub.toolbox.exception.UserNotFoundException;
 import com.iaihub.toolbox.model.AccountStatus;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
+import com.iaihub.toolbox.model.notification.NotificationType;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import com.iaihub.toolbox.util.AvatarUtil;
 import com.iaihub.toolbox.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UploadConfig uploadConfig;
+    private final NotificationService notificationService;
 
     @Transactional
     public LoginResponse register(RegisterRequest request) {
@@ -361,6 +364,12 @@ public class UserService {
         user.setStatus(AccountStatus.ACTIVE);
         userRepository.save(user);
 
+        try {
+            notificationService.createAdminNotification(userId, NotificationType.ADMIN_APPROVED);
+        } catch (Exception e) {
+            log.warn("发送审批通过通知失败: userId={}", userId, e);
+        }
+
         return ApprovalResponse.builder()
                 .userId(user.getId())
                 .status(AccountStatus.ACTIVE.name())
@@ -379,6 +388,12 @@ public class UserService {
 
         user.setStatus(AccountStatus.REJECTED);
         userRepository.save(user);
+
+        try {
+            notificationService.createAdminNotification(userId, NotificationType.ADMIN_REJECTED);
+        } catch (Exception e) {
+            log.warn("发送审批拒绝通知失败: userId={}", userId, e);
+        }
 
         return ApprovalResponse.builder()
                 .userId(user.getId())

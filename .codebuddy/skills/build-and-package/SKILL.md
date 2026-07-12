@@ -1,6 +1,8 @@
 ---
 name: build-and-package
 description: Use when building and packaging the project for deployment, including frontend build, backend JAR, and creating distribution zip
+allowed-tools: 
+disable: true
 ---
 
 # 项目打包与部署

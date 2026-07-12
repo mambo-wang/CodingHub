@@ -17,6 +17,7 @@ import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
+import com.iaihub.toolbox.service.notification.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +55,9 @@ class UnifiedLikeServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private UnifiedLikeService likeService;
 
     private Tool testTool;
@@ -63,7 +67,7 @@ class UnifiedLikeServiceTest {
 
     @BeforeEach
     void setUp() {
-        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository, userRepository);
+        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository, userRepository, notificationService);
 
         testTool = Tool.builder()
                 .id(1L)
@@ -319,5 +323,43 @@ class UnifiedLikeServiceTest {
     void getMyLikes_anonymousUser_throws401() {
         assertThrows(BusinessException.class, () ->
                 likeService.getMyLikes("TOOL", null, 0, 10));
+    }
+
+    // ==================== toggleLike: notification ====================
+
+    @Test
+    void toggleLike_notifiesTargetOwner_whenLikingOthersResource() {
+        User owner = User.builder().id(200L).username("owner").nickname("Owner").build();
+        Tool ownedTool = Tool.builder()
+                .id(1L).name("Owned Tool").likeCount(5).status(Tool.Status.NORMAL)
+                .uploader(owner)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(ownedTool));
+        when(userRepository.findById(100L)).thenReturn(Optional.of(testUser));
+        when(likeRepository.findByTargetTypeAndTargetIdAndUserId("TOOL", 1L, 100L))
+                .thenReturn(Optional.empty());
+        when(likeRepository.save(any(UnifiedLike.class))).thenAnswer(inv -> {
+            UnifiedLike like = inv.getArgument(0);
+            like.setId(1L);
+            return like;
+        });
+
+        likeService.toggleLike("TOOL", 1L, 100L, null);
+
+        verify(notificationService).createLikeNotification(
+                eq(200L), eq("TOOL"), eq(1L), eq(100L), eq("Test User"));
+    }
+
+    @Test
+    void toggleLike_doesNotNotify_whenUnliking() {
+        UnifiedLike existing = UnifiedLike.builder().id(1L).targetType("TOOL").targetId(1L).userId(100L).build();
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(testTool));
+        when(likeRepository.findByTargetTypeAndTargetIdAndUserId("TOOL", 1L, 100L))
+                .thenReturn(Optional.of(existing));
+
+        likeService.toggleLike("TOOL", 1L, 100L, null);
+
+        verify(notificationService, never()).createLikeNotification(any(), any(), any(), any(), any());
     }
 }
