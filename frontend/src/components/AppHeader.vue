@@ -68,18 +68,7 @@ const goToUserList = () => router.push('/admin/users')
     <div class="header-content">
       <!-- Logo -->
       <div class="logo" @click="goHome">
-        <div class="logo-icon">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path d="M14 2L4 8v12l10 6 10-6V8L14 2z" stroke="url(#logoGrad)" stroke-width="2" fill="none"/>
-            <path d="M14 10l-4 2.4v4.8L14 20l4-2.4v-4.8L14 10z" fill="url(#logoGrad)"/>
-            <defs>
-              <linearGradient id="logoGrad" x1="4" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#8b5cf6"/>
-                <stop offset="1" stop-color="#06b6d4"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
+        <img src="/logo.png" alt="CodingHub" class="logo-img" />
         <span class="logo-text">Coding<span class="logo-accent">Hub</span></span>
       </div>
 
@@ -185,8 +174,12 @@ const goToUserList = () => router.push('/admin/users')
   transform: scale(1.02);
 }
 
-.logo-icon {
-  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+.logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
 }
 
 .logo-text {
