@@ -57,6 +57,21 @@ public class UnifiedInteractionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/likes/mine")
+    public ResponseEntity<ApiResponse<PageResponse<?>>> getMyLikes(
+            @RequestParam String targetType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        User user = getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "点赞查询需要登录"));
+        }
+
+        PageResponse<?> response = likeService.getMyLikes(targetType, user.getId(), page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     // ==================== COMMENTS ====================
 
     @PostMapping("/comments")
@@ -84,6 +99,20 @@ public class UnifiedInteractionController {
 
         PageResponse<InteractionResponse> response = commentService.getComments(
                 targetType, targetId, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/comments/mine")
+    public ResponseEntity<ApiResponse<PageResponse<?>>> getMyComments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        User user = getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(401).body(ApiResponse.error(401, "评论查询需要登录"));
+        }
+
+        PageResponse<?> response = commentService.getMyComments(user.getId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

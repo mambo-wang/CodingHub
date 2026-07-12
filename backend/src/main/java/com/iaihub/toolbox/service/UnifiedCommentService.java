@@ -16,6 +16,10 @@ import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
 import com.iaihub.toolbox.util.XssSanitizer;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,6 +28,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -132,6 +137,56 @@ public class UnifiedCommentService {
     }
 
     /**
+     * Get the current user's comments, newest first, with the target title resolved
+     * by type. Comments whose target has been soft-deleted are skipped.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<MyCommentDTO> getMyComments(Long userId, int page, int size) {
+        if (userId == null) {
+            throw new BusinessException(401, "评论查询需要登录");
+        }
+
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100));
+        Page<UnifiedComment> commentPage = commentRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, pageable);
+
+        List<MyCommentDTO> items = new ArrayList<>();
+        for (UnifiedComment comment : commentPage.getContent()) {
+            String targetTitle = resolveTargetTitle(comment.getTargetType(), comment.getTargetId());
+            if (targetTitle == null) {
+                continue; // target soft-deleted, skip to avoid dead link
+            }
+            items.add(MyCommentDTO.builder()
+                    .id(comment.getId())
+                    .targetType(comment.getTargetType())
+                    .targetId(comment.getTargetId())
+                    .targetTitle(targetTitle)
+                    .content(comment.getContent())
+                    .createdAt(comment.getCreatedAt())
+                    .build());
+        }
+
+        return PageResponse.<MyCommentDTO>builder()
+                .content(items)
+                .totalElements(commentPage.getTotalElements())
+                .totalPages(commentPage.getTotalPages())
+                .page(page)
+                .size(size)
+                .build();
+    }
+
+    private String resolveTargetTitle(String targetTypeStr, Long targetId) {
+        return switch (TargetType.fromString(targetTypeStr)) {
+            case TOOL -> toolRepository.findByIdAndStatusNormal(targetId).map(Tool::getName).orElse(null);
+            case FORUM_POST -> forumPostRepository.findById(targetId)
+                    .filter(p -> p.getStatus() == ForumPostStatus.NORMAL)
+                    .map(ForumPost::getTitle).orElse(null);
+            case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
+                    .map(Video::getTitle).orElse(null);
+        };
+    }
+
+    /**
      * Delete a comment with owner/admin permission check.
      */
     @Transactional
@@ -234,5 +289,21 @@ public class UnifiedCommentService {
                 }
             }
         }
+    }
+
+    /**
+     * DTO for a user's comment in "my comments" list.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MyCommentDTO {
+        private Long id;
+        private String targetType;
+        private Long targetId;
+        private String targetTitle;
+        private String content;
+        private java.time.LocalDateTime createdAt;
     }
 }

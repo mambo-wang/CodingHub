@@ -4,6 +4,7 @@
 
 /* Dark Theme (Default) */
 :root {
+  color-scheme: dark;
   /* Core colors */
   --bg-primary: #09090b;
   --bg-secondary: #0f0f12;
@@ -67,6 +68,7 @@
 
 /* Light Theme */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
   --bg-card: rgba(255, 255, 255, 0.9);
@@ -392,4 +394,26 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== 原生下拉菜单（select / option）双主题适配 =====
+   组件内的 select 外观写在 scoped 样式中，但原生 <option> 不会继承
+   Vue 的 scoped 标记，因此必须在此处用全局规则着色，否则下拉展开后的
+   选项列表会回退为浏览器默认白底，在深色主题下白字白底看不清。 */
+select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+select optgroup {
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+/* 亮色主题：恢复浅色背景 + 深色文字 */
+[data-theme="light"] select option {
+  background-color: #ffffff;
+  color: var(--text-primary);
+}
+[data-theme="light"] select optgroup {
+  background-color: #f1f5f9;
+  color: var(--text-secondary);
 }

@@ -12,5 +12,8 @@ public interface UnifiedCommentRepository extends JpaRepository<UnifiedComment, 
     Page<UnifiedComment> findByTargetTypeAndTargetIdOrderByCreatedAtAsc(
             String targetType, Long targetId, Pageable pageable);
 
+    // "My comments" query: by user, newest first
+    Page<UnifiedComment> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
     long countByTargetTypeAndTargetId(String targetType, Long targetId);
 }

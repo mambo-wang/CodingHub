@@ -1,6 +1,8 @@
 package com.iaihub.toolbox.repository;
 
 import com.iaihub.toolbox.model.UnifiedLike;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +17,9 @@ public interface UnifiedLikeRepository extends JpaRepository<UnifiedLike, Long> 
     Optional<UnifiedLike> findByTargetTypeAndTargetIdAndUserId(String targetType, Long targetId, Long userId);
 
     void deleteByTargetTypeAndTargetIdAndUserId(String targetType, Long targetId, Long userId);
+
+    // "My likes" query: by user + target type, newest first
+    Page<UnifiedLike> findByUserIdAndTargetTypeOrderByCreatedAtDesc(Long userId, String targetType, Pageable pageable);
 
     // Anonymous user queries
     boolean existsByTargetTypeAndTargetIdAndIpHash(String targetType, Long targetId, String ipHash);

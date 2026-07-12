@@ -1,16 +1,20 @@
 package com.iaihub.toolbox.service;
 
 import com.iaihub.toolbox.dto.InteractionResponse;
+import com.iaihub.toolbox.dto.PageResponse;
+import com.iaihub.toolbox.dto.ToolSummaryDTO;
 import com.iaihub.toolbox.exception.BusinessException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.UnifiedLike;
+import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UnifiedLikeRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
+import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
 import com.iaihub.toolbox.repository.video.VideoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,12 +22,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,15 +51,19 @@ class UnifiedLikeServiceTest {
     @Mock
     private VideoRepository videoRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     private UnifiedLikeService likeService;
 
     private Tool testTool;
     private ForumPost testPost;
     private Video testVideo;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
-        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository);
+        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository, userRepository);
 
         testTool = Tool.builder()
                 .id(1L)
@@ -63,6 +77,7 @@ class UnifiedLikeServiceTest {
         testPost = ForumPost.builder()
                 .id(10L)
                 .title("Test Post")
+                .authorId(100L)
                 .likeCount(8)
                 .status(ForumPostStatus.NORMAL)
                 .createdAt(LocalDateTime.now())
@@ -72,10 +87,17 @@ class UnifiedLikeServiceTest {
         testVideo = Video.builder()
                 .id(20L)
                 .title("Test Video")
+                .uploaderId(100L)
                 .likeCount(3)
                 .status(VideoStatus.NORMAL)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .build();
+
+        testUser = User.builder()
+                .id(100L).username("testuser").nickname("Test User")
+                .avatarUrl("https://example.com/avatar.jpg")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
     }
 
@@ -236,5 +258,66 @@ class UnifiedLikeServiceTest {
         InteractionResponse response = likeService.getLikeStatus("TOOL", 1L, null, null);
 
         assertFalse(response.getLiked());
+    }
+
+    // ==================== getMyLikes ====================
+
+    @Test
+    void getMyLikes_loggedInUser_tool_returnsResource() {
+        UnifiedLike like = UnifiedLike.builder()
+                .id(1L).targetType("TOOL").targetId(1L).userId(100L)
+                .createdAt(LocalDateTime.now()).build();
+        Page<UnifiedLike> page = new PageImpl<>(List.of(like));
+        when(likeRepository.findByUserIdAndTargetTypeOrderByCreatedAtDesc(eq(100L), eq("TOOL"), any(Pageable.class)))
+                .thenReturn(page);
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(testTool));
+
+        PageResponse<?> response = likeService.getMyLikes("TOOL", 100L, 0, 10);
+
+        assertNotNull(response);
+        assertEquals(1, response.getContent().size());
+        assertTrue(response.getContent().get(0) instanceof ToolSummaryDTO);
+        assertEquals("Test Tool", ((ToolSummaryDTO) response.getContent().get(0)).getName());
+    }
+
+    @Test
+    void getMyLikes_forumPost_resolvesAuthorNickname() {
+        UnifiedLike like = UnifiedLike.builder()
+                .id(2L).targetType("FORUM_POST").targetId(10L).userId(100L)
+                .createdAt(LocalDateTime.now()).build();
+        Page<UnifiedLike> page = new PageImpl<>(List.of(like));
+        when(likeRepository.findByUserIdAndTargetTypeOrderByCreatedAtDesc(eq(100L), eq("FORUM_POST"), any(Pageable.class)))
+                .thenReturn(page);
+        when(forumPostRepository.findById(10L)).thenReturn(Optional.of(testPost));
+        when(userRepository.findById(100L)).thenReturn(Optional.of(testUser));
+
+        PageResponse<?> response = likeService.getMyLikes("FORUM_POST", 100L, 0, 10);
+
+        assertEquals(1, response.getContent().size());
+        Object item = response.getContent().get(0);
+        assertEquals(10L, ((UnifiedLikeService.ForumPostSummaryDTO) item).getId());
+        assertEquals("Test Post", ((UnifiedLikeService.ForumPostSummaryDTO) item).getTitle());
+        assertEquals("Test User", ((UnifiedLikeService.ForumPostSummaryDTO) item).getAuthorNickname());
+    }
+
+    @Test
+    void getMyLikes_skipsDeletedTarget() {
+        UnifiedLike like = UnifiedLike.builder()
+                .id(3L).targetType("TOOL").targetId(999L).userId(100L)
+                .createdAt(LocalDateTime.now()).build();
+        Page<UnifiedLike> page = new PageImpl<>(List.of(like));
+        when(likeRepository.findByUserIdAndTargetTypeOrderByCreatedAtDesc(eq(100L), eq("TOOL"), any(Pageable.class)))
+                .thenReturn(page);
+        when(toolRepository.findByIdAndStatusNormal(999L)).thenReturn(Optional.empty());
+
+        PageResponse<?> response = likeService.getMyLikes("TOOL", 100L, 0, 10);
+
+        assertEquals(0, response.getContent().size());
+    }
+
+    @Test
+    void getMyLikes_anonymousUser_throws401() {
+        assertThrows(BusinessException.class, () ->
+                likeService.getMyLikes("TOOL", null, 0, 10));
     }
 }

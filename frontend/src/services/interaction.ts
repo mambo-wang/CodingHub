@@ -42,6 +42,15 @@ export interface InteractionPageResponse<T> {
   size: number
 }
 
+export interface MyCommentItem {
+  id: number
+  targetType: TargetType
+  targetId: number
+  targetTitle: string
+  content: string
+  createdAt: string
+}
+
 export const interactionApi = {
   // Likes
   toggleLike: (targetType: TargetType, targetId: number): Promise<LikeResponse> => {
@@ -78,6 +87,16 @@ export const interactionApi = {
 
   getMyFavorites: (targetType: TargetType, page: number = 0, size: number = 10): Promise<InteractionPageResponse<any>> => {
     return api.get('/interactions/favorites', { params: { targetType, page, size } })
+      .then(res => res.data.data)
+  },
+
+  getMyLikes: (targetType: TargetType, page: number = 0, size: number = 10): Promise<InteractionPageResponse<any>> => {
+    return api.get('/interactions/likes/mine', { params: { targetType, page, size } })
+      .then(res => res.data.data)
+  },
+
+  getMyComments: (page: number = 0, size: number = 10): Promise<InteractionPageResponse<MyCommentItem>> => {
+    return api.get('/interactions/comments/mine', { params: { page, size } })
       .then(res => res.data.data)
   },
 

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
-import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2, Save, Lock, User as UserIcon } from '@lucide/vue'
+import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2, Save, Lock, User as UserIcon, MessageCircle, Bookmark, Heart, Inbox, Wrench, FileText, Video, ChevronRight } from '@lucide/vue'
+import { interactionApi } from '@/services/interaction'
+import type { TargetType, MyCommentItem } from '@/services/interaction'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -55,6 +57,7 @@ onMounted(async () => {
   } catch (e) {
     // 静默失败，使用现有数据
   }
+  loadComments(false)
 })
 
 // === Avatar management ===
@@ -196,6 +199,125 @@ const handleChangePassword = async () => {
   } finally {
     passwordSaving.value = false
   }
+}
+
+// === My interactions (comments / favorites / likes) ===
+type InteractionTab = 'comments' | 'favorites' | 'likes'
+const activeTab = ref<InteractionTab>('comments')
+const activeType = ref<TargetType>('TOOL')
+
+const TAB_LABELS: Record<InteractionTab, string> = {
+  comments: '我的评论',
+  favorites: '我的收藏',
+  likes: '我的点赞'
+}
+const TYPE_LABELS: Record<TargetType, string> = {
+  TOOL: '工具',
+  FORUM_POST: '帖子',
+  VIDEO: '微课'
+}
+const TYPE_ICONS: Record<TargetType, Component> = {
+  TOOL: Wrench,
+  FORUM_POST: FileText,
+  VIDEO: Video
+}
+
+const comments = ref<MyCommentItem[]>([])
+const favorites = ref<any[]>([])
+const likes = ref<any[]>([])
+
+const commentsLoading = ref(false)
+const favoritesLoading = ref(false)
+const likesLoading = ref(false)
+const commentsError = ref('')
+const favoritesError = ref('')
+const likesError = ref('')
+
+const commentsExpanded = ref(false)
+const favoritesExpanded = ref(false)
+const likesExpanded = ref(false)
+
+function itemTitle(item: any): string {
+  return item?.name || item?.title || '未命名'
+}
+
+async function loadComments(all = false) {
+  commentsLoading.value = true
+  commentsError.value = ''
+  try {
+    const res = await interactionApi.getMyComments(0, all ? 50 : 10)
+    comments.value = res.content || []
+  } catch (e: any) {
+    commentsError.value = e?.response?.data?.message || '评论加载失败'
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+async function loadFavorites(all = false) {
+  favoritesLoading.value = true
+  favoritesError.value = ''
+  try {
+    const res = await interactionApi.getMyFavorites(activeType.value, 0, all ? 50 : 10)
+    favorites.value = res.content || []
+  } catch (e: any) {
+    favoritesError.value = e?.response?.data?.message || '收藏加载失败'
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+async function loadLikes(all = false) {
+  likesLoading.value = true
+  likesError.value = ''
+  try {
+    const res = await interactionApi.getMyLikes(activeType.value, 0, all ? 50 : 10)
+    likes.value = res.content || []
+  } catch (e: any) {
+    likesError.value = e?.response?.data?.message || '点赞加载失败'
+  } finally {
+    likesLoading.value = false
+  }
+}
+
+function toggleCommentsAll() {
+  commentsExpanded.value = !commentsExpanded.value
+  loadComments(commentsExpanded.value)
+}
+function toggleFavoritesAll() {
+  favoritesExpanded.value = !favoritesExpanded.value
+  loadFavorites(favoritesExpanded.value)
+}
+function toggleLikesAll() {
+  likesExpanded.value = !likesExpanded.value
+  loadLikes(likesExpanded.value)
+}
+
+function openDetail(targetType: TargetType, targetId: number) {
+  const routes: Record<TargetType, string> = {
+    TOOL: `/tools/${targetId}`,
+    FORUM_POST: `/forum/posts/${targetId}`,
+    VIDEO: `/videos/${targetId}`
+  }
+  router.push(routes[targetType])
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'comments') loadComments(commentsExpanded.value)
+  else if (tab === 'favorites') loadFavorites(favoritesExpanded.value)
+  else if (tab === 'likes') loadLikes(likesExpanded.value)
+})
+watch(activeType, () => {
+  if (activeTab.value === 'favorites') loadFavorites(favoritesExpanded.value)
+  else if (activeTab.value === 'likes') loadLikes(likesExpanded.value)
+})
+
+function formatDate(value?: string): string {
+  if (!value) return ''
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 const goBack = () => router.back()
@@ -454,6 +576,135 @@ const goBack = () => router.back()
               <span>密码已更新</span>
             </div>
           </Transition>
+        </div>
+
+        <!-- 我的互动 -->
+        <div class="interactions-card glass-card">
+          <h3 class="section-title">我的互动</h3>
+
+          <div class="int-tabs" role="tablist" aria-label="我的互动类型">
+            <button
+              v-for="(label, key) in TAB_LABELS"
+              :key="key"
+              class="int-tab"
+              :class="{ active: activeTab === key }"
+              role="tab"
+              :aria-selected="activeTab === key"
+              @click="activeTab = key"
+            >
+              <component
+                :is="key === 'comments' ? MessageCircle : key === 'favorites' ? Bookmark : Heart"
+                :size="16"
+                aria-hidden="true"
+              />
+              <span>{{ label }}</span>
+            </button>
+          </div>
+
+          <div v-if="activeTab !== 'comments'" class="int-chips" role="group" aria-label="目标类型">
+            <button
+              v-for="(label, t) in TYPE_LABELS"
+              :key="t"
+              class="int-chip"
+              :class="{ active: activeType === t }"
+              role="tab"
+              :aria-selected="activeType === t"
+              @click="activeType = t"
+            >{{ label }}</button>
+          </div>
+
+          <!-- 评论面板 -->
+          <div v-show="activeTab === 'comments'" role="tabpanel" aria-label="我的评论">
+            <div v-if="commentsLoading" class="int-skeletons" aria-hidden="true">
+              <div v-for="n in 3" :key="n" class="int-skeleton"></div>
+            </div>
+            <div v-else-if="commentsError" class="alert alert-error" role="alert">{{ commentsError }}</div>
+            <div v-else-if="comments.length === 0" class="int-empty">
+              <Inbox :size="40" aria-hidden="true" />
+              <span>还没有评论</span>
+            </div>
+            <template v-else>
+              <button
+                v-for="c in comments"
+                :key="c.id"
+                class="int-item"
+                :aria-label="`查看 ${c.targetTitle} 的评论`"
+                @click="openDetail(c.targetType, c.targetId)"
+              >
+                <span class="int-item-type"><component :is="TYPE_ICONS[c.targetType]" :size="14" aria-hidden="true" />{{ TYPE_LABELS[c.targetType] }}</span>
+                <span class="int-item-body">
+                  <span class="int-item-title">{{ c.targetTitle }}</span>
+                  <span class="int-item-meta">我的评论：{{ c.content }} · {{ formatDate(c.createdAt) }}</span>
+                </span>
+                <ChevronRight class="int-item-arrow" :size="18" aria-hidden="true" />
+              </button>
+              <button class="int-more" @click="toggleCommentsAll">
+                {{ commentsExpanded ? '收起' : '查看全部评论' }}
+              </button>
+            </template>
+          </div>
+
+          <!-- 收藏面板 -->
+          <div v-show="activeTab === 'favorites'" role="tabpanel" aria-label="我的收藏">
+            <div v-if="favoritesLoading" class="int-skeletons" aria-hidden="true">
+              <div v-for="n in 3" :key="n" class="int-skeleton"></div>
+            </div>
+            <div v-else-if="favoritesError" class="alert alert-error" role="alert">{{ favoritesError }}</div>
+            <div v-else-if="favorites.length === 0" class="int-empty">
+              <Inbox :size="40" aria-hidden="true" />
+              <span>还没有收藏</span>
+            </div>
+            <template v-else>
+              <button
+                v-for="item in favorites"
+                :key="item.id"
+                class="int-item"
+                :aria-label="`查看 ${itemTitle(item)}`"
+                @click="openDetail(activeType, item.id)"
+              >
+                <span class="int-item-type"><component :is="TYPE_ICONS[activeType]" :size="14" aria-hidden="true" />{{ TYPE_LABELS[activeType] }}</span>
+                <span class="int-item-body">
+                  <span class="int-item-title">{{ itemTitle(item) }}</span>
+                  <span class="int-item-meta">{{ TYPE_LABELS[activeType] }} · 收藏</span>
+                </span>
+                <ChevronRight class="int-item-arrow" :size="18" aria-hidden="true" />
+              </button>
+              <button class="int-more" @click="toggleFavoritesAll">
+                {{ favoritesExpanded ? '收起' : '查看全部收藏' }}
+              </button>
+            </template>
+          </div>
+
+          <!-- 点赞面板 -->
+          <div v-show="activeTab === 'likes'" role="tabpanel" aria-label="我的点赞">
+            <div v-if="likesLoading" class="int-skeletons" aria-hidden="true">
+              <div v-for="n in 3" :key="n" class="int-skeleton"></div>
+            </div>
+            <div v-else-if="likesError" class="alert alert-error" role="alert">{{ likesError }}</div>
+            <div v-else-if="likes.length === 0" class="int-empty">
+              <Inbox :size="40" aria-hidden="true" />
+              <span>还没有点赞</span>
+            </div>
+            <template v-else>
+              <button
+                v-for="item in likes"
+                :key="item.id"
+                class="int-item"
+                :aria-label="`查看 ${itemTitle(item)}`"
+                @click="openDetail(activeType, item.id)"
+              >
+                <span class="int-item-type"><component :is="TYPE_ICONS[activeType]" :size="14" aria-hidden="true" />{{ TYPE_LABELS[activeType] }}</span>
+                <span class="int-item-body">
+                  <span class="int-item-title">{{ itemTitle(item) }}</span>
+                  <span class="int-item-meta">{{ TYPE_LABELS[activeType] }} · 点赞</span>
+                </span>
+                <ChevronRight class="int-item-arrow" :size="18" aria-hidden="true" />
+              </button>
+              <button class="int-more" @click="toggleLikesAll">
+                {{ likesExpanded ? '收起' : '查看全部点赞' }}
+              </button>
+            </template>
+          </div>
         </div>
         </div>
       </div>
@@ -859,6 +1110,183 @@ const goBack = () => router.back()
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
+/* My interactions */
+.interactions-card {
+  padding: 28px 32px;
+  border-radius: 16px;
+}
+.int-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 20px;
+  flex-wrap: wrap;
+}
+.int-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+.int-tab:hover {
+  border-color: var(--accent-1);
+  color: var(--text-primary);
+}
+.int-tab:focus-visible {
+  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline-offset: 2px;
+}
+.int-tab.active {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: #fff;
+  border-color: transparent;
+}
+.int-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.int-chip {
+  padding: 6px 14px;
+  cursor: pointer;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.int-chip:hover {
+  border-color: var(--accent-1);
+  color: var(--text-primary);
+}
+.int-chip:focus-visible {
+  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline-offset: 2px;
+}
+.int-chip.active {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: #fff;
+  border-color: transparent;
+}
+.int-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  color: var(--text-primary);
+  text-align: left;
+  font-family: var(--font-display);
+  transition: all 0.2s ease;
+}
+.int-item:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+.int-item:focus-visible {
+  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline-offset: 2px;
+}
+.int-item-type {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--accent-1);
+  font-size: 12px;
+}
+.int-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.int-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.int-item-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.int-item-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.int-empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.int-skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.int-skeleton {
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.12) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: int-shimmer 1.5s infinite;
+}
+@keyframes int-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.int-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+.int-more:hover {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+}
+.int-more:focus-visible {
+  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline-offset: 2px;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .back-btn,
@@ -869,6 +1297,12 @@ const goBack = () => router.back()
     transform: none;
   }
   .spin {
+    animation: none;
+  }
+  .int-item:hover {
+    transform: none;
+  }
+  .int-skeleton {
     animation: none;
   }
 }

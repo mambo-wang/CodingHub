@@ -246,6 +246,90 @@ class UnifiedCommentServiceTest {
         assertEquals("Test User", response.getContent().get(0).getUserNickname());
     }
 
+    // ==================== getMyComments ====================
+
+    @Test
+    void getMyComments_loggedInUser_tool_resolvesTargetTitle() {
+        UnifiedComment c = UnifiedComment.builder()
+                .id(1L).targetType("TOOL").targetId(1L).userId(100L)
+                .content("Great tool!").createdAt(LocalDateTime.now()).build();
+        Page<UnifiedComment> page = new PageImpl<>(List.of(c));
+        when(commentRepository.findByUserIdOrderByCreatedAtDesc(eq(100L), any(Pageable.class)))
+                .thenReturn(page);
+        when(toolRepository.findByIdAndStatusNormal(1L)).thenReturn(Optional.of(testTool));
+
+        PageResponse<UnifiedCommentService.MyCommentDTO> response = commentService.getMyComments(100L, 0, 10);
+
+        assertNotNull(response);
+        assertEquals(1, response.getContent().size());
+        UnifiedCommentService.MyCommentDTO dto = response.getContent().get(0);
+        assertEquals("TOOL", dto.getTargetType());
+        assertEquals(1L, dto.getTargetId());
+        assertEquals("Test Tool", dto.getTargetTitle());
+        assertEquals("Great tool!", dto.getContent());
+    }
+
+    @Test
+    void getMyComments_forumPost_resolvesTargetTitle() {
+        ForumPost post = ForumPost.builder()
+                .id(10L).title("My Post").commentCount(0)
+                .status(ForumPostStatus.NORMAL)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+        UnifiedComment c = UnifiedComment.builder()
+                .id(2L).targetType("FORUM_POST").targetId(10L).userId(100L)
+                .content("Nice post!").createdAt(LocalDateTime.now()).build();
+        Page<UnifiedComment> page = new PageImpl<>(List.of(c));
+        when(commentRepository.findByUserIdOrderByCreatedAtDesc(eq(100L), any(Pageable.class)))
+                .thenReturn(page);
+        when(forumPostRepository.findById(10L)).thenReturn(Optional.of(post));
+
+        PageResponse<UnifiedCommentService.MyCommentDTO> response = commentService.getMyComments(100L, 0, 10);
+
+        assertEquals(1, response.getContent().size());
+        assertEquals("My Post", response.getContent().get(0).getTargetTitle());
+    }
+
+    @Test
+    void getMyComments_video_resolvesTargetTitle() {
+        Video video = Video.builder()
+                .id(20L).title("My Video").commentCount(0)
+                .status(VideoStatus.NORMAL)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+        UnifiedComment c = UnifiedComment.builder()
+                .id(3L).targetType("VIDEO").targetId(20L).userId(100L)
+                .content("Great video!").createdAt(LocalDateTime.now()).build();
+        Page<UnifiedComment> page = new PageImpl<>(List.of(c));
+        when(commentRepository.findByUserIdOrderByCreatedAtDesc(eq(100L), any(Pageable.class)))
+                .thenReturn(page);
+        when(videoRepository.findByIdAndStatus(20L, VideoStatus.NORMAL)).thenReturn(Optional.of(video));
+
+        PageResponse<UnifiedCommentService.MyCommentDTO> response = commentService.getMyComments(100L, 0, 10);
+
+        assertEquals(1, response.getContent().size());
+        assertEquals("My Video", response.getContent().get(0).getTargetTitle());
+    }
+
+    @Test
+    void getMyComments_skipsDeletedTarget() {
+        UnifiedComment c = UnifiedComment.builder()
+                .id(4L).targetType("TOOL").targetId(999L).userId(100L)
+                .content("Orphan comment").createdAt(LocalDateTime.now()).build();
+        Page<UnifiedComment> page = new PageImpl<>(List.of(c));
+        when(commentRepository.findByUserIdOrderByCreatedAtDesc(eq(100L), any(Pageable.class)))
+                .thenReturn(page);
+        when(toolRepository.findByIdAndStatusNormal(999L)).thenReturn(Optional.empty());
+
+        PageResponse<UnifiedCommentService.MyCommentDTO> response = commentService.getMyComments(100L, 0, 10);
+
+        assertEquals(0, response.getContent().size());
+    }
+
+    @Test
+    void getMyComments_anonymousUser_throws401() {
+        assertThrows(BusinessException.class, () ->
+                commentService.getMyComments(null, 0, 10));
+    }
+
     // ==================== deleteComment ====================
 
     @Test
