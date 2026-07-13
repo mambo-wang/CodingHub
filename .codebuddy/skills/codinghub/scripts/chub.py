@@ -65,7 +65,9 @@ def load_config() -> dict:
         sys.stderr.write(f"[chub] config not found: {CONFIG_PATH}\n")
         sys.exit(3)
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+        cfg = json.load(f)
+    cfg["baseUrl"] = f"{cfg['host']}:{cfg['backendPort']}"
+    return cfg
 
 
 def save_config(cfg: dict) -> None:

@@ -1,6 +1,6 @@
 ---
 name: codinghub
-description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP（SSE 模式）优先，HTTP 直连自动降级（Node.js CJS 或 Python CLI 封装，跨平台）。
+description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP 优先，HTTP 直连自动降级（Python 或 Node.js CJS CLI 封装，跨平台）。
 version: 3.3.0
 ---
 
@@ -14,25 +14,36 @@ version: 3.3.0
 Agent 收到 CodingHub 任务
   ↓
 调用 qw_mcp_list(keyword="codinghub") 检测
-  ├── 存在 mcp__codinghub__h3_coding_hub_* 工具 → 走 MCP 通道
+  ├── 存在 mcp__codinghub__h3_coding_hub_* 工具
+  │   ├── 解析 MCP Server URL，提取 host（协议+主机名）
+  │   ├── 写入 config.json 的 host 字段
+  │   └── → 走 MCP 通道
   └── 不存在 → 走 HTTP 直连通道（按"运行时选择"小节挑选 chub 脚本）
 ```
 
 > **检测规则**：MCP 工具名取决于 MCP Server 的 name 配置（`codinghub`、`aihub` 都可能）。只要工具名中包含 `h3_coding_hub_` 前缀即视为 MCP 可用。
 >
+> **host 同步**：MCP 存在时需将 config.json 的 `host` 字段更新为 MCP Server 的地址（协议+主机名，不含端口），确保 `config.json` 中的地址与实际 MCP 服务一致，后续网站访问和 HTTP 直连均可正确工作。
+>
+> **获取 MCP Server URL 的方法**：
+> 1. 调用 `qw_mcp_list` 返回的 MCP 工具信息中通常包含 `serverUrl` 或所属服务的地址
+> 2. 或在 MCP 客户端配置文件（如 `~/.codebuddy/mcp.json`）中查找 `codinghub` 服务的 `url` 字段（如 `http://192.168.1.100:8082/mcp`）
+> 3. 从 URL 中提取 `协议+主机名`（去掉端口和路径部分）作为 `host` 值写入 config.json
+>
 > **不要**直接声称"CodingHub 不可用"。MCP 不可用时必须自动降级到 HTTP 直连。
 
 ## 网站访问
 
-当用户说"打开 codinghub 网站"、"访问 codinghub"时，用浏览器打开 `config.json` 中的 `baseUrl`（去掉端口部分时加上默认 80/443，保留实际配置的端口）。
-
+当用户说"打开 codinghub 网站"、"访问 codinghub"时，用浏览器打开 `{config.host}:{config.frontendPort}`
 ## 配置文件
 
 **位置**: 与 SKILL.md 同目录的 `config.json`（使用相对路径读取，不要硬编码绝对路径）。
 
 ```json
 {
-  "baseUrl": "http://localhost:8082",
+  "host": "http://localhost",
+  "backendPort": "8082",
+  "frontendPort": "5173",
   "username": "wangbao",
   "password": "123456",
   "accessToken": "",
@@ -43,11 +54,15 @@ Agent 收到 CodingHub 任务
 
 | 字段 | 说明 |
 |------|------|
-| `baseUrl` | CodingHub 后端地址（HTTP 直连和 MCP 入口都基于它） |
+| `host` | 后端主机地址（不含端口，如 `http://localhost`） |
+| `backendPort` | 后端端口（如 `8082`） |
+| `frontendPort` | 前端端口（如 `5173`） |
 | `username` / `password` | 账号凭据（MCP 参数级认证 / HTTP 登录都使用） |
 | `accessToken` | JWT access token（15 分钟过期，chub CLI 自动写入） |
 | `refreshToken` | JWT refresh token（7 天过期，chub CLI 自动写入） |
 | `accessTokenExpiry` | access token 过期时间 ISO 8601（chub CLI 自动管理） |
+
+> **`baseUrl` 说明**：下文中 curl 示例里的 `{baseUrl}` 占位符均表示 `{host}:{backendPort}` 拼接结果，例如 `http://localhost:8082`。Agent 使用时从 `config.json` 的 `host` + `backendPort` 动态拼接，不要硬编码。
 
 > **不要**把 config.json 提交到 git。如果 skill 位于项目仓库内，确保 `.gitignore` 包含 `.codebuddy/skills/codinghub/config.json`。
 
@@ -70,39 +85,39 @@ HTTP 直连通道的所有 API 调用**必须**通过 `chub` CLI 执行，不要
 
 | 实现 | 路径 | 运行时 | 优先级 |
 |------|------|--------|--------|
-| **Node.js CJS** | `scripts/chub.cjs` | Node.js ≥ 18.13，零第三方依赖 | **首选** |
-| Python | `scripts/chub.py` | Python 3.8+ 与 `requests` 库 | 降级 |
+| **Python** | `scripts/chub.py` | Python 3.8+ 与 `requests` 库 | **首选** |
+| Node.js CJS | `scripts/chub.cjs` | Node.js ≥ 18.13，零第三方依赖 | 降级 |
 
 **选择规则**：
 
-1. 执行 `node -v`，若版本号 ≥ 18.13 → 使用 Node 版本
-2. 否则执行 `python --version`（Windows/macOS 通用）→ 使用 Python 版本
-3. 两者都没有 → 报错并引导安装 Node 18+
+1. 执行 `python --version`（Windows/macOS 通用）→ 使用 Python 版本
+2. 否则执行 `node -v`，若版本号 ≥ 18.13 → 使用 Node 版本
+3. 两者都没有 → 报错并引导安装 Python 3.8+
 
 **会话初始化（Bash 一次设置 `$CHUB`，后续所有命令统一使用）**：
 
 ```bash
-# Node 优先，Python 兜底；把结果缓存到 CHUB 变量
+# Python 优先，Node.js 兜底；把结果缓存到 CHUB 变量
 SKILL_DIR="/d/repos/CodingHub/.codebuddy/skills/codinghub"
-if command -v node >/dev/null 2>&1; then
-  CHUB="node ${SKILL_DIR}/scripts/chub.cjs"
-elif command -v python >/dev/null 2>&1; then
+if command -v python >/dev/null 2>&1 && python -c "import requests" 2>/dev/null; then
   CHUB="python ${SKILL_DIR}/scripts/chub.py"
+elif command -v node >/dev/null 2>&1; then
+  CHUB="node ${SKILL_DIR}/scripts/chub.cjs"
 else
-  echo "[chub] 需要 Node.js ≥ 18.13 或 Python 3.8+" >&2; false
+  echo "[chub] 需要 Python 3.8+ (requests) 或 Node.js ≥ 18.13" >&2; false
 fi
 
 # 健康检查，确认通道可用
 $CHUB ping
 ```
 
-> **Windows Git Bash / macOS Bash** 通用上述脚本。若用 PowerShell，把 `CHUB` 设成 `node <path>\scripts\chub.cjs`（PowerShell 字符串数组或完整命令字符串）。
+> **Windows Git Bash / macOS Bash** 通用上述脚本。若用 PowerShell，把 `CHUB` 设成 `python <path>\scripts\chub.py`（或若 Python 不可用时用 `node <path>\scripts\chub.cjs`）。
 >
 > **老路径兼容**：根目录的 `chub.py` 是转发器（`subprocess.run` 到 `scripts/chub.py`，Windows 友好），老 shell alias 仍可工作；新项目直接用 `scripts/chub.py`。
 >
-> **Node 版本不够**：若 `node -v` 报 v16 / v17，请升级到 18.13+；不要直接尝试运行 `chub.cjs`（`AbortSignal.timeout` 和 `File` 全局对象在旧版本不存在）。
+> **Python 的 requests 依赖**：`chub.py` 需要 `requests` 库，首次调用前用 `pip install requests` 安装。初始化脚本中的 `python -c "import requests"` 会自动检测。
 >
-> **Python 降级时的 requests 依赖**：首次调用若报 `ImportError: requests`，用 `pip install requests` 修复。Node 版本**不需要** `npm install`。
+> **Node 降级时的版本要求**：若 Python 不可用回退到 Node.js，需 Node.js ≥ 18.13（`AbortSignal.timeout` 和 `File` 全局对象在旧版本不存在）。Node 版本**不需要** `npm install`。
 
 ### Token 自动管理（三级降级，内置）
 
@@ -166,7 +181,7 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 
 ## 核心工作流
 
-> **按需加载**: 工具参数与 HTTP API 完整对照表详见 `references/tool-reference.md`；知识库完整操作详见 `references/kb-management.md`。执行具体操作前先 Read 对应文件。
+> **按需加载**: 工具参数与 HTTP API 完整对照表详见 `references/tool-reference.md`；知识库完整操作详见 `references/kb-management.md`；常见陷阱速查详见 `gotchas.md`；任务完成后按 `assets/template.md` 格式输出结果报告。执行具体操作前先 Read 对应文件。
 
 ### 1. 搜索与安装工具
 
@@ -278,21 +293,6 @@ $CHUB kb-search <kbId> "查询语句" --topK 5
 $CHUB kb-update <kbId> --name "新名字"
 $CHUB kb-delete <kbId>
 ```
-
-## 常见陷阱
-
-1. **文件上传走 REST，不走 MCP**: `h3_coding_hub_tool_file_upload` 只返回端点信息，实际用 curl 或 `$CHUB tool-file-upload`
-2. **下载链接是相对路径**: `h3_coding_hub_tool_download` 返回的 URL 需拼接 `{baseUrl}` 前缀；直接用 `$CHUB tool-download` 更省事
-3. **MCP 端点无需 JWT**: `/sse` 和 `/mcp/**` 已 permitAll，不要传 Authorization
-4. **chub CLI 自动处理 token**: Agent 不要手动登录或拼接 `Authorization` 头
-5. **文件上传端点无需 JWT**: `POST /api/v1/tools/{toolId}/files` 已 permitAll
-6. **modify 的 partial update**: 只更新传入的字段；version 不传自动递增
-7. **skill 多文件才需压缩**: 只有 SKILL.md 时直接上传原文
-8. **知识库文档上传也走 REST**: `h3_coding_hub_kb_upload_document` 只返回端点信息
-9. **上传后异步处理**: 文档经历 UPLOADING → CONVERTING → CHUNKING → EMBEDDING → READY，必须等全部 READY 后再检索
-10. **带图片文档必须预处理**: 含截图/图表的 PDF/Word/PPT 需先用 markitdown-mcp 预处理
-11. **kb_search 默认值**: `rerank=true`, `expandContext=1`，一般无需修改
-12. **Python 降级时的 requests 依赖**: 首次使用前若 `ImportError`，用 `pip install requests` 安装；Node 版本无需额外安装
 
 ## 验证
 

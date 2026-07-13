@@ -71,7 +71,9 @@ const exitErr = (msg, code = 2) => {
 const loadConfig = async () => {
   try {
     const text = await fsp.readFile(CONFIG_PATH, 'utf8');
-    return JSON.parse(text);
+    const cfg = JSON.parse(text);
+    cfg.baseUrl = `${cfg.host}:${cfg.backendPort}`;
+    return cfg;
   } catch (err) {
     exitErr(`config not found or invalid: ${CONFIG_PATH}`, 3);
   }

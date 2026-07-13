@@ -1,5 +1,7 @@
 {
-  "baseUrl": "http://localhost:8082",
+  "host": "http://10.142.150.38",
+  "backendPort": "8082",
+  "frontendPort": "",
   "username": "",
   "password": "",
   "accessToken": "",
