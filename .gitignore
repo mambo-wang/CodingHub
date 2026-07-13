@@ -67,3 +67,6 @@ coverage/
 # Codegraph daemon runtime artifacts
 .codegraph/daemon.pid
 .codegraph/socket
+
+# CodingHub Skill credentials
+.codebuddy/skills/codinghub/config.json

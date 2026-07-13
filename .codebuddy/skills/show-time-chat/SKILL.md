@@ -1,6 +1,6 @@
 ---
 name: show-time-chat
-disable: true
+disable: no
 ---
 
 # show-time-chat

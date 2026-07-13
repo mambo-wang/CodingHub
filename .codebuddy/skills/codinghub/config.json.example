@@ -4,7 +4,7 @@
   "frontendPort": "",
   "username": "",
   "password": "",
-  "accessToken": "",
-  "refreshToken": "",
-  "accessTokenExpiry": ""
+  "accessToken": "", //不用填
+  "refreshToken": "", //不用填
+  "accessTokenExpiry": "" //不用填
 }

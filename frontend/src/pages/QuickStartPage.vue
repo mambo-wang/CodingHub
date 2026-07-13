@@ -2,28 +2,18 @@
 import { ref, computed } from 'vue'
 
 const copySuccess = ref(false)
-const copiedTip = ref<number | null>(null)
+const copiedUnifiedTip = ref<number | null>(null)
 const copySkillSuccess = ref(false)
-const copiedSkillTip = ref<number | null>(null)
 
-const skillPrompt = '使用CodingHub MCP获取codinghub SKILL的完整信息和文件列表，安装到当前项目的.codebuddy/skills目录下，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。'
+const skillPrompt = '使用CodingHub MCP安装CodingHub Skill到当前项目目录'
 
-const skillTips = [
-  '使用CodingHub SKILL查询工具列表',
-  '使用CodingHub SKILL把xxx这个skill安装到当前项目',
-  '使用CodingHub SKILL排查有无需要升级的SKILL',
-  '使用CodingHub SKILL把当前项目的xxx skill发布到CodingHub',
-  '使用CodingHub SKILL把xxx skill更新到CodingHub',
-  '使用CodingHub SKILL把XXX.md发布到论坛'
-]
-
-const tips = [
-  '使用CodingHub MCP查询工具列表',
-  '使用CodingHub MCP获取using-superpowers-wb SKILL的完整信息和文件列表，安装到当前项目，并把工具版本号写到skill文件夹的tools.version文件中。如果本地已有该skill，则覆盖安装。',
-  '使用CodingHub MCP根据现有skill的tools.version版本号排查有无需要升级的工具',
-  '使用CodingHub MCP把XXX这个skill发布到CodingHub工具广场，工具描述中添加工具介绍和安装方法，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。',
-  '使用CodingHub MCP把xxx这个skill更新到CodingHub工具广场，工具描述不变，版本号改为2.0.0，把原有文件删除(保留readme)，把skill相关文件压缩为zip包上传到工具附件，保留skill目录结构。',
-  '使用CodingHub MCP新建帖子，把XXX.md发布到论坛'
+const unifiedTips = [
+  '查询CodingHub的工具列表',
+  '获取CodingHub中xxx工具并安装到当前项目目录',
+  '比较本地skill版本号和CodingHub上skill的版本号，查看有无需要更新的skill',
+  '把当前项目的xxx工具发布到CodingHub工具广场',
+  '把当前项目的xxx工具更新到CodingHub工具广场',
+  '把xxx内容发布到CodingHub论坛，标题是yyy'
 ]
 
 async function copyToClipboard(text: string) {
@@ -42,21 +32,11 @@ async function copyToClipboard(text: string) {
   }
 }
 
-const copyTip = async (index: number) => {
+const copyUnifiedTip = async (index: number) => {
   try {
-    await copyToClipboard(tips[index])
-    copiedTip.value = index
-    setTimeout(() => { copiedTip.value = null }, 2000)
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-const copySkillTip = async (index: number) => {
-  try {
-    await copyToClipboard(skillTips[index])
-    copiedSkillTip.value = index
-    setTimeout(() => { copiedSkillTip.value = null }, 2000)
+    await copyToClipboard(unifiedTips[index])
+    copiedUnifiedTip.value = index
+    setTimeout(() => { copiedUnifiedTip.value = null }, 2000)
   } catch (e) {
     console.error(e)
   }
@@ -125,7 +105,7 @@ const mcpTools = [
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">快速开始</h1>
-        <p class="page-subtitle">快速集成 MCP 服务到你的 AI 助手</p>
+        <p class="page-subtitle">通过 MCP 或 SKILL 两种方式，将 CodingHub 能力接入你的 AI 助手</p>
       </div>
 
       <!-- MCP Config Section -->
@@ -186,63 +166,33 @@ const mcpTools = [
         </div>
       </section>
 
-      <!-- SKILL Tips Section -->
+      <!-- Tips Section (Unified) -->
       <section class="section glass-card">
         <div class="section-header">
           <div class="section-badge">03</div>
-          <h2 class="section-title">提示词示例（使用 CodingHub SKILL）</h2>
+          <h2 class="section-title">提示词示例</h2>
         </div>
 
-        <p class="section-desc">安装 CodingHub SKILL 后，可直接使用以下自然语言指令：</p>
+        <p class="section-desc">无论使用 MCP 还是 SKILL，以下自然语言提示词都可以直接发给 AI 助手使用。AI 会自动根据已配置的 MCP 或已安装的 SKILL 选择合适的方式执行。</p>
 
         <div class="tips-grid">
-          <div v-for="(tip, index) in skillTips" :key="'s' + index" class="tip-card">
+          <div v-for="(tip, index) in unifiedTips" :key="index" class="tip-card">
             <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬'][index] }}</div>
             <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流'][index] }}</h3>
             <p>{{ tip }}</p>
             <button
               class="tip-copy-btn"
-              :class="{ success: copiedSkillTip === index }"
-              @click.stop="copySkillTip(index)"
+              :class="{ success: copiedUnifiedTip === index }"
+              @click.stop="copyUnifiedTip(index)"
             >
-              <svg v-if="copiedSkillTip !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg v-if="copiedUnifiedTip !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2"/>
                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
               </svg>
               <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 6L9 17l-5-5"/>
               </svg>
-              {{ copiedSkillTip === index ? '已复制' : '复制' }}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- MCP Tips Section -->
-      <section class="section glass-card">
-        <div class="section-header">
-          <div class="section-badge">04</div>
-          <h2 class="section-title">提示词示例（使用 CodingHub MCP）</h2>
-        </div>
-
-        <div class="tips-grid">
-          <div v-for="(tip, index) in tips" :key="index" class="tip-card">
-            <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬'][index] }}</div>
-            <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流'][index] }}</h3>
-            <p>{{ tip }}</p>
-            <button
-              class="tip-copy-btn"
-              :class="{ success: copiedTip === index }"
-              @click.stop="copyTip(index)"
-            >
-              <svg v-if="copiedTip !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2"/>
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-              </svg>
-              <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 6L9 17l-5-5"/>
-              </svg>
-              {{ copiedTip === index ? '已复制' : '复制' }}
+              {{ copiedUnifiedTip === index ? '已复制' : '复制' }}
             </button>
           </div>
         </div>
@@ -251,7 +201,7 @@ const mcpTools = [
       <!-- MCP Tools Section -->
       <section class="section glass-card">
         <div class="section-header">
-          <div class="section-badge">05</div>
+          <div class="section-badge">04</div>
           <h2 class="section-title">MCP 工具列表</h2>
         </div>
 

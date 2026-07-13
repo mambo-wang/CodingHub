@@ -184,6 +184,7 @@ public class McpPromptProvider {
                        curl -X POST http://<host>:8082/api/v1/tools/{toolId}/files \\
                          -F "files=@/path/to/file.zip"
                     9. 上传完成后调用 h3_coding_hub_tool_get 确认发布成功
+                    10. 将版本号写入本地 skill 目录的 tools.version 文件
                     """.formatted(skillName, skillName, skillName);
 
             return userPromptResult("发布 " + skillName + " 到 CodingHub", text);
@@ -232,6 +233,7 @@ public class McpPromptProvider {
                     6. 调用 h3_coding_hub_tool_file_upload 获取上传端点
                     7. 用 curl 上传新版本文件
                     8. 调用 h3_coding_hub_tool_get 确认更新成功
+                    9. 将新版本号写入本地 skill 目录的 tools.version 文件
                     """.formatted(skillName, versionDesc, skillName, version);
 
             return userPromptResult("更新 " + skillName + " 到 " + versionDesc, text);

@@ -143,7 +143,7 @@ public class McpSdkServerConfig {
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
-        registerTool(server, "h3_coding_hub_tool_search", "搜索工具列表，可按关键词和分类搜索",
+        registerTool(server, "h3_coding_hub_tool_search", "搜索工具列表，可按关键词和分类搜索。返回结果中包含 version 字段，可用于与本地工具目录下的 tools.version 做版本对比",
                 """
                 {
                     "type":"object",
@@ -162,7 +162,7 @@ public class McpSdkServerConfig {
                     return toolHandler.handleToolSearch(query, category, limit);
                 });
 
-        registerTool(server, "h3_coding_hub_tool_get", "获取工具详情，包括完整的 markdown 文档",
+        registerTool(server, "h3_coding_hub_tool_get", "获取工具详情，包括完整的 markdown 文档。返回的 data.version 可作为版本号写入本地工具目录下的 tools.version 文件",
                 """
                 {
                     "type":"object",
@@ -224,7 +224,7 @@ public class McpSdkServerConfig {
                     return toolHandler.handlePostGet(postId);
                 });
 
-        registerTool(server, "h3_coding_hub_tool_download", "获取工具文件的下载链接，用于下载附件; 本方法返回的是相对路径，需要用mcp地址（http://mcp_server_ip:8082）拼接为完整的下载链接",
+        registerTool(server, "h3_coding_hub_tool_download", "获取工具文件的下载链接；返回相对路径需拼接完整URL。安装工具时请将版本号写入工具目录的 tools.version 文件",
                 """
                 {
                     "type":"object",
@@ -244,6 +244,7 @@ public class McpSdkServerConfig {
         registerTool(server, "h3_coding_hub_tool_create", """
                 创建新工具。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
                 创建成功后返回工具ID，可使用该ID通过 h3_coding_hub_tool_file_upload 工具上传文件到该工具下。
+                版本号应取自本地tools.version文件中的版本号，如果是skill工具则为SKILL.MD frontmatter中版本号，如果都没有则默认为1.0.0
                 """,
                 """
                 {
@@ -315,7 +316,7 @@ public class McpSdkServerConfig {
                 使用步骤：
                 1. 先调用 h3_coding_hub_tool_create 创建工具，获取 toolId
                 2. 使用本工具获取上传接口信息
-                3. 客户端通过 HTTP Multipart POST 上传文件到对应 toolId
+                3. 客户端通过 HTTP Multipart POST 上传文件到对应 toolId，多文件建议先压缩再上传
                 """,
                 """
                 {

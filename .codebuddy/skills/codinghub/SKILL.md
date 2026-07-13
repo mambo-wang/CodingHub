@@ -2,6 +2,8 @@
 name: codinghub
 description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP 优先，HTTP 直连自动降级（Python 或 Node.js CJS CLI 封装，跨平台）。
 version: 3.3.0
+allowed-tools: 
+disable: false
 ---
 
 # CodingHub 操作指南
