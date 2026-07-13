@@ -1,0 +1,11 @@
+# 包含凭据/本地配置，不提交到仓库
+config.json
+__pycache__/
+*.pyc
+
+# chub CLI 原子写 config.json 时的临时文件
+config.json.tmp
+
+# Node.js 调试产物
+*.log
+node_modules/

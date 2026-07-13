@@ -1,95 +1,246 @@
 ---
 name: codinghub
-description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或通过 MCP 与 CodingHub 平台交互时使用。前提是已配置 CodingHub MCP 连接（SSE 模式）。
-version: 3.0.0
+description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP（SSE 模式）优先，HTTP 直连自动降级（Node.js CJS 或 Python CLI 封装，跨平台）。
+version: 3.3.0
 ---
 
 # CodingHub 操作指南
 
-通过 MCP（Model Context Protocol）与 CodingHub 工具广场交互，支持工具发现、安装、发布、更新、论坛交流，以及知识库管理。
+通过 **MCP（优先）** 或 **HTTP 直连（降级）** 与 CodingHub 工具广场交互，支持工具发现、安装、发布、更新、论坛交流，以及知识库管理。
+
+## 通道选择（第一步，必读）
+
+```
+Agent 收到 CodingHub 任务
+  ↓
+调用 qw_mcp_list(keyword="codinghub") 检测
+  ├── 存在 mcp__codinghub__h3_coding_hub_* 工具 → 走 MCP 通道
+  └── 不存在 → 走 HTTP 直连通道（按"运行时选择"小节挑选 chub 脚本）
+```
+
+> **检测规则**：MCP 工具名取决于 MCP Server 的 name 配置（`codinghub`、`aihub` 都可能）。只要工具名中包含 `h3_coding_hub_` 前缀即视为 MCP 可用。
+>
+> **不要**直接声称"CodingHub 不可用"。MCP 不可用时必须自动降级到 HTTP 直连。
 
 ## 网站访问
 
-当用户说"打开codinghub网站"、"访问codinghub"时，打开浏览器访问 CodingHub 网站，地址为 CodingHub MCP Server 的 IP 地址。
+当用户说"打开 codinghub 网站"、"访问 codinghub"时，用浏览器打开 `config.json` 中的 `baseUrl`（去掉端口部分时加上默认 80/443，保留实际配置的端口）。
 
-## MCP 连接与工具概览
+## 配置文件
 
-- 协议: SSE（Server-Sent Events），入口: `http://<host>:8082/sse`（host 即 MCP Server 地址）
-- 工具总数: 17 个（9 只读 + 8 写入）
-- MCP 端点无需 JWT（SecurityConfig 已 permitAll），连接时不要传 Authorization header
-
-> **按需加载**: 工具参数速查详见 `references/tool-reference.md`，在需要调用具体工具前读取该文件获取完整参数列表。
-
-## 凭据获取策略
-
-写入操作需要 `username` + `password`（MCP over SSE 无 session/JWT，采用参数级认证）。凭据存储在 skill 目录下的 `config.json` 中：
+**位置**: 与 SKILL.md 同目录的 `config.json`（使用相对路径读取，不要硬编码绝对路径）。
 
 ```json
 {
-  "username": "your_username",
-  "password": "your_password"
+  "baseUrl": "http://localhost:8082",
+  "username": "wangbao",
+  "password": "123456",
+  "accessToken": "",
+  "refreshToken": "",
+  "accessTokenExpiry": ""
 }
 ```
 
-获取凭据时按以下优先级执行：
+| 字段 | 说明 |
+|------|------|
+| `baseUrl` | CodingHub 后端地址（HTTP 直连和 MCP 入口都基于它） |
+| `username` / `password` | 账号凭据（MCP 参数级认证 / HTTP 登录都使用） |
+| `accessToken` | JWT access token（15 分钟过期，chub CLI 自动写入） |
+| `refreshToken` | JWT refresh token（7 天过期，chub CLI 自动写入） |
+| `accessTokenExpiry` | access token 过期时间 ISO 8601（chub CLI 自动管理） |
 
-1. **读 config.json**: 读取 skill 目录下的 `config.json`，如果 `username` 和 `password` 非空则直接使用，不打扰用户
-2. **记忆兜底**: 如果 config.json 为空或不存在，用 `memory_search` 搜索 "CodingHub" 凭据作为备选
-3. **询问用户**: 以上均无凭据时向用户询问 username 和 password
-4. **回写 config.json**: 获取凭据后（无论来自记忆还是用户输入），立即写入 `config.json`，确保下次直接读取。同时用 `memory` 工具（target="user"）保存一份到长期记忆作为跨项目备份
+> **不要**把 config.json 提交到 git。如果 skill 位于项目仓库内，确保 `.gitignore` 包含 `.codebuddy/skills/codinghub/config.json`。
+
+## 凭据获取策略
+
+需要凭据时按以下优先级执行：
+
+1. **读 config.json**: 直接使用其中的 username/password，不打扰用户
+2. **记忆兜底**: config.json 为空时，用 `memory_search` 搜索 "CodingHub" 凭据
+3. **询问用户**: 以上都没有时询问用户
+4. **回写**: 获取到凭据后写入 config.json，并用 `memory` 工具（target="user"）备份到长期记忆
+
+## HTTP 通道：chub CLI（跨平台）
+
+HTTP 直连通道的所有 API 调用**必须**通过 `chub` CLI 执行，不要手写 curl、Python 或 fetch。
+
+### 运行时选择（每次会话首次调用前必做）
+
+`chub` 有两个功能等价的实现，**子命令、参数、退出码、JSON 输出格式完全一致**：
+
+| 实现 | 路径 | 运行时 | 优先级 |
+|------|------|--------|--------|
+| **Node.js CJS** | `scripts/chub.cjs` | Node.js ≥ 18.13，零第三方依赖 | **首选** |
+| Python | `scripts/chub.py` | Python 3.8+ 与 `requests` 库 | 降级 |
+
+**选择规则**：
+
+1. 执行 `node -v`，若版本号 ≥ 18.13 → 使用 Node 版本
+2. 否则执行 `python --version`（Windows/macOS 通用）→ 使用 Python 版本
+3. 两者都没有 → 报错并引导安装 Node 18+
+
+**会话初始化（Bash 一次设置 `$CHUB`，后续所有命令统一使用）**：
+
+```bash
+# Node 优先，Python 兜底；把结果缓存到 CHUB 变量
+SKILL_DIR="/d/repos/CodingHub/.codebuddy/skills/codinghub"
+if command -v node >/dev/null 2>&1; then
+  CHUB="node ${SKILL_DIR}/scripts/chub.cjs"
+elif command -v python >/dev/null 2>&1; then
+  CHUB="python ${SKILL_DIR}/scripts/chub.py"
+else
+  echo "[chub] 需要 Node.js ≥ 18.13 或 Python 3.8+" >&2; false
+fi
+
+# 健康检查，确认通道可用
+$CHUB ping
+```
+
+> **Windows Git Bash / macOS Bash** 通用上述脚本。若用 PowerShell，把 `CHUB` 设成 `node <path>\scripts\chub.cjs`（PowerShell 字符串数组或完整命令字符串）。
+>
+> **老路径兼容**：根目录的 `chub.py` 是转发器（`subprocess.run` 到 `scripts/chub.py`，Windows 友好），老 shell alias 仍可工作；新项目直接用 `scripts/chub.py`。
+>
+> **Node 版本不够**：若 `node -v` 报 v16 / v17，请升级到 18.13+；不要直接尝试运行 `chub.cjs`（`AbortSignal.timeout` 和 `File` 全局对象在旧版本不存在）。
+>
+> **Python 降级时的 requests 依赖**：首次调用若报 `ImportError: requests`，用 `pip install requests` 修复。Node 版本**不需要** `npm install`。
+
+### Token 自动管理（三级降级，内置）
+
+`chub` CLI 在每次需要认证的请求前自动执行三级降级，Agent **无需**手动处理 token：
+
+1. **access 未过期 → 直接复用**（读 config.json 的 `accessToken` + `accessTokenExpiry`，预留 60s 缓冲）
+2. **access 过期、refresh 存在 → 调 `/api/v1/auth/refresh`** 拿新 access（refreshToken 不变）
+3. **refresh 也失效（401 或为空）→ 调 `/api/v1/auth/login`** 重新登录，写回 access + refresh
+
+收到 401 时脚本自动强制降级重试（`force=True`），**Agent 无需感知**。所有 token 自动写回 config.json。
+
+### 子命令速查
+
+完整用法运行 `$CHUB --help`（或查看 `scripts/chub.cjs` 文件头注释）。输出**统一为 JSON**，顶层字段遵循 CodingHub 的 `ApiResponse` 包装（`code/message/data/success`）。
+
+#### 配置 / 健康
+| 子命令 | 说明 |
+|--------|------|
+| `ping` | 健康检查 `GET /mcp/health` |
+| `whoami` | 查看当前配置（脱敏，不泄露密码/token 明文） |
+| `login` | 强制重新登录（清空 access，重新走 login 流程） |
+
+#### 工具 (tools)
+| 子命令 | 典型参数 |
+|--------|----------|
+| `tool-search` | `--query <kw> [--category ID] [--limit N]` |
+| `tool-get <toolId>` | 获取详情（`data.content` 是 markdown） |
+| `tool-files <toolId>` | 获取文件列表 |
+| `tool-download <toolId> <fileId> <outPath>` | 下载文件到指定路径 |
+| `tool-create` | `--name N --category ID --content C --version V [--desc D] [--tags t1,t2]` |
+| `tool-modify <toolId>` | `--name/--category/--content/--version/--desc/--tags`（不传 version 自动递增） |
+| `tool-file-upload <toolId> <file> [<file2>...]` | `[--readme R]` 上传文件 |
+| `tool-file-delete <toolId> <fileId>` | 删除文件 |
+
+#### 帖子 (forum)
+| 子命令 | 典型参数 |
+|--------|----------|
+| `post-search` | `--query <kw> [--limit N]` |
+| `post-get <postId>` | 获取详情 |
+| `post-create` | `--title T --content C --category ID [--tags t1,t2]` |
+
+#### 知识库 (knowledge)
+| 子命令 | 典型参数 |
+|--------|----------|
+| `kb-list` | `[--page N] [--size N]` |
+| `kb-search <kbId> <query>` | `[--topK K] [--rerank true\|false] [--expand N]` |
+| `kb-create` | `--name N [--desc D] [--chunkMode M] [--chunkSize N] [--chunkOverlap N]` |
+| `kb-update <kbId>` | `--name N [--desc D]` |
+| `kb-delete <kbId>` | 删除知识库 |
+
+### 退出码
+
+| 码 | 含义 |
+|----|------|
+| 0 | 成功 |
+| 1 | 参数错误 |
+| 2 | HTTP 错误或业务错误 |
+| 3 | 配置缺失 / IO 异常 / 依赖缺失 |
+
+Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前缀的错误信息）处理。
 
 ## 核心工作流
+
+> **按需加载**: 工具参数与 HTTP API 完整对照表详见 `references/tool-reference.md`；知识库完整操作详见 `references/kb-management.md`。执行具体操作前先 Read 对应文件。
 
 ### 1. 搜索与安装工具
 
 **触发词**: "查询工具列表"、"安装工具"、"有没有 XX 工具"
 
-步骤:
-1. 调用 `h3_coding_hub_tool_search` 按关键词搜索工具
-2. 调用 `h3_coding_hub_tool_get` 获取完整文档（含安装说明、使用方法）
-3. 调用 `h3_coding_hub_tool_files` 获取文件列表
-4. 对每个需要的文件，调用 `h3_coding_hub_tool_download` 获取下载链接
-5. 下载链接返回相对路径（如 `/api/v1/tools/{toolId}/files/{fileId}/download`），需拼接服务器基址 `http://<host>:8082` 构成完整 URL
-6. 用 curl 下载文件到本地项目目录
-7. 把工具版本号写到 skill 文件夹的 `tools.version` 文件中，以便后续升级时对比
+#### MCP 通道
+1. `h3_coding_hub_tool_search` 按关键词搜索
+2. `h3_coding_hub_tool_get` 获取完整文档（含安装说明）
+3. `h3_coding_hub_tool_files` 获取文件列表
+4. `h3_coding_hub_tool_download` 获取下载链接（返回相对路径，需拼 `{baseUrl}`）
+5. 用 curl 下载文件到本地项目目录
+6. 版本号写入 skill 文件夹的 `tools.version`
 
-**版本检查**: 如果本地已有 skill，先读取其 `tools.version` 中的版本号，与远程对比，仅在版本不同时才下载安装。
+#### HTTP 通道（chub CLI）
+```bash
+$CHUB tool-search --query "<kw>"              # 搜索
+$CHUB tool-get <toolId>                       # 读文档
+$CHUB tool-files <toolId>                     # 列文件
+$CHUB tool-download <toolId> <fileId> /path/to/save.ext   # 下载
+```
+7. 版本号写入 `tools.version`
+
+**版本检查**: 本地已有 skill 时，先读 `tools.version`，与远程对比，仅版本不同时下载。
 
 ### 2. 发布新工具
 
 **触发词**: "发布 skill"、"上传工具到 CodingHub"
 
-步骤:
-1. 获取 CodingHub 账号凭据（按「凭据获取策略」执行）
-2. 确认 `categoryId`（工具分类 ID），可通过 `h3_coding_hub_tool_search` 查看现有工具的分类来推断
-3. 准备工具描述 `content`（markdown 格式），应包含：工具介绍、安装方法、使用示例
-4. 调用 `h3_coding_hub_tool_create` 创建工具，记录返回的 `toolId`
-5. **文件上传不走 MCP**——调用 `h3_coding_hub_tool_file_upload` 获取 REST 上传端点信息
-6. 用 curl 执行 HTTP multipart POST 上传文件：
+#### MCP 通道
+1. 获取凭据（按上述策略）
+2. 确认 `categoryId`（通过 `h3_coding_hub_tool_search` 或 `GET /api/v1/categories` 推断）
+3. 准备 `content`（markdown，含介绍、安装、示例）
+4. 调用 `h3_coding_hub_tool_create`，记录 `toolId`
+5. **文件上传不走 MCP**：调用 `h3_coding_hub_tool_file_upload` 获取 REST 端点信息
+6. curl 执行 multipart POST：
    ```bash
-   curl -X POST http://<host>:8082/api/v1/tools/{toolId}/files \
-     -F "files=@/path/to/file1.zip" \
-     -F "files=@/path/to/file2.md" \
-     -F "readme=工具简介（可选）"
+   curl -X POST {baseUrl}/api/v1/tools/{toolId}/files \
+     -F "files=@/path/to/file.zip" -F "readme=工具简介"
    ```
 7. 上传限制：单文件 50MB，总计 200MB
-8. skill 目录只有 SKILL.md 一个文件时直接上传原文；多文件时先 zip 压缩再上传，保留目录结构
+8. skill 单文件（仅 SKILL.md）直接上传；多文件先 zip 保留目录结构
 
-**关键**: 文件上传端点 `/api/v1/tools/{toolId}/files` 无需 JWT 认证（SecurityConfig 已放行）。
+#### HTTP 通道（chub CLI）
+```bash
+# 分类 ID 可直接 curl 拿（无需认证）
+curl -s {baseUrl}/api/v1/categories
+
+# 创建工具（自动 login + 携带 token）
+$CHUB tool-create --name "my-skill" --category 1 \
+  --content "$(cat /tmp/skill.md)" --version "1.0.0" --desc "一句话介绍"
+
+# 上传文件（multipart，无需认证）
+$CHUB tool-file-upload <toolId> /path/to/skill.zip --readme "工具简介"
+```
 
 ### 3. 更新已有工具
 
 **触发词**: "更新工具"、"升级 skill 版本"
 
-步骤:
-1. 调用 `h3_coding_hub_tool_search` 找到目标工具，获取 `toolId`
-2. 调用 `h3_coding_hub_tool_files` 获取当前文件列表
-3. 如需替换文件：对每个要删除的文件调用 `h3_coding_hub_tool_file_delete`（readme 可保留）
-4. 调用 `h3_coding_hub_tool_modify` 更新工具信息
-   - 不传 `version` 时系统自动递增最后一段（`1.0.0` → `1.0.1`）
-   - 可手动指定版本号（如 `2.0.0`）
-   - 未传入的字段保持不变
-5. 用 curl 上传新版本文件（同发布流程第 6 步）
+#### MCP 通道
+1. `h3_coding_hub_tool_search` 找到工具
+2. `h3_coding_hub_tool_files` 获取现有文件
+3. 如需替换：`h3_coding_hub_tool_file_delete` 删除旧文件
+4. `h3_coding_hub_tool_modify` 更新信息（不传 version 自动递增 `1.0.0` → `1.0.1`）
+5. curl 上传新版本文件
+
+#### HTTP 通道（chub CLI）
+```bash
+$CHUB tool-search --query "<skill名>"     # 找 toolId
+$CHUB tool-files <toolId>                 # 看旧文件
+$CHUB tool-file-delete <toolId> <fileId>  # 删旧文件
+$CHUB tool-modify <toolId> --content "$(cat /tmp/new.md)"   # 更新内容 (不传 --version 自动递增)
+$CHUB tool-file-upload <toolId> /path/to/new.zip
+```
 
 **自动版本号规则**: `1.0.0` → `1.0.1`；`1.0.0-beta` → `1.0.1-beta`；`1.2.3` → `1.2.4`。
 
@@ -97,36 +248,51 @@ version: 3.0.0
 
 **触发词**: "发帖到论坛"、"把这个文档发布到论坛"
 
-步骤:
-1. 准备帖子标题和内容（markdown 格式）
-2. 确认 `categoryId`（论坛分类 ID）
-3. 调用 `h3_coding_hub_post_create`，传入 title、content、categoryId、username、password
-4. 如需发布本地 markdown 文件，先读取文件内容作为 content 参数
+#### MCP 通道
+1. 准备 title、content（markdown）
+2. 确认 `categoryId`（论坛分类）
+3. 调用 `h3_coding_hub_post_create`
+
+#### HTTP 通道（chub CLI）
+```bash
+curl -s {baseUrl}/api/forum/categories             # 拿分类 ID
+$CHUB post-create --title "标题" --content "$(cat /tmp/post.md)" --category 1
+```
 
 ### 5. 知识库管理
 
-**触发词**: "创建知识库"、"上传文档"、"检索知识库"、"搜索知识库"
+**触发词**: "创建知识库"、"上传文档"、"检索知识库"
 
-> **按需加载**: 知识库的完整操作指南（创建、上传预处理流程含 mermaid 图、语义搜索参数、更新、删除）详见 `references/kb-management.md`，执行知识库操作前先读取该文件。
+> 按需加载：详见 `references/kb-management.md`。
+
+#### HTTP 通道（chub CLI）常用命令
+```bash
+$CHUB kb-list
+$CHUB kb-create --name "kb1" --desc "说明"
+$CHUB kb-search <kbId> "查询语句" --topK 5
+$CHUB kb-update <kbId> --name "新名字"
+$CHUB kb-delete <kbId>
+```
 
 ## 常见陷阱
 
-1. **文件上传走 REST，不走 MCP**: `h3_coding_hub_tool_file_upload` 只返回上传端点信息，实际上传需用 curl 执行 HTTP POST multipart/form-data
-2. **下载链接是相对路径**: `h3_coding_hub_tool_download` 返回的 URL 需拼接 `http://<host>:8082` 前缀
-3. **MCP 端点无需 JWT**: `/sse` 和 `/mcp/**` 已设为 permitAll，连接时不要传 Authorization header
-4. **写操作每次都要凭据**: 没有 session 概念，每个写入调用都是独立认证
-5. **modify 的 partial update**: 只更新传入的字段，没传的保持不变；但 version 不传会自动递增
-6. **skill 多文件才需要压缩**: 只有 SKILL.md 一个文件时直接上传原文；多文件时才 zip 压缩保留目录结构
-7. **知识库文档上传也走 REST**: `h3_coding_hub_kb_upload_document` 只返回端点信息，实际上传用 curl HTTP Multipart POST
-8. **上传后异步处理，不要立即检索**: 文档经历 UPLOADING → CONVERTING → CHUNKING → EMBEDDING → READY，必须等全部 READY 后再检索
-9. **带图片文档必须预处理**: 含截图/图表的 PDF/Word/PPT 直接上传会丢失图片内容，须先用 markitdown-mcp 预处理（详见 `references/kb-management.md`）
-10. **知识库配置修改不影响已有文档**: 修改分块参数后需重新上传文档才能生效
-11. **kb_search 参数默认值**: `rerank=true`, `expandContext=1`，调用时一般无需修改
+1. **文件上传走 REST，不走 MCP**: `h3_coding_hub_tool_file_upload` 只返回端点信息，实际用 curl 或 `$CHUB tool-file-upload`
+2. **下载链接是相对路径**: `h3_coding_hub_tool_download` 返回的 URL 需拼接 `{baseUrl}` 前缀；直接用 `$CHUB tool-download` 更省事
+3. **MCP 端点无需 JWT**: `/sse` 和 `/mcp/**` 已 permitAll，不要传 Authorization
+4. **chub CLI 自动处理 token**: Agent 不要手动登录或拼接 `Authorization` 头
+5. **文件上传端点无需 JWT**: `POST /api/v1/tools/{toolId}/files` 已 permitAll
+6. **modify 的 partial update**: 只更新传入的字段；version 不传自动递增
+7. **skill 多文件才需压缩**: 只有 SKILL.md 时直接上传原文
+8. **知识库文档上传也走 REST**: `h3_coding_hub_kb_upload_document` 只返回端点信息
+9. **上传后异步处理**: 文档经历 UPLOADING → CONVERTING → CHUNKING → EMBEDDING → READY，必须等全部 READY 后再检索
+10. **带图片文档必须预处理**: 含截图/图表的 PDF/Word/PPT 需先用 markitdown-mcp 预处理
+11. **kb_search 默认值**: `rerank=true`, `expandContext=1`，一般无需修改
+12. **Python 降级时的 requests 依赖**: 首次使用前若 `ImportError`，用 `pip install requests` 安装；Node 版本无需额外安装
 
 ## 验证
 
-- 发布/更新后，调用 `h3_coding_hub_tool_get` 确认内容已生效
-- 上传文件后，调用 `h3_coding_hub_tool_files` 确认文件列表正确
-- 删除文件后，再次调用 `h3_coding_hub_tool_files` 确认文件已移除
-- 发帖后，调用 `h3_coding_hub_post_get` 确认内容完整
-- 创建知识库后，上传文档 → 查询状态（`h3_coding_hub_kb_document_status`）→ 全部 READY 后 → `h3_coding_hub_kb_search` 验证检索
+- 发布/更新工具后：`$CHUB tool-get <toolId>` 或 `h3_coding_hub_tool_get` 确认内容
+- 上传文件后：`$CHUB tool-files <toolId>` 或 `h3_coding_hub_tool_files` 确认列表
+- 删除文件后：同上再次确认文件已移除
+- 发帖后：`$CHUB post-get <postId>` 或 `h3_coding_hub_post_get` 确认内容
+- 创建知识库后：上传文档 → 查询状态（`h3_coding_hub_kb_document_status` 或 `GET /api/v1/knowledge/{kbId}`）→ 全部 READY 后 → `$CHUB kb-search <kbId> "..."` 验证检索
