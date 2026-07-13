@@ -13,7 +13,9 @@ const unifiedTips = [
   '比较本地skill版本号和CodingHub上skill的版本号，查看有无需要更新的skill',
   '把当前项目的xxx工具发布到CodingHub工具广场',
   '把当前项目的xxx工具更新到CodingHub工具广场',
-  '把xxx内容发布到CodingHub论坛，标题是yyy'
+  '把xxx内容发布到CodingHub论坛，标题是yyy',
+  '查询CodingHub工具列表，安装所有包含"必装"标签的工具',
+  '检索CodingHub的"xxx"知识库，检索内容为 "yyy"'
 ]
 
 async function copyToClipboard(text: string) {
@@ -91,12 +93,27 @@ const copySkill = async () => {
 }
 
 const mcpTools = [
-  { name: 'h3_coding_hub_tool_search', desc: '搜索工具列表', params: 'keyword?: string' },
+  // 工具广场
+  { name: 'h3_coding_hub_tool_search', desc: '搜索工具列表，可按关键词和分类搜索', params: 'keyword?: string, categoryId?: number' },
   { name: 'h3_coding_hub_tool_get', desc: '获取工具详情', params: 'toolId: number' },
-  { name: 'h3_coding_hub_tool_files', desc: '获取工具文件列表', params: 'toolId: number' },
+  { name: 'h3_coding_hub_tool_files', desc: '获取工具文件下载信息', params: 'toolId: number' },
+  { name: 'h3_coding_hub_tool_download', desc: '获取工具文件下载链接', params: 'toolId: number, fileId: number' },
+  { name: 'h3_coding_hub_tool_create', desc: '创建新工具', params: 'username, password, ...' },
+  { name: 'h3_coding_hub_tool_modify', desc: '修改已创建的工具', params: 'toolId: number, username, password, ...' },
+  { name: 'h3_coding_hub_tool_file_upload', desc: '上传文件到指定工具', params: 'toolId: number' },
+  { name: 'h3_coding_hub_tool_file_delete', desc: '删除指定工具下的文件', params: 'toolId: number, fileId: number, username, password' },
+  // 论坛
   { name: 'h3_coding_hub_post_search', desc: '搜索社区帖子', params: 'keyword?: string' },
-  { name: 'h3_coding_hub_post_get', desc: '获取帖子详情', params: 'postId: number' },
-  { name: 'h3_coding_hub_tool_download', desc: '获取工具文件下载链接', params: 'toolId: number, fileId: number' }
+  { name: 'h3_coding_hub_post_get', desc: '获取帖子内容（含完整 Markdown）', params: 'postId: number' },
+  { name: 'h3_coding_hub_post_create', desc: '创建新帖子', params: 'username, password, ...' },
+  // 知识库
+  { name: 'h3_coding_hub_kb_list', desc: '获取知识库列表', params: 'page?: number, sort?: string' },
+  { name: 'h3_coding_hub_kb_search', desc: '对指定知识库执行语义搜索', params: 'kbId: number, query: string' },
+  { name: 'h3_coding_hub_kb_create', desc: '创建新知识库', params: 'username, password, ...' },
+  { name: 'h3_coding_hub_kb_update', desc: '更新知识库', params: 'kbId: number, username, password, ...' },
+  { name: 'h3_coding_hub_kb_delete', desc: '删除知识库', params: 'kbId: number, username, password' },
+  { name: 'h3_coding_hub_kb_upload_document', desc: '获取知识库文档批量上传 REST API 信息', params: 'kbId: number' },
+  { name: 'h3_coding_hub_kb_document_status', desc: '查询知识库文档处理状态', params: 'kbId: number, documentId: number' }
 ]
 </script>
 
@@ -177,8 +194,8 @@ const mcpTools = [
 
         <div class="tips-grid">
           <div v-for="(tip, index) in unifiedTips" :key="index" class="tip-card">
-            <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬'][index] }}</div>
-            <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流'][index] }}</h3>
+            <div class="tip-icon">{{ ['🔍', '📦', '🔄', '📤', '⬆️', '💬', '⚡', '📚'][index] }}</div>
+            <h3>{{ ['搜索工具', '安装工具', '版本检查', '分享工具', '更新工具', '社区交流', '批量安装', '知识库检索'][index] }}</h3>
             <p>{{ tip }}</p>
             <button
               class="tip-copy-btn"
