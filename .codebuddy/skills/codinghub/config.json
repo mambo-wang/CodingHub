@@ -1,0 +1,8 @@
+{
+  "baseUrl": "http://localhost:8082",
+  "username": "wangbao",
+  "password": "123456",
+  "accessToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJ3YW5nYmFvIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc4MzkxODYwNywiZXhwIjoxNzgzOTE5NTA3fQ.c8JM188qwoaHfT9CA51xg1zmAxXpipBxxBpM-m9KwhRse6JzE-aUH9YfFY3Ip29J",
+  "refreshToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJ3YW5nYmFvIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3ODM5MTYzNjYsImV4cCI6MTc4NDUyMTE2Nn0.RzjqfxfXYdfMFYnE_bvsACTVBL8dIaeit_IomQMkCwxodtQwPZkU25VgdO6k7gF7",
+  "accessTokenExpiry": "2026-07-13T05:11:47.525257+00:00"
+}

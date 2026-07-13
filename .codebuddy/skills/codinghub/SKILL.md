@@ -177,7 +177,7 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 2. `h3_coding_hub_tool_get` 获取完整文档（含安装说明）
 3. `h3_coding_hub_tool_files` 获取文件列表
 4. `h3_coding_hub_tool_download` 获取下载链接（返回相对路径，需拼 `{baseUrl}`）
-5. 用 curl 下载文件到本地项目目录
+5. 用 curl 下载文件
 6. 版本号写入 skill 文件夹的 `tools.version`
 
 #### HTTP 通道（chub CLI）
@@ -187,9 +187,14 @@ $CHUB tool-get <toolId>                       # 读文档
 $CHUB tool-files <toolId>                     # 列文件
 $CHUB tool-download <toolId> <fileId> /path/to/save.ext   # 下载
 ```
-7. 版本号写入 `tools.version`
 
-**版本检查**: 本地已有 skill 时，先读 `tools.version`，与远程对比，仅版本不同时下载。
+#### tools.version 规则
+
+| 规则 | 说明 |
+|------|------|
+| **位置** | 放在被安装 skill 的文件夹下，如 `.codebuddy/skills/ui-ux-pro-max/tools.version` |
+| **内容** | 仅有版本号，如 `1.0.0`，不要包含 skill 名称或其他信息 |
+| **用途** | 版本检查：安装前先读目标 skill 的 `tools.version`，与远程对比，仅版本不同时下载/更新 |
 
 ### 2. 发布新工具
 
