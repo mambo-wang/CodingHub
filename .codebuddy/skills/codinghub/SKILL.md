@@ -45,7 +45,7 @@ Agent 收到 CodingHub 任务
 {
   "host": "http://localhost",
   "backendPort": "8082",
-  "frontendPort": "5173",
+  "frontendPort": "80",
   "username": "wangbao",
   "password": "123456",
   "accessToken": "",
@@ -58,7 +58,7 @@ Agent 收到 CodingHub 任务
 |------|------|
 | `host` | 后端主机地址（不含端口，如 `http://localhost`） |
 | `backendPort` | 后端端口（如 `8082`） |
-| `frontendPort` | 前端端口（如 `5173`） |
+| `frontendPort` | 前端端口（如 `80`） |
 | `username` / `password` | 账号凭据（MCP 参数级认证 / HTTP 登录都使用） |
 | `accessToken` | JWT access token（15 分钟过期，chub CLI 自动写入） |
 | `refreshToken` | JWT refresh token（7 天过期，chub CLI 自动写入） |
