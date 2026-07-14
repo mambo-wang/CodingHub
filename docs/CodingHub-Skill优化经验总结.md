@@ -12,9 +12,54 @@ related:
   - .codebuddy/skills/codinghub/SKILL.md
 ---
 
+## 理论框架：Anthropic Skill 制作方法论
+
+> 本节内容提炼自 [Skills 制作最佳实践（Anthropic 官方方法论）](Skill制作最佳实践.md)，原文来源为 Anthropic 技术团队成员 Thariq Shihipar（Claude Code 项目）于 2026-06-03 发布的博客 *[Lessons from Building Claude Code: How We Use Skills](https://claude.com/blog/lessons-from-building-claude-code-how-we-use-skills)*。
+
+### Skill 不是 Markdown，是文件夹
+
+> *"A common misconception we hear about skills is that they are 'just markdown files.' They're actually folders that can include scripts, assets, data, etc. that the agent can discover, explore and manipulate."*
+
+很多人认为 Skill "只是 Markdown 文件"，实际上 Skill 是**文件夹**，包含指令、脚本、资源和数据文件，Agent 能**发现、探索和操作**其中的所有内容。
+
+**Skill 的三种组成要素**：
+
+| 要素 | 说明 | 示例 |
+|------|------|------|
+| **指令** (Instructions) | SKILL.md 核心文件 | 触发条件、工作流程模板 |
+| **脚本** (Scripts) | 可执行的辅助代码 | `scripts/` 目录中的 Python/Node.js 脚本 |
+| **资源** (Resources) | 参考文档、数据文件、模板 | `references/api.md`、`assets/template.md`、`config.json` |
+
+### 四大设计哲学
+
+| 设计原则 | 含义 | 关键启示 |
+|----------|------|----------|
+| **渐进式信息披露** | 把文件系统作为上下文工程手段，让 AI 按需读取，不一次性塞满上下文窗口 | SKILL.md 只做"目录"，详细信息拆分到子文件 |
+| **灵活性优于严格指令** | 避免"轨道化" AI，给信息但保留适应空间 | 不要写成 SOP 流水线，要写成"知识 + 工具" |
+| **为模型而非人类编写** | 模型扫描 Skill 列表来决定"有 Skill 能处理这个请求吗？" | 描述字段不是摘要，是触发说明，要包含触发词 |
+| **从实践中演化** | 最佳 Skills 都是"几行指令 + 一个 gotcha"起步 | 不要追求一步到位，持续积累 Gotchas |
+
+### 九条最佳实践概览
+
+| # | 实践 | 核心要点 |
+|---|------|----------|
+| 1 | 不要陈述显而易见的内容 | 把精力集中在能把 AI 推出"舒适区"的信息上 |
+| 2 | 构建 Gotchas（最高信号密度） | 每遇到一次 AI 犯错就加一条 Gotcha，比写大段说明高效 |
+| 3 | 善用文件系统的渐进式信息披露 | SKILL.md 只做目录，指向其他子文件 |
+| 4 | 避免过度限制灵活性 | 给 AI 知识 + 工具，而不是 SOP |
+| 5 | 仔细考虑设置流程 | 配置存储在 `config.json`，支持向用户询问 |
+| 6 | 为模型编写描述 | 描述字段包含触发词，让模型自动匹配 |
+| 7 | 帮 Claude 构建"记忆" | 通过日志/JSON/SQLite 存储状态，实现跨会话连续操作 |
+| 8 | 存储脚本并生成代码 | 给 Claude 脚本和库，让它把精力花在组合而非重建模板 |
+| 9 | 使用按需钩子 | 仅在 Skill 被调用时激活的钩子，会话期间有效 |
+
+> **核心洞察**：最好的 Skill 不是给 AI 更多通用知识，而是给它那些"不说不知道"的关键信息和可复用的代码能力。
+
+---
+
 # CodingHub Skill 优化经验总结
 
-> 基于 [Skill制作最佳实践（Anthropic 官方方法论）](Skill制作最佳实践.md) 的理论框架，结合 CodingHub Skill 从 MVP 到 v3.3.0 的完整迭代过程，提炼可复用的 Skill 构建经验。
+> 基于上述理论框架，结合 CodingHub Skill 从 MVP 到 v3.3.0 的完整迭代过程，提炼可复用的 Skill 构建经验。
 
 ---
 
