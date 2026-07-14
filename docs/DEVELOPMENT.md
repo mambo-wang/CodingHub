@@ -75,7 +75,7 @@ CodingHub/
 │       ├── config/               # 配置 (7): Security, JWT, MCP, Upload, RAG
 │       ├── exception/            # 异常处理 (9)
 │       ├── util/                 # 工具类 (2)
-│       └── mcp/                  # MCP 协议 (4 文件, 17 tools)
+│       └── mcp/                  # MCP 协议 (6 文件, 18 tools)
 │   └── src/main/resources/db/migration/  # Flyway 迁移 (V1~V9)
 ├── frontend/                     # Vue 3 前端
 │   └── src/

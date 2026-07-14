@@ -20,7 +20,7 @@ CodingHub/
 │   ├── model/         # 实体 (35)          ├── dto/          # DTO (61)
 │   ├── config/        # 配置 (7): Security,JWT,MCP,Upload,RAG
 │   ├── exception/     # 异常 (9)           ├── util/         # 工具 (2): Jwt,Xss
-│   └── mcp/           # MCP SDK + 工具处理 + SSE (17 tools)
+│   └── mcp/           # MCP SDK + 工具处理 + Streamable HTTP/SSE (18 tools)
 ├── frontend/src/
 │   ├── pages/ (28)    ├── components/ (36: 7通用+9common+7forum+4video+7knowledge+2feedback)
 │   ├── services/ (9)  ├── stores/ (3)     ├── types/ (7)     └── composables/ (2)
@@ -64,7 +64,7 @@ CodingHub/
 | 通知 | controller/notification | NotificationBell | 推送、未读计数 |
 | 标签 | controller/tag,service/tag | TagBadge,TagSelector | 统一标签(TOOL/FORUM/VIDEO) |
 | 管理 | AdminController | pages/admin | 用户审批/管理 |
-| MCP | mcp/ | - | 17 tools via SSE |
+| MCP | mcp/ | - | 18 tools via Streamable HTTP/SSE |
 | 概览 | OverviewController | OverviewPage | 统计/排行 |
 | RAG | - | - | rag/ Python服务(MCP+REST) |
 
@@ -76,7 +76,7 @@ CodingHub/
 | `/api/v1/tools` | 工具CRUD+点赞 | `/api/forum/categories` | 论坛分类 |
 | `/api/v1/categories` | 工具分类 | `/api/v1/post-favorites` | 帖子收藏 |
 | `/api/v1/users` | 用户(profile/avatar) | `/api/overview` | 统计/排行 |
-| `/api/v1/admin` | 管理(审批/用户) | `/mcp/sse` | MCP(17tools,SSE) |
+| `/api/v1/admin` | 管理(审批/用户) | `/mcp` | MCP(18 tools, Streamable HTTP/SSE) |
 | `/api/v1/videos` | 微课 | `/api/v1/feedback` | 留言反馈 |
 | `/api/v1/interactions` | 统一互动 | `/api/v1/notifications` | 通知 |
 | `/api/v1/knowledge` | 知识库 | `/api/v1/tags` | 统一标签 |

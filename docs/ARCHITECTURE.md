@@ -21,7 +21,7 @@ CodingHub (ai-tool-square) 是一个全栈 Web 应用，提供 AI 工具/资源�
 | ORM | Spring Data JPA | (内置) | Hibernate, ddl-auto=update |
 | 认证 | JJWT | 0.12.5 | access 15min + refresh 7 天 |
 | XSS 过滤 | commons-text | 1.11.0 | XssSanitizer 封装 |
-| MCP SDK | mcp-bom | 2.0.0-RC1 | Model Context Protocol over SSE |
+| MCP SDK | mcp-bom | 2.0.0-RC1 | Model Context Protocol over Streamable HTTP/SSE |
 | HTTP 客户端 | Axios | 1.6.8 | 前端 API 调用 |
 | 状态管理 | Pinia | 2.1.7 | auth, forum, theme |
 | Markdown | markdown-it | 14.1.0 | + highlight.js 11.9 |
@@ -30,7 +30,7 @@ CodingHub (ai-tool-square) 是一个全栈 Web 应用，提供 AI 工具/资源�
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Spring Boot | 8082 | 后端 API + MCP SSE |
+| Spring Boot | 8082 | 后端 API + MCP Streamable HTTP/SSE |
 | Vite Dev Server | 5173 | 前端 (proxy /api -> 8082) |
 | MySQL | 3306 | 库名: ai_tool_square |
 
@@ -299,9 +299,9 @@ erDiagram
 
 > *点赞和评论支持匿名 (IP 哈希或无登录 userName)。
 
-### 5.12 MCP (17 tools via SSE)
+### 5.12 MCP (18 tools via Streamable HTTP/SSE)
 
-SSE 入口: `GET /mcp/sse` | 消息: `POST /mcp/message`
+Streamable HTTP 入口: `POST /mcp` | SSE 兼容入口: `GET /sse` | 消息: `POST /mcp/message`
 
 | 工具 | 说明 | 认证 |
 |------|------|------|
@@ -310,7 +310,7 @@ SSE 入口: `GET /mcp/sse` | 消息: `POST /mcp/message`
 | h3_coding_hub_tool_create / tool_modify | 创建/修改工具 | username+password |
 | h3_coding_hub_post_create | 创建帖子 | username+password |
 | h3_coding_hub_tool_file_upload / tool_file_delete | 上传/删除文件 | username+password |
-| h3_coding_hub_kb_list / kb_search / kb_create / kb_update / kb_delete / kb_upload_document | 知识库 CRUD + 搜索 | kb_create/update/delete 需认证 |
+| h3_coding_hub_kb_list / kb_search / kb_create / kb_update / kb_delete / kb_upload_document / kb_document_status | 知识库 CRUD + 搜索 + 文档状态 | kb_create/update/delete 需认证 |
 
 ## 6. 安全机制
 
@@ -469,7 +469,7 @@ sequenceDiagram
 flowchart LR
     Browser -->|"HTTP"| Vite["Vite :5173"]
     Browser -->|"API"| Spring["Spring Boot :8082"]
-    MCPClient["MCP Client"] -->|"SSE"| Spring
+    MCPClient["MCP Client"] -->|"Streamable HTTP/SSE"| Spring
     Vite -->|"proxy"| Spring
     Spring -->|"JDBC"| MySQL["MySQL :3306"]
     Spring -->|"I/O"| Files["~/.aifiles"]
@@ -488,4 +488,4 @@ flowchart LR
 | Token 刷新 | AuthController.refresh -> UserService.refreshToken | 验证 refreshToken -> 加载最新 User -> 生成新双 Token (rotation) |
 | 工具 CRUD | ToolController -> ToolService | XSS 过滤 -> 唯一性校验 -> 权限 (isOwner\|\|isAdmin) -> 软删除 (status=DELETED) |
 | 帖子生命周期 | ForumPostController -> ForumPostService | 创建+关联 Tags -> 浏览 viewCount++ -> 评论 (嵌套 parentId) -> 点赞 -> 收藏 -> 软删除 |
-| MCP 调用 | McpController -> McpSdkServerConfig -> IaihubToolHandler | SSE 连接 -> tools/call 路由 -> 认证工具: username/password 登录 -> JSON 响应 |
+| MCP 调用 | McpController -> McpSdkServerConfig -> IaihubToolHandler | Streamable HTTP/SSE 连接 -> tools/call 路由 -> 认证工具: username/password 登录 -> JSON 响应 |

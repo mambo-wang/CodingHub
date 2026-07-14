@@ -115,8 +115,6 @@ $CHUB ping
 
 > **Windows Git Bash / macOS Bash** 通用上述脚本。若用 PowerShell，把 `CHUB` 设成 `python <path>\scripts\chub.py`（或若 Python 不可用时用 `node <path>\scripts\chub.cjs`）。
 >
-> **老路径兼容**：根目录的 `chub.py` 是转发器（`subprocess.run` 到 `scripts/chub.py`，Windows 友好），老 shell alias 仍可工作；新项目直接用 `scripts/chub.py`。
->
 > **Python 的 requests 依赖**：`chub.py` 需要 `requests` 库，首次调用前用 `pip install requests` 安装。初始化脚本中的 `python -c "import requests"` 会自动检测。
 >
 > **Node 降级时的版本要求**：若 Python 不可用回退到 Node.js，需 Node.js ≥ 18.13（`AbortSignal.timeout` 和 `File` 全局对象在旧版本不存在）。Node 版本**不需要** `npm install`。

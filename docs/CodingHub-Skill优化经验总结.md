@@ -38,10 +38,10 @@ skill/                              skill/
                                     ├── config.json
                                     ├── config.json.example
                                     ├── gotchas.md
+                                    ├── tools.version
                                     ├── assets/
                                     │   └── template.md
                                     ├── references/
-                                    │   ├── api.md
                                     │   ├── kb-management.md
                                     │   └── tool-reference.md
                                     └── scripts/
@@ -296,7 +296,7 @@ cfg["baseUrl"] = f"{cfg['host']}:{cfg['backendPort']}"
 
 - **选择理由**：跨平台兼容，不强制 Python 依赖（Windows 可能没有 Python）
 - **权衡**：维护两套代码的成本；子命令和输出格式必须完全一致
-- **效果**：7 个子命令在两种运行时表现完全一致，Agent 切换无感知
+- **效果**：19 个子命令在两种运行时表现完全一致，Agent 切换无感知
 
 ### 决策 3：baseUrl 动态拼接而非硬编码
 

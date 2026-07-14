@@ -99,9 +99,9 @@ MCP 协议把错误分成两层：
 
 **原因**：SSE 是长连接协议，客户端断开时服务端未必能及时感知并释放连接资源。在高并发或客户端异常断连场景下，僵尸连接不断累积，最终耗尽 Tomcat 的连接池。
 
-**解决方案**：从 SSE 迁移到 Streamable HTTP 传输模式。Streamable HTTP 支持双向通信，连接管理更可控，且已被 MCP 官方规范标记为 SSE 的替代方案。
+**解决方案**：迁移到 Streamable HTTP 传输模式作为主传输（`@Primary`），同时保留 SSE 作为向后兼容层。Streamable HTTP 支持双向通信，连接管理更可控，且已被 MCP 官方规范标记为 SSE 的替代方案。
 
-**教训**：生产环境的 MCP Server 不要用 SSE 传输模式。SSE 在 MCP 规范中已被标记为 deprecated，官方推荐使用 Streamable HTTP。
+**教训**：生产环境的 MCP Server 应优先使用 Streamable HTTP 传输模式。SSE 在 MCP 规范中已被标记为 deprecated，但可保留用于兼容旧客户端。新客户端应默认使用 Streamable HTTP。
 
 ### 坑 2：MCP 通道传输大量数据（CodeWiki-CN 项目）
 
@@ -165,7 +165,7 @@ CodingHub 的定位是**双通道架构**：MCP（优先）和 SKILL（HTTP 降�
 |-----------|-------------------|------|-----------|
 | `search-tools` | 1. 搜索与安装工具 → 搜索 | `query`（可选） | 指导调用 `tool_search` → 表格展示 |
 | `install-tool` | 1. 搜索与安装工具 → 安装 | `toolName`（必填） | 6 步完整安装流程 |
-| `check-versions` | 1. tools.version 规则 | 无参数 | 扫描 → 对比 → 报告 |
+| `check-versions` | 1. tools.version 规则 | 无参数（自动扫描） | 扫描已安装工具版本 → 对比最新版本 → 生成升级报告 |
 | `publish-tool` | 2. 发布新工具 | `skillName`（必填） | 10 步完整发布流程 |
 | `update-tool` | 3. 更新已有工具 | `skillName`、`version`（可选） | 9 步完整更新流程 |
 | `forum-post` | 4. 论坛发帖 | `filePath`、`title`（可选） | 5 步完整发帖流程 |
