@@ -14,7 +14,7 @@
 
 操作执行的结果，可能包括成功/失败状态、返回数据摘要等。
 
-若涉及工具创建或帖子创建，自动附加网页访问地址：
+若涉及工具改动或帖子改动，自动附加网页访问地址：
 
 - 工具访问地址: `{host}:{frontendPort}/tools/{toolId}`
 - 帖子访问地址: `{host}:{frontendPort}/forum/posts/{postId}`
