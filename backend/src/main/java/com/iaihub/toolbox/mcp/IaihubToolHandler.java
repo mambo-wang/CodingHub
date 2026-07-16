@@ -659,16 +659,32 @@ public class IaihubToolHandler {
     }
 
     private McpSchema.CallToolResult successResult(String json) {
-        return McpSchema.CallToolResult.builder(List.of(new McpSchema.TextContent(json)))
-                .isError(false)
-                .build();
+        McpSchema.CallToolResult.Builder builder = McpSchema.CallToolResult
+                .builder(List.of(new McpSchema.TextContent(json)))
+                .isError(false);
+        try {
+            Map<String, Object> structured = objectMapper.readValue(json,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            builder.structuredContent(structured);
+        } catch (Exception e) {
+            logger.warn("Failed to parse structured content, returning text only", e);
+        }
+        return builder.build();
     }
 
     private McpSchema.CallToolResult errorResult(String message) {
-        return McpSchema.CallToolResult.builder(List.of(new McpSchema.TextContent(
-                        toJson(new ErrorResponse(message)))))
-                .isError(true)
-                .build();
+        String json = toJson(new ErrorResponse(message));
+        McpSchema.CallToolResult.Builder builder = McpSchema.CallToolResult
+                .builder(List.of(new McpSchema.TextContent(json)))
+                .isError(true);
+        try {
+            Map<String, Object> structured = objectMapper.readValue(json,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            builder.structuredContent(structured);
+        } catch (Exception e) {
+            logger.warn("Failed to parse error structured content, returning text only", e);
+        }
+        return builder.build();
     }
 
     private String toJson(Object obj) {

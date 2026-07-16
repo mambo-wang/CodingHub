@@ -37,6 +37,33 @@ public class McpSdkServerConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(McpSdkServerConfig.class);
 
+    /**
+     * Server-level instructions sent to Agents during MCP initialize handshake.
+     * Provides a global usage guide: what this server does, available capabilities, and key constraints.
+     */
+    private static final String SERVER_INSTRUCTIONS = """
+            CodingHub 工具广场 MCP Server — AI 工具的搜索、安装、发布、更新与社区协作平台。
+
+            ## 能力概览
+            - **工具管理**: 搜索/获取/创建/修改工具，文件上传/下载/删除（18 个工具）
+            - **社区论坛**: 帖子搜索/获取/创建
+            - **知识库 (RAG)**: 知识库 CRUD、语义搜索、文档上传与状态查询
+            - **工作流指引**: 6 个 Prompt 模板（install-tool, publish-tool, update-tool 等）
+            - **上下文资源**: 工具目录 (codinghub://tools/catalog)、最近更新 (codinghub://tools/recent)、单工具详情 (codinghub://tool/{id})
+
+            ## 关键约束
+            - **文件传输**: MCP 通道不传输二进制文件。文件上传/下载通过本工具返回的 REST 端点执行（HTTP Multipart POST），无需认证。
+            - **认证**: 写操作（创建/修改/删除）需要 username + password，对应 CodingHub 平台账号，默认密码 123456。
+            - **版本号**: 工具版本号遵循 SemVer，创建时取自本地 tools.version 文件或 SKILL.md frontmatter，修改时不传则自动递增最后一位。
+            - **分类**: 工具分类 ID — Skill(1), MCP(2), 插件(3), Prompt(4), 其他(5)。
+
+            ## 推荐使用流程
+            1. 搜索工具: h3_coding_hub_tool_search → h3_coding_hub_tool_get 查看详情
+            2. 安装工具: 调用 Prompt "install-tool" 获取完整步骤
+            3. 发布工具: 调用 Prompt "publish-tool" 获取完整步骤
+            4. 知识库: h3_coding_hub_kb_create → h3_coding_hub_kb_upload_document → h3_coding_hub_kb_document_status
+            """;
+
     private final ObjectMapper objectMapper;
 
     public McpSdkServerConfig(ObjectMapper objectMapper) {
@@ -96,6 +123,7 @@ public class McpSdkServerConfig {
                                              McpPromptProvider promptProvider) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
+                .instructions(SERVER_INSTRUCTIONS)
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
                         .resources(true, true)
@@ -121,6 +149,7 @@ public class McpSdkServerConfig {
                                       McpPromptProvider promptProvider) {
         McpSyncServer server = McpServer.sync(transportProvider)
                 .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
+                .instructions(SERVER_INSTRUCTIONS)
                 .capabilities(McpSchema.ServerCapabilities.builder()
                         .tools(true)
                         .resources(true, true)
@@ -154,6 +183,16 @@ public class McpSdkServerConfig {
                     }
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "tools":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"description":{"type":"string"},"version":{"type":"string"},"category":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}}}},
+                        "count":{"type":"integer"}
+                    },
+                    "required":["tools","count"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     String query = args != null && args.containsKey("query") ? String.valueOf(args.get("query")) : null;
@@ -172,6 +211,17 @@ public class McpSdkServerConfig {
                     "required":["toolId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "content":{"type":"string"},"category":{"type":"string"},
+                        "tags":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"}}}}
+                    },
+                    "required":["id","name","version","content","category"]
+                }
+                """,
                 (exchange, request) -> {
                     Long toolId = ((Number) request.arguments().get("toolId")).longValue();
                     return toolHandler.handleToolGet(toolId);
@@ -187,6 +237,16 @@ public class McpSdkServerConfig {
                     "required":["toolId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "files":{"type":"array","items":{"type":"object","properties":{"fileName":{"type":"string"},"fileSize":{"type":"integer"},"downloadUrl":{"type":"string"},"createdAt":{"type":"string"}}}},
+                        "count":{"type":"integer"},"toolId":{"type":"integer"}
+                    },
+                    "required":["files","count","toolId"]
+                }
+                """,
                 (exchange, request) -> {
                     Long toolId = ((Number) request.arguments().get("toolId")).longValue();
                     return toolHandler.handleToolFiles(toolId);
@@ -200,6 +260,16 @@ public class McpSdkServerConfig {
                         "query":{"type":"string","description":"搜索关键词"},
                         "limit":{"type":"integer","description":"返回数量限制，默认20"}
                     }
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "posts":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"title":{"type":"string"},"summary":{"type":"string"},"authorName":{"type":"string"},"createdAt":{"type":"string"}}}},
+                        "count":{"type":"integer"}
+                    },
+                    "required":["posts","count"]
                 }
                 """,
                 (exchange, request) -> {
@@ -219,6 +289,16 @@ public class McpSdkServerConfig {
                     "required":["postId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"integer"},"title":{"type":"string"},"content":{"type":"string"},
+                        "authorId":{"type":"integer"},"createdAt":{"type":"string"}
+                    },
+                    "required":["id","title","content","authorId","createdAt"]
+                }
+                """,
                 (exchange, request) -> {
                     Long postId = ((Number) request.arguments().get("postId")).longValue();
                     return toolHandler.handlePostGet(postId);
@@ -233,6 +313,16 @@ public class McpSdkServerConfig {
                         "fileId":{"type":"integer","description":"文件ID"}
                     },
                     "required":["toolId","fileId"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "fileId":{"type":"integer"},"fileName":{"type":"string"},"fileSize":{"type":"integer"},
+                        "contentType":{"type":"string"},"downloadUrl":{"type":"string"},"createdAt":{"type":"string"}
+                    },
+                    "required":["fileId","fileName","downloadUrl"]
                 }
                 """,
                 (exchange, request) -> {
@@ -262,6 +352,16 @@ public class McpSdkServerConfig {
                     "required":["name","categoryId","content","version","username","password"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "categoryId":{"type":"integer"},"message":{"type":"string"}
+                    },
+                    "required":["toolId","name","version"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     String name = String.valueOf(args.get("name"));
@@ -288,6 +388,15 @@ public class McpSdkServerConfig {
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
                     "required":["title","content","categoryId","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "postId":{"type":"integer"},"title":{"type":"string"},"message":{"type":"string"}
+                    },
+                    "required":["postId","title"]
                 }
                 """,
                 (exchange, request) -> {
@@ -327,6 +436,17 @@ public class McpSdkServerConfig {
                     "required":["toolId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer"},"toolName":{"type":"string"},"uploadUrl":{"type":"string"},
+                        "httpMethod":{"type":"string"},"contentType":{"type":"string"},
+                        "formFields":{"type":"string"},"limits":{"type":"string"},"instruction":{"type":"string"}
+                    },
+                    "required":["toolId","uploadUrl","httpMethod","contentType"]
+                }
+                """,
                 (exchange, request) -> {
                     Long toolId = ((Number) request.arguments().get("toolId")).longValue();
                     return toolHandler.handleToolFileUploadInfo(toolId);
@@ -352,6 +472,16 @@ public class McpSdkServerConfig {
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
                     "required":["toolId","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "message":{"type":"string"}
+                    },
+                    "required":["toolId","version"]
                 }
                 """,
                 (exchange, request) -> {
@@ -385,6 +515,15 @@ public class McpSdkServerConfig {
                     "required":["toolId","fileId","username","password"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "toolId":{"type":"integer"},"fileId":{"type":"integer"},"deleted":{"type":"boolean"}
+                    },
+                    "required":["toolId","fileId","deleted"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     Long toolId = ((Number) args.get("toolId")).longValue();
@@ -407,6 +546,17 @@ public class McpSdkServerConfig {
                     }
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "knowledgeBases":{"type":"array","items":{"type":"object"}},
+                        "totalElements":{"type":"integer"},"totalPages":{"type":"integer"},
+                        "page":{"type":"integer"},"size":{"type":"integer"}
+                    },
+                    "required":["knowledgeBases","totalElements","page","size"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     Integer page = args != null && args.containsKey("page") ? ((Number) args.get("page")).intValue() : 0;
@@ -427,6 +577,16 @@ public class McpSdkServerConfig {
                         "expandContext":{"type":"integer","description":"上下文扩展块数，默认0"}
                     },
                     "required":["kbId","query"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "results":{"type":"array","items":{"type":"object","properties":{"content":{"type":"string"},"score":{"type":"number"},"documentName":{"type":"string"}}}},
+                        "count":{"type":"integer"}
+                    },
+                    "required":["results","count"]
                 }
                 """,
                 (exchange, request) -> {
@@ -457,6 +617,15 @@ public class McpSdkServerConfig {
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
                     "required":["name","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer"},"name":{"type":"string"},"message":{"type":"string"}
+                    },
+                    "required":["kbId","name"]
                 }
                 """,
                 (exchange, request) -> {
@@ -494,6 +663,15 @@ public class McpSdkServerConfig {
                     "required":["kbId","username","password"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer"},"name":{"type":"string"},"message":{"type":"string"}
+                    },
+                    "required":["kbId"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     Long kbId = ((Number) args.get("kbId")).longValue();
@@ -518,6 +696,15 @@ public class McpSdkServerConfig {
                         "password":{"type":"string","description":"登录密码，默认123456"}
                     },
                     "required":["kbId","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer"},"deleted":{"type":"boolean"}
+                    },
+                    "required":["kbId","deleted"]
                 }
                 """,
                 (exchange, request) -> {
@@ -554,6 +741,20 @@ public class McpSdkServerConfig {
                     "required":["kbId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer"},"kbName":{"type":"string"},"uploadUrl":{"type":"string"},
+                        "httpMethod":{"type":"string"},"contentType":{"type":"string"},
+                        "formFields":{"type":"string"},"limits":{"type":"string"},
+                        "requiresAuth":{"type":"string"},
+                        "supportedFileTypes":{"type":"array","items":{"type":"string"}},
+                        "curlExample":{"type":"string"},"explanation":{"type":"string"},"instruction":{"type":"string"}
+                    },
+                    "required":["kbId","uploadUrl","httpMethod","contentType"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     Long kbId = ((Number) args.get("kbId")).longValue();
@@ -579,6 +780,17 @@ public class McpSdkServerConfig {
                     "required":["kbId"]
                 }
                 """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer"},"kbName":{"type":"string"},
+                        "documents":{"type":"array","items":{"type":"object"}},
+                        "totalCount":{"type":"integer"}
+                    },
+                    "required":["kbId","documents","totalCount"]
+                }
+                """,
                 (exchange, request) -> {
                     Map<String, Object> args = request.arguments();
                     Long kbId = ((Number) args.get("kbId")).longValue();
@@ -591,12 +803,23 @@ public class McpSdkServerConfig {
     private void registerTool(McpSyncServer server, String name, String description,
                               String inputSchemaJson,
                               BiFunction<McpSyncServerExchange, McpSchema.CallToolRequest, McpSchema.CallToolResult> handler) {
+        registerTool(server, name, description, inputSchemaJson, null, handler);
+    }
+
+    private void registerTool(McpSyncServer server, String name, String description,
+                              String inputSchemaJson, String outputSchemaJson,
+                              BiFunction<McpSyncServerExchange, McpSchema.CallToolRequest, McpSchema.CallToolResult> handler) {
         try {
             Map<String, Object> inputSchema = objectMapper.readValue(
                     inputSchemaJson, new TypeReference<Map<String, Object>>() {});
-            McpSchema.Tool tool = McpSchema.Tool.builder(name, inputSchema)
-                    .description(description)
-                    .build();
+            var toolBuilder = McpSchema.Tool.builder(name, inputSchema)
+                    .description(description);
+            if (outputSchemaJson != null) {
+                Map<String, Object> outputSchema = objectMapper.readValue(
+                        outputSchemaJson, new TypeReference<Map<String, Object>>() {});
+                toolBuilder.outputSchema(outputSchema);
+            }
+            McpSchema.Tool tool = toolBuilder.build();
             McpServerFeatures.SyncToolSpecification toolHandler =
                     McpServerFeatures.SyncToolSpecification.builder()
                             .tool(tool)
