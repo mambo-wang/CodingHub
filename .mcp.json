@@ -2,7 +2,7 @@
   "mcpServers": {
     "codegraph": {
       "type": "stdio",
-      "command": "C:\\Users\\王宝\\AppData\\Roaming\\npm\\codegraph.cmd",
+      "command": "C:\\Users\\Administrator\\AppData\\Roaming\\npm\\codegraph.cmd",
       "args": [
         "serve",
         "--mcp"
@@ -11,7 +11,7 @@
         "CODEGRAPH_MCP_TOOLS": "explore,node,search,callers,callees,impact,files,status"
       },
       "description": "CodeGraph 本地代码知识图谱 —— 符号/调用链/影响范围分析",
-      "disabled": true
+      "disabled": false
     }
   }
 }
