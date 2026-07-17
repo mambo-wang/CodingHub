@@ -73,19 +73,23 @@ const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
 const mcpTransportType = ref<'streamableHttp' | 'sse'>('streamableHttp')
 const mcpConfigs = {
   streamableHttp: {
-    "CodingHub-mcp": {
-      type: "streamableHttp",
-      url: `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
-      description: "CodingHub MCP Server (Streamable HTTP)",
-      disabled: false
+    mcpServers: {
+      "CodingHub-mcp": {
+        type: "streamableHttp",
+        url: `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
+        description: "CodingHub MCP Server (Streamable HTTP)",
+        disabled: false
+      }
     }
   },
   sse: {
-    "CodingHub-mcp": {
-      type: "sse",
-      url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-      description: "CodingHub MCP Server (SSE)",
-      disabled: false
+    mcpServers: {
+      "CodingHub-mcp": {
+        type: "sse",
+        url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
+        description: "CodingHub MCP Server (SSE)",
+        disabled: false
+      }
     }
   }
 }
@@ -93,7 +97,19 @@ const mcpConfigJson = computed(() => JSON.stringify(mcpConfigs[mcpTransportType.
 
 const copyMcpConfig = async () => {
   try {
-    await navigator.clipboard.writeText(mcpConfigJson.value)
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(mcpConfigJson.value)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = mcpConfigJson.value
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
     copySuccess.value = true
     setTimeout(() => { copySuccess.value = false }, 2000)
   } catch (error) {
