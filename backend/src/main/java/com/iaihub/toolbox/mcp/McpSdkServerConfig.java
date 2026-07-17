@@ -179,7 +179,7 @@ public class McpSdkServerConfig {
                     "properties":{
                         "query":{"type":"string","description":"搜索关键词"},
                         "category":{"type":"string","description":"分类名称"},
-                        "limit":{"type":"integer","description":"返回数量限制，默认20"}
+                        "limit":{"type":"integer","description":"返回数量限制，默认200"}
                     }
                 }
                 """,
@@ -197,7 +197,7 @@ public class McpSdkServerConfig {
                     Map<String, Object> args = request.arguments();
                     String query = args != null && args.containsKey("query") ? String.valueOf(args.get("query")) : null;
                     String category = args != null && args.containsKey("category") ? String.valueOf(args.get("category")) : null;
-                    Integer limit = args != null && args.containsKey("limit") ? ((Number) args.get("limit")).intValue() : 20;
+                    Integer limit = args != null && args.containsKey("limit") ? ((Number) args.get("limit")).intValue() : 200;
                     return toolHandler.handleToolSearch(query, category, limit);
                 });
 
