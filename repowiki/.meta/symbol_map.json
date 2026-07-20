@@ -620,11 +620,15 @@
   "UnifiedCommentService": [
     "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedCommentService.java"
   ],
+  "MyCommentDTO": [
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedCommentService.java"
+  ],
   "UnifiedFavoriteService": [
     "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedFavoriteService.java"
   ],
   "ForumPostSummaryDTO": [
-    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedFavoriteService.java"
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedFavoriteService.java",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedLikeService.java"
   ],
   "UnifiedLikeService": [
     "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedLikeService.java"
@@ -650,6 +654,175 @@
   "XssSanitizer": [
     "backend\\src\\main\\java\\com\\iaihub\\toolbox\\util\\XssSanitizer.java"
   ],
+  "P": [
+    "frontend\\dist\\assets\\graph-9_oubSPZ.js"
+  ],
+  "m3": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "g3": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "T_": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "$p": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "E3": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "T3": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "M3": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "W_": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "q_": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "U_": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "Y_": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "wn": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "Z4": [
+    "frontend\\dist\\assets\\index-C2kpfFsL.js"
+  ],
+  "yr": [
+    "frontend\\dist\\assets\\index-C_G_BPYE.js"
+  ],
+  "kl": [
+    "frontend\\dist\\assets\\index-C_G_BPYE.js"
+  ],
+  "_r": [
+    "frontend\\dist\\assets\\index-C_G_BPYE.js"
+  ],
+  "Ul": [
+    "frontend\\dist\\assets\\index-C_G_BPYE.js"
+  ],
+  "Oc": [
+    "frontend\\dist\\assets\\index-C_G_BPYE.js"
+  ],
+  "G0": [
+    "frontend\\dist\\assets\\index-Do4ktST4.js"
+  ],
+  "S": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "Et": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "F0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "ae": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "ie": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "Fe": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "xa": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "d0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "C0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "P0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "pt": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "z": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "e0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "e1": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "T0": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js",
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "h0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "c0": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "Fr": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "R4": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "F4": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "je": [
+    "frontend\\dist\\assets\\katex-C5jXJg4s.js"
+  ],
+  "En": [
+    "frontend\\dist\\assets\\layout-DDKdam_f.js"
+  ],
+  "o": [
+    "frontend\\dist\\assets\\ordinal-Cboi1Yqb.js"
+  ],
+  "w0": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "v1": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "Ju": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "Nl": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "aS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "oS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "nS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "lS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "hS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "cS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "Da": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "yS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
+  "CS": [
+    "frontend\\dist\\assets\\PostDetailPage-GTA6vzQl.js"
+  ],
   "LikeResponse": [
     "frontend\\src\\services\\interaction.ts"
   ],
@@ -660,6 +833,9 @@
     "frontend\\src\\services\\interaction.ts"
   ],
   "InteractionPageResponse": [
+    "frontend\\src\\services\\interaction.ts"
+  ],
+  "MyCommentItem": [
     "frontend\\src\\services\\interaction.ts"
   ],
   "NotificationItem": [

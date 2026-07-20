@@ -126,23 +126,19 @@ make lint        # lint-arch + lint-quality + lint-deps
 
 **入口文件：**
 
-- [`repowiki/overview.md`](repowiki/overview.md) — 仓库级架构总览（含 Mermaid 架构图）
-- [`repowiki/index.md`](repowiki/index.md) — 文档目录与知识笔记索引
-- [`repowiki/schema.yaml`](repowiki/schema.yaml) — 项目文档约定（命名规范、必填章节等）
+- [`repowiki/wiki/overview.md`](repowiki/wiki/overview.md) — 仓库级架构总览（含 Mermaid 架构图）
+- [`repowiki/wiki/index.md`](repowiki/wiki/index.md) — 文档目录与知识笔记索引
+- [`repowiki/wiki/schema.yaml`](repowiki/wiki/schema.yaml) — 项目文档约定（命名规范、必填章节等）
 
 **模块列表：**
 
-- [backend-infra](repowiki/backend-infra.md)
-- [auth-user](repowiki/auth-user.md)
-- [tool-plaza](repowiki/tool-plaza.md)
-- [unified-interactions](repowiki/unified-interactions.md)
-- [forum](repowiki/forum.md)
-- [video](repowiki/video.md)
-- [knowledge-base](repowiki/knowledge-base.md)
-- [mcp-service](repowiki/mcp-service.md)
-- [rag-service](repowiki/rag-service.md)
-- [auxiliary-services](repowiki/auxiliary-services.md)
-- [frontend-app](repowiki/frontend-app.md)
+- [工具广场](repowiki/wiki/modules/工具广场.md)
+- [用户与认证](repowiki/wiki/modules/用户与认证.md)
+- [统一互动](repowiki/wiki/modules/统一互动.md)
+- [论坛社区](repowiki/wiki/modules/论坛社区.md)
+- [知识库与RAG](repowiki/wiki/modules/知识库与RAG.md)
+- [MCP服务](repowiki/wiki/modules/MCP服务.md)
+- [前端应用](repowiki/wiki/modules/前端应用.md)
 
 ### MCP 工具用法
 

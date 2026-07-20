@@ -90,6 +90,9 @@ public class SecurityConfig {
                 // Feedback - GET and POST are public, admin operations use @PreAuthorize
                 .requestMatchers(HttpMethod.GET, "/api/v1/feedback").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
+                // Image upload - GET is public (display in posts), POST requires auth
+                .requestMatchers(HttpMethod.GET, "/api/v1/uploads/images/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/uploads/images").authenticated()
                 // Protected endpoints
                 .requestMatchers("/api/v1/knowledge/**").authenticated()
                 .requestMatchers("/api/v1/videos/**").authenticated()

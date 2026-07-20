@@ -53,12 +53,35 @@
     </div>
 
     <div class="form-group">
-      <label>内容（Markdown）</label>
+      <div class="content-toolbar">
+        <label>内容（Markdown）</label>
+        <button
+          type="button"
+          class="upload-img-btn"
+          :disabled="uploading"
+          @click="triggerFileInput"
+          title="插入图片"
+        >
+          <ImageIcon :size="16" />
+          {{ uploading ? '上传中...' : '插入图片' }}
+        </button>
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/*"
+          style="display: none"
+          @change="handleFileSelect"
+        />
+      </div>
       <textarea
+        ref="contentRef"
         v-model="content"
-        placeholder="输入内容..."
+        placeholder="输入内容... 支持粘贴或拖拽图片"
         class="content-input"
         rows="15"
+        @paste="handlePaste"
+        @drop.prevent="handleDrop"
+        @dragover.prevent
       ></textarea>
     </div>
 
@@ -72,9 +95,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { Globe, Lock } from '@lucide/vue';
+import { Globe, Lock, Image as ImageIcon } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import forumService from '@/services/forum';
+import api from '@/services/api';
 import type { Tag } from '@/types';
 import TagSelector from '@/components/common/TagSelector.vue';
 
@@ -92,6 +116,83 @@ const visibility = ref('PUBLIC');
 const errorMessage = ref('');
 const loading = ref(false);
 const selectedTags = ref<Tag[]>([]);
+
+// 图片上传相关
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const contentRef = ref<HTMLTextAreaElement | null>(null);
+const uploading = ref(false);
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const handleFileSelect = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    uploadImage(input.files[0]);
+  }
+  input.value = ''; // 重置，允许重复选择同一文件
+};
+
+const handlePaste = (e: ClipboardEvent) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (file) uploadImage(file);
+      break;
+    }
+  }
+};
+
+const handleDrop = (e: DragEvent) => {
+  const files = e.dataTransfer?.files;
+  if (!files) return;
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      uploadImage(file);
+      break;
+    }
+  }
+};
+
+const insertAtCursor = (text: string) => {
+  const textarea = contentRef.value;
+  if (!textarea) {
+    content.value += text;
+    return;
+  }
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  content.value = content.value.substring(0, start) + text + content.value.substring(end);
+  // 恢复光标位置到插入文本之后
+  requestAnimationFrame(() => {
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
+  });
+};
+
+const uploadImage = async (file: File) => {
+  if (uploading.value) return;
+  uploading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/uploads/images', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const url = res.data.data?.url;
+    if (url) {
+      insertAtCursor(`![${file.name}](${url})\n`);
+    }
+  } catch (e: any) {
+    errorMessage.value = e.response?.data?.message || '图片上传失败，请重试';
+  } finally {
+    uploading.value = false;
+  }
+};
 
 onMounted(async () => {
   await forumStore.fetchCategories();
@@ -184,6 +285,43 @@ const publish = async () => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+.content-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.content-toolbar label {
+  margin-bottom: 0;
+}
+
+.upload-img-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-img-btn:hover:not(:disabled) {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.upload-img-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .title-input {
