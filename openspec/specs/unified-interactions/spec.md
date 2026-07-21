@@ -106,3 +106,55 @@
 #### Scenario: 迁移 forum_comment 到 unified_comment
 - **WHEN** 执行迁移脚本
 - **THEN** forum_comment 的所有记录以 target_type=FORUM_POST 写入 unified_comment，保留 parent_id 和 root_id
+
+### Requirement: 我的点赞查询
+系统必须提供 `GET /api/v1/interactions/likes/mine?targetType=` 端点，返回当前登录用户在某类型下的点赞目标资源分页列表（此前点赞仅支持按目标查询）。
+
+#### Scenario: 登录用户查询我的点赞
+- **WHEN** 登录用户发送 `GET /api/v1/interactions/likes/mine?targetType=TOOL&page=0&size=10`
+- **THEN** 系统在 `unified_like` 中按 userId + targetType 查询，返回该用户点赞的工具资源 DTO 分页列表（复用 `ToolSummaryDTO` / `ForumPostSummaryDTO` / `VideoListItem`），按创建时间倒序
+
+#### Scenario: 过滤已删除目标
+- **WHEN** 用户点赞的目标资源已被软删除（status != NORMAL）
+- **THEN** 系统在返回列表中跳过该记录，避免死链
+
+#### Scenario: 未登录查询
+- **WHEN** 未登录用户发送该请求
+- **THEN** 系统返回 401 未授权
+
+### Requirement: 我的评论查询
+系统必须提供 `GET /api/v1/interactions/comments/mine` 端点，返回当前登录用户的评论分页列表，并附带每条评论所属目标的类型、ID 与标题（此前评论仅支持按目标查询）。
+
+#### Scenario: 登录用户查询我的评论
+- **WHEN** 登录用户发送 `GET /api/v1/interactions/comments/mine?page=0&size=10`
+- **THEN** 系统按 userId 查询 `unified_comment`，返回包含 `targetType`、`targetId`、`targetTitle`、`content`、`createdAt` 的分页列表，`targetTitle` 按类型解析为 tool.name / forumPost.title / video.title，按创建时间倒序
+
+#### Scenario: 过滤已删除目标
+- **WHEN** 评论所属目标已被软删除
+- **THEN** 系统在返回列表中跳过该评论
+
+#### Scenario: 未登录查询
+- **WHEN** 未登录用户发送该请求
+- **THEN** 系统返回 401 未授权
+
+### Requirement: 评论生成所有者通知
+系统在 `UnifiedCommentService.addComment` 成功保存评论后，若评论者为登录用户且非资源所有者，MUST 向资源所有者生成一条 `COMMENT_REPLY` 通知。
+
+#### Scenario: 登录用户评论他人资源生成通知
+- **WHEN** 登录用户对他人的 TOOL / FORUM_POST / VIDEO 发表评论并保存成功
+- **THEN** 系统调用 `NotificationService.createCommentNotification` 向资源所有者写入 `COMMENT_REPLY` 通知
+
+#### Scenario: 评论自己的资源不通知
+- **WHEN** 登录用户评论自己所拥有的资源
+- **THEN** 系统不调用通知生成方法
+
+### Requirement: 点赞生成所有者通知
+系统在 `UnifiedLikeService.toggleLike` 点赞成功（`liked=true`）后，若点赞者为登录用户且非资源所有者，MUST 向资源所有者生成一条 `LIKE` 通知；取消点赞 MUST NOT 生成通知。
+
+#### Scenario: 登录用户点赞他人资源生成通知
+- **WHEN** 登录用户对他人的 TOOL / FORUM_POST / VIDEO 点赞成功
+- **THEN** 系统调用 `NotificationService.createLikeNotification` 向资源所有者写入 `LIKE` 通知
+
+#### Scenario: 取消点赞不通知
+- **WHEN** 已点赞用户取消点赞（`liked=false`）
+- **THEN** 系统不调用通知生成方法
