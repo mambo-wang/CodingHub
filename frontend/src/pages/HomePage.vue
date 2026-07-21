@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Pencil, Trash2, Upload, Bookmark, Wrench, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import MarkdownIt from 'markdown-it'
@@ -7,7 +7,7 @@ import { ElMessage } from 'element-plus'
 import api, { fileUploadApi } from '@/services/api'
 import { interactionApi } from '@/services/interaction'
 import { pinTool, unpinTool, getHotTop5 } from '@/services/tool'
-import type { ToolSummary, Category, PageResponse, CreateToolRequest } from '@/types'
+import type { ToolSummary, Category, Tag, PageResponse, CreateToolRequest } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -21,6 +21,10 @@ const tools = ref<ToolSummary[]>([])
 const categories = ref<Category[]>([])
 const selectedCategory = ref<number | null>(null)
 const searchKeyword = ref('')
+const selectedTagId = ref<number | null>(null)
+const toolTags = ref<Tag[]>([])
+const tagDropdownOpen = ref(false)
+const tagDropdownRef = ref<HTMLElement | null>(null)
 const sortBy = ref('hot')
 const loading = ref(false)
 const showMcpModal = ref(false)
@@ -129,6 +133,21 @@ const fetchCategories = async () => {
   }
 }
 
+const fetchToolTags = async () => {
+  try {
+    const response = await api.get('/tags', { params: { type: 'TOOL' } })
+    toolTags.value = response.data.data
+  } catch (error) {
+    console.error('Failed to fetch tool tags:', error)
+  }
+}
+
+// 当前选中标签的显示名称（null 表示"全部标签"）
+const selectedTagName = computed(() => {
+  if (!selectedTagId.value) return null
+  return toolTags.value.find(t => t.id === selectedTagId.value)?.name || null
+})
+
 // Unified data fetcher — dispatches by activeTab
 const fetchTools = async () => {
   loading.value = true
@@ -152,6 +171,7 @@ const fetchTools = async () => {
       }
       if (selectedCategory.value) params.categoryId = selectedCategory.value
       if (searchKeyword.value) params.keyword = searchKeyword.value
+      if (selectedTagId.value) params.tagId = selectedTagId.value
 
       const response = await api.get('/tools', { params })
       const data: PageResponse<ToolSummary> = response.data.data
@@ -180,6 +200,28 @@ const handleCategoryChange = (categoryId: number | null) => {
   selectedCategory.value = categoryId
   pagination.value.page = 0
   fetchTools()
+}
+
+const toggleTagDropdown = () => {
+  tagDropdownOpen.value = !tagDropdownOpen.value
+}
+
+const handleTagSelect = (tagId: number | null) => {
+  selectedTagId.value = tagId
+  tagDropdownOpen.value = false
+  activeTab.value = 'all'
+  pagination.value.page = 0
+  fetchTools()
+}
+
+const handleTagBadgeClick = (tag: Tag) => {
+  handleTagSelect(tag.id)
+}
+
+const handleTagOutsideClick = (event: MouseEvent) => {
+  if (tagDropdownRef.value && !tagDropdownRef.value.contains(event.target as Node)) {
+    tagDropdownOpen.value = false
+  }
 }
 
 const handleSortChange = (value: string) => {
@@ -329,8 +371,14 @@ const handlePinTool = async (toolId: number) => {
 
 onMounted(() => {
   fetchCategories()
+  fetchToolTags()
   fetchTools()
   fetchHotTop5()
+  document.addEventListener('click', handleTagOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleTagOutsideClick)
 })
 </script>
 
@@ -370,6 +418,48 @@ onMounted(() => {
               placeholder="搜索工具名称..."
               @keyup.enter="handleSearch"
             />
+          </div>
+
+          <!-- Tag Filter Dropdown -->
+          <div class="tag-filter" ref="tagDropdownRef">
+            <button
+              type="button"
+              class="tag-filter-trigger"
+              :class="{ active: selectedTagId !== null, open: tagDropdownOpen }"
+              aria-haspopup="listbox"
+              :aria-expanded="tagDropdownOpen"
+              @click="toggleTagDropdown"
+            >
+              <span class="tag-filter-label">标签:</span>
+              <span class="tag-filter-value">{{ selectedTagName || '全部标签' }}</span>
+              <svg class="tag-filter-arrow" :class="{ open: tagDropdownOpen }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+            <div v-if="tagDropdownOpen" class="tag-dropdown-panel glass-card" role="listbox" aria-label="按标签筛选">
+              <div
+                class="tag-dropdown-item"
+                :class="{ selected: selectedTagId === null }"
+                role="option"
+                :aria-selected="selectedTagId === null"
+                @click="handleTagSelect(null)"
+              >
+                <span class="tag-radio"></span>
+                <span class="tag-option-name">全部标签</span>
+              </div>
+              <div
+                v-for="tag in toolTags"
+                :key="tag.id"
+                class="tag-dropdown-item"
+                :class="{ selected: selectedTagId === tag.id }"
+                role="option"
+                :aria-selected="selectedTagId === tag.id"
+                @click="handleTagSelect(tag.id)"
+              >
+                <span class="tag-radio"></span>
+                <span class="tag-option-name">{{ tag.name }}</span>
+              </div>
+            </div>
           </div>
 
           <!-- Category Pills + Tab Pills -->
@@ -469,7 +559,7 @@ onMounted(() => {
                 <p class="tool-description">{{ tool.description || '\u00A0' }}</p>
                 <div class="tool-tags">
                   <template v-if="tool.tags && tool.tags.length > 0">
-                    <TagBadge v-for="tag in tool.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+                    <TagBadge v-for="tag in tool.tags.slice(0, 3)" :key="tag.id" :tag="tag" :clickable="true" @click="handleTagBadgeClick" />
                     <span v-if="tool.tags.length > 3" class="tags-more">+{{ tool.tags.length - 3 }}</span>
                   </template>
                 </div>
@@ -818,13 +908,103 @@ onMounted(() => {
 
 /* Filter Section */
 .filter-section { padding: 0 0 40px; }
-.filter-bar { display: flex; align-items: center; gap: 20px; padding: 16px 20px; flex-wrap: wrap; }
+.filter-bar { display: flex; align-items: center; gap: 20px; padding: 16px 20px; flex-wrap: wrap; position: relative; z-index: 10; }
 
-.search-wrapper { position: relative; flex: 0 0 280px; }
+.search-wrapper { position: relative; flex: 0 0 210px; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 .search-input { width: 100%; padding: 12px 12px 12px 44px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: var(--font-display); font-size: 14px; outline: none; transition: all 0.25s ease; }
 .search-input:focus { border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
 .search-input::placeholder { color: var(--text-muted); }
+
+/* Tag Filter Dropdown */
+.tag-filter { position: relative; flex: 0 0 160px; }
+.tag-filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+.tag-filter-trigger:hover { border-color: rgba(139, 92, 246, 0.4); color: var(--text-primary); }
+.tag-filter-trigger:focus-visible { border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
+.tag-filter-trigger.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.15));
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text-primary);
+}
+.tag-filter-trigger.open { border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); }
+.tag-filter-label { color: var(--text-muted); }
+.tag-filter-value { color: inherit; font-weight: 500; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.tag-filter-arrow { color: var(--text-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.tag-filter-arrow.open { transform: rotate(180deg); }
+
+.tag-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--bg-glass, rgba(20, 20, 30, 0.95));
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  animation: tagDropIn 0.15s ease;
+}
+@keyframes tagDropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+.tag-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tag-dropdown-item:hover { background: rgba(139, 92, 246, 0.1); color: var(--text-primary); }
+.tag-dropdown-item.selected { color: var(--text-primary); font-weight: 500; }
+.tag-option-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tag-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.tag-dropdown-item:hover .tag-radio { border-color: rgba(139, 92, 246, 0.5); }
+.tag-dropdown-item.selected .tag-radio { border-color: var(--accent-1, #8b5cf6); }
+.tag-dropdown-item.selected .tag-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent-1, #8b5cf6);
+}
+
+[data-theme="light"] .tag-dropdown-panel {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
 
 .category-pills { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; align-items: center; }
 

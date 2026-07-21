@@ -1,5 +1,13 @@
 <template>
-  <span class="tag-badge" :class="{ removable }">
+  <span
+    class="tag-badge"
+    :class="{ removable, clickable }"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    @click="handleClick"
+    @keydown.enter.prevent="handleClick"
+    @keydown.space.prevent="handleClick"
+  >
     <span class="tag-name">{{ tag.name }}</span>
     <button
       v-if="removable"
@@ -16,14 +24,22 @@
 import { X } from '@lucide/vue'
 import type { Tag } from '@/types'
 
-defineProps<{
+const props = defineProps<{
   tag: Tag
   removable?: boolean
+  clickable?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'remove', tagId: number): void
+  (e: 'click', tag: Tag): void
 }>()
+
+const handleClick = (event: Event) => {
+  if (!props.clickable) return
+  event.stopPropagation()
+  emit('click', props.tag)
+}
 </script>
 
 <style scoped>
@@ -45,6 +61,20 @@ defineEmits<{
 .tag-badge:hover {
   background: rgba(139, 92, 246, 0.2);
   border-color: rgba(139, 92, 246, 0.35);
+}
+
+.tag-badge.clickable {
+  cursor: pointer;
+}
+
+.tag-badge.clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.tag-badge.clickable:focus-visible {
+  outline: 2px solid var(--accent-1, #8b5cf6);
+  outline-offset: 1px;
 }
 
 .tag-remove {

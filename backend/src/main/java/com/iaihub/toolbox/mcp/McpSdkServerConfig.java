@@ -172,13 +172,14 @@ public class McpSdkServerConfig {
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
-        registerTool(server, "h3_coding_hub_tool_search", "搜索工具列表，可按关键词和分类搜索。返回结果中包含 version 字段，可用于与本地工具目录下的 tools.version 做版本对比",
+        registerTool(server, "h3_coding_hub_tool_search", "搜索工具列表，可按关键词、分类和标签搜索。返回结果中包含 version 字段，可用于与本地工具目录下的 tools.version 做版本对比",
                 """
                 {
                     "type":"object",
                     "properties":{
                         "query":{"type":"string","description":"搜索关键词"},
                         "category":{"type":"string","description":"分类名称"},
+                        "tag":{"type":"string","description":"标签名称（忽略大小写）"},
                         "limit":{"type":"integer","description":"返回数量限制，默认200"}
                     }
                 }
@@ -197,8 +198,9 @@ public class McpSdkServerConfig {
                     Map<String, Object> args = request.arguments();
                     String query = args != null && args.containsKey("query") ? String.valueOf(args.get("query")) : null;
                     String category = args != null && args.containsKey("category") ? String.valueOf(args.get("category")) : null;
+                    String tag = args != null && args.containsKey("tag") ? String.valueOf(args.get("tag")) : null;
                     Integer limit = args != null && args.containsKey("limit") ? ((Number) args.get("limit")).intValue() : 200;
-                    return toolHandler.handleToolSearch(query, category, limit);
+                    return toolHandler.handleToolSearch(query, category, tag, limit);
                 });
 
         registerTool(server, "h3_coding_hub_tool_get", "获取工具详情，包括完整的 markdown 文档。返回的 data.version 可作为版本号写入本地工具目录下的 tools.version 文件",

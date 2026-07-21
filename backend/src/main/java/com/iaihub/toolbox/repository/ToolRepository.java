@@ -74,6 +74,37 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
                                         @Param("keyword") String keyword,
                                         Pageable pageable);
 
+    // 带标签筛选的查询：EXISTS 子查询关联 tool_tag 表
+    @Query("SELECT t FROM Tool t WHERE t.status = 'NORMAL' " +
+           "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+           "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
+           "AND EXISTS (SELECT 1 FROM ToolTag tt WHERE tt.toolId = t.id AND tt.tagId = :tagId) " +
+           "ORDER BY t.createdAt DESC")
+    Page<Tool> findByFiltersWithTag(@Param("categoryId") Long categoryId,
+                                     @Param("keyword") String keyword,
+                                     @Param("tagId") Long tagId,
+                                     Pageable pageable);
+
+    @Query("SELECT t FROM Tool t WHERE t.status = 'NORMAL' " +
+           "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+           "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
+           "AND EXISTS (SELECT 1 FROM ToolTag tt WHERE tt.toolId = t.id AND tt.tagId = :tagId) " +
+           "ORDER BY t.name ASC")
+    Page<Tool> findByFiltersWithTagOrderByName(@Param("categoryId") Long categoryId,
+                                                @Param("keyword") String keyword,
+                                                @Param("tagId") Long tagId,
+                                                Pageable pageable);
+
+    @Query("SELECT t FROM Tool t WHERE t.status = 'NORMAL' " +
+           "AND (:categoryId IS NULL OR t.category.id = :categoryId) " +
+           "AND (:keyword IS NULL OR t.name LIKE %:keyword%) " +
+           "AND EXISTS (SELECT 1 FROM ToolTag tt WHERE tt.toolId = t.id AND tt.tagId = :tagId) " +
+           "ORDER BY t.pinned DESC, t.score DESC")
+    Page<Tool> findByFiltersWithTagOrderByHot(@Param("categoryId") Long categoryId,
+                                               @Param("keyword") String keyword,
+                                               @Param("tagId") Long tagId,
+                                               Pageable pageable);
+
     // 热度 Top5
     @Query("SELECT t.id FROM Tool t WHERE t.status = 'NORMAL' ORDER BY t.score DESC")
     List<Long> findTop5ByStatusOrderByScoreDesc(Pageable pageable);

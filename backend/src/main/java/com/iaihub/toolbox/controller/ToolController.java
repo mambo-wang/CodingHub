@@ -26,11 +26,12 @@ public class ToolController {
     public ResponseEntity<ApiResponse<PageResponse<ToolSummaryDTO>>> getTools(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long tagId,
             @RequestParam(defaultValue = "hot") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size) {
 
-        PageResponse<ToolSummaryDTO> response = toolService.getTools(categoryId, keyword, sortBy, page, size);
+        PageResponse<ToolSummaryDTO> response = toolService.getTools(categoryId, keyword, tagId, sortBy, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

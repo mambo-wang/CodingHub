@@ -39,11 +39,20 @@ public class ToolService {
     private final ToolTagRepository toolTagRepository;
 
     @Transactional(readOnly = true)
-    public PageResponse<ToolSummaryDTO> getTools(Long categoryId, String keyword, String sortBy, int page, int size) {
+    public PageResponse<ToolSummaryDTO> getTools(Long categoryId, String keyword, Long tagId, String sortBy, int page, int size) {
         Pageable pageable = PageRequest.of(page, Math.min(size, 100));
 
         Page<Tool> toolPage;
-        if ("name".equalsIgnoreCase(sortBy)) {
+        if (tagId != null) {
+            if ("name".equalsIgnoreCase(sortBy)) {
+                toolPage = toolRepository.findByFiltersWithTagOrderByName(categoryId, keyword, tagId, pageable);
+            } else if ("latest".equalsIgnoreCase(sortBy)) {
+                toolPage = toolRepository.findByFiltersWithTag(categoryId, keyword, tagId, pageable);
+            } else {
+                // 默认 hot：pinned DESC, score DESC
+                toolPage = toolRepository.findByFiltersWithTagOrderByHot(categoryId, keyword, tagId, pageable);
+            }
+        } else if ("name".equalsIgnoreCase(sortBy)) {
             toolPage = toolRepository.findByFiltersOrderByName(categoryId, keyword, pageable);
         } else if ("latest".equalsIgnoreCase(sortBy)) {
             toolPage = toolRepository.findByFilters(categoryId, keyword, pageable);

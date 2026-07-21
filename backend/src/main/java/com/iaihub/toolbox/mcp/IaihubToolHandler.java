@@ -110,10 +110,10 @@ public class IaihubToolHandler {
     /**
      * 处理工具搜索
      */
-    public McpSchema.CallToolResult handleToolSearch(String query, String category, Integer limit) {
-        logger.info("MCP tool search: query={}, category={}, limit={}", query, category, limit);
+    public McpSchema.CallToolResult handleToolSearch(String query, String category, String tag, Integer limit) {
+        logger.info("MCP tool search: query={}, category={}, tag={}, limit={}", query, category, tag, limit);
         try {
-            List<ToolSearchResult> results = searchService.searchTools(query, category, limit);
+            List<ToolSearchResult> results = searchService.searchTools(query, category, tag, limit);
             String json = toJson(new ToolSearchResponse(results));
             return successResult(json);
         } catch (Exception e) {

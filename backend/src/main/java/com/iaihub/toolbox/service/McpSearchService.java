@@ -56,19 +56,34 @@ public class McpSearchService {
 
     /**
      * 搜索工具
+     *
+     * @param tag 标签名称（忽略大小写），非空时仅返回关联该标签的工具
      */
     @Transactional(readOnly = true)
-    public List<ToolSearchResult> searchTools(String query, String category, Integer limit) {
-        logger.info("Searching tools: query={}, category={}, limit={}", query, category, limit);
+    public List<ToolSearchResult> searchTools(String query, String category, String tag, Integer limit) {
+        logger.info("Searching tools: query={}, category={}, tag={}, limit={}", query, category, tag, limit);
 
         int limitValue = limit != null ? limit : 20;
+        boolean filterByTag = tag != null && !tag.isBlank();
+        // 按标签过滤时先取较大候选集再内存过滤，保证结果数量
+        int queryLimit = filterByTag ? Math.max(limitValue, 200) : limitValue;
 
-        List<Tool> tools = toolRepository.findApprovedToolsWithCategory(query, PageRequest.of(0, limitValue));
+        List<Tool> tools = toolRepository.findApprovedToolsWithCategory(query, PageRequest.of(0, queryLimit));
 
         // Batch-fetch tags for all tools to avoid N+1 queries
         Map<Long, List<TagDTO>> tagsMap = resolveTagsForTools(tools);
 
+        String tagLower = filterByTag ? tag.trim().toLowerCase() : null;
+
         return tools.stream()
+                .filter(tool -> {
+                    if (tagLower == null) {
+                        return true;
+                    }
+                    return tagsMap.getOrDefault(tool.getId(), Collections.emptyList()).stream()
+                            .anyMatch(t -> t.name() != null && t.name().toLowerCase().equals(tagLower));
+                })
+                .limit(limitValue)
                 .map(tool -> {
                     ToolSearchResult result = new ToolSearchResult(
                             tool.getId(),

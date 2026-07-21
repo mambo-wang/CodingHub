@@ -51,7 +51,7 @@ public class McpResourceHandler {
      */
     public McpSchema.ReadResourceResult readCatalog() {
         try {
-            List<ToolSearchResult> tools = searchService.searchTools(null, null, 200);
+            List<ToolSearchResult> tools = searchService.searchTools(null, null, null, 200);
             String json = objectMapper.writeValueAsString(
                     Map.of("tools", tools, "count", tools.size()));
             return textResult(CATALOG_URI, json);
@@ -66,7 +66,7 @@ public class McpResourceHandler {
      */
     public McpSchema.ReadResourceResult readRecent() {
         try {
-            List<ToolSearchResult> tools = searchService.searchTools(null, null, 20);
+            List<ToolSearchResult> tools = searchService.searchTools(null, null, null, 20);
             String json = objectMapper.writeValueAsString(
                     Map.of("recentTools", tools, "count", tools.size()));
             return textResult(RECENT_URI, json);
