@@ -188,7 +188,7 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "tools":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"description":{"type":"string"},"version":{"type":"string"},"category":{"type":"string"},"tags":{"type":"array","items":{"type":"string"}}}}},
+                        "tools":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"description":{"type":"string"},"version":{"type":"string"},"category":{"type":"string"},"createdAt":{"type":"string"},"tags":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"tagType":{"type":"string"},"usageCount":{"type":"integer"}}}}}}},
                         "count":{"type":"integer"}
                     },
                     "required":["tools","count"]
@@ -358,10 +358,10 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "toolId":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
-                        "categoryId":{"type":"integer"},"message":{"type":"string"}
+                        "id":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "description":{"type":"string"},"categoryName":{"type":"string"}
                     },
-                    "required":["toolId","name","version"]
+                    "required":["id","name","version"]
                 }
                 """,
                 (exchange, request) -> {
@@ -396,9 +396,10 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "postId":{"type":"integer"},"title":{"type":"string"},"message":{"type":"string"}
+                        "id":{"type":"integer"},"title":{"type":"string"},"content":{"type":"string"},
+                        "authorId":{"type":"integer"},"authorName":{"type":"string"}
                     },
-                    "required":["postId","title"]
+                    "required":["id","title"]
                 }
                 """,
                 (exchange, request) -> {
@@ -480,10 +481,10 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "toolId":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
-                        "message":{"type":"string"}
+                        "id":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "description":{"type":"string"},"categoryName":{"type":"string"}
                     },
-                    "required":["toolId","version"]
+                    "required":["id","version"]
                 }
                 """,
                 (exchange, request) -> {
@@ -625,9 +626,9 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "kbId":{"type":"integer"},"name":{"type":"string"},"message":{"type":"string"}
+                        "id":{"type":"integer"},"name":{"type":"string"},"description":{"type":"string"}
                     },
-                    "required":["kbId","name"]
+                    "required":["id","name"]
                 }
                 """,
                 (exchange, request) -> {
@@ -669,9 +670,9 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "kbId":{"type":"integer"},"name":{"type":"string"},"message":{"type":"string"}
+                        "id":{"type":"integer"},"name":{"type":"string"},"description":{"type":"string"}
                     },
-                    "required":["kbId"]
+                    "required":["id"]
                 }
                 """,
                 (exchange, request) -> {
