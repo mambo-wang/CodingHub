@@ -16,7 +16,7 @@
  *     whoami                                     查看当前配置（脱敏）
  *
  *   工具 (tools)
- *     tool-search [--query Q] [--category ID] [--limit N]
+ *     tool-search [--query Q] [--category ID] [--tag T] [--limit N]
  *     tool-get <toolId>
  *     tool-files <toolId>
  *     tool-download <toolId> <fileId> <outPath>
@@ -286,6 +286,16 @@ const cmd_tool_search = async (cfg, args) => {
   const query = { page: 0, size: args.limit, sortBy: 'hot' };
   if (args.query) query.keyword = args.query;
   if (args.category != null) query.categoryId = args.category;
+  if (args.tag) {
+    const tagsResp = await api(cfg, 'GET', '/api/v1/tags', { query: { type: 'TOOL' } });
+    const tagsData = await ok(tagsResp);
+    const tagList = tagsData.data || [];
+    const matched = tagList.find(t => t.name && t.name.toLowerCase() === args.tag.toLowerCase());
+    if (!matched) {
+      exitErr(`tag not found: "${args.tag}" (available: ${tagList.map(t => t.name).join(', ')})`, 2);
+    }
+    query.tagId = matched.id;
+  }
   const resp = await api(cfg, 'GET', '/api/v1/tools', { query });
   out(await ok(resp));
 };
@@ -461,6 +471,7 @@ const COMMANDS = {
     flags: {
       query:    { type: 'string', default: '', alias: '-q', nargs: 1 },
       category: { type: 'int',    default: null,             nargs: 1 },
+      tag:      { type: 'string', default: null,             nargs: 1 },
       limit:    { type: 'int',    default: 20,               nargs: 1 },
     },
   },

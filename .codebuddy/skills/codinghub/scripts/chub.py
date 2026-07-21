@@ -13,7 +13,7 @@ CodingHub CLI — 绕过 MCP 直接调用 CodingHub REST API 的命令行工具�
     whoami                                     查看当前配置（脱敏）
 
   工具 (tools)
-    tool-search [--query Q] [--category ID] [--limit N]
+    tool-search [--query Q] [--category ID] [--tag T] [--limit N]
     tool-get <toolId>
     tool-files <toolId>
     tool-download <toolId> <fileId> <outPath>
@@ -229,6 +229,17 @@ def cmd_tool_search(cfg, args):
         params["keyword"] = args.query
     if args.category is not None:
         params["categoryId"] = args.category
+    if args.tag:
+        tags_resp = ok(requests.get(f"{cfg['baseUrl']}/api/v1/tags",
+                                    params={"type": "TOOL"}))
+        tag_list = tags_resp.get("data") or []
+        matched = next((t for t in tag_list
+                        if t.get("name", "").lower() == args.tag.lower()), None)
+        if not matched:
+            available = ", ".join(t.get("name", "") for t in tag_list)
+            sys.stderr.write(f'[chub] tag not found: "{args.tag}" (available: {available})\n')
+            sys.exit(2)
+        params["tagId"] = matched["id"]
     out(ok(requests.get(f"{cfg['baseUrl']}/api/v1/tools", params=params)))
 
 
@@ -390,6 +401,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = add("tool-search", cmd_tool_search)
     sp.add_argument("--query", "-q", default="")
     sp.add_argument("--category", type=int, default=None)
+    sp.add_argument("--tag", default=None)
     sp.add_argument("--limit", type=int, default=20)
 
     sp = add("tool-get", cmd_tool_get); sp.add_argument("toolId", type=int)

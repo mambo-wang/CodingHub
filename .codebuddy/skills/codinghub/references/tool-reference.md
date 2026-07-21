@@ -22,7 +22,7 @@
 
 | MCP 工具 | HTTP 端点 | 方法 | 参数/Body |
 |----------|----------|------|-----------|
-| `h3_coding_hub_tool_search` | `/api/v1/tools` | GET | query: `keyword?`, `category?(=categoryId)`, `sortBy?=hot`, `page?=0`, `size?(=limit)` |
+| `h3_coding_hub_tool_search` | `/api/v1/tools` | GET | query: `keyword?`, `category?(=categoryId)`, `tag?`(MCP 标签名称，忽略大小写；HTTP 用 `tagId?`), `sortBy?=hot`, `page?=0`, `size?(=limit)` |
 | `h3_coding_hub_tool_get` | `/api/v1/tools/{toolId}` | GET | - |
 | `h3_coding_hub_tool_files` | `/api/v1/tools/{toolId}/files` | GET | - |
 | `h3_coding_hub_tool_download` | `/api/v1/tools/{toolId}/files/{fileId}/download` | GET | 返回文件流 |

@@ -143,7 +143,7 @@ $CHUB ping
 #### 工具 (tools)
 | 子命令 | 典型参数 |
 |--------|----------|
-| `tool-search` | `--query <kw> [--category ID] [--limit N]` |
+| `tool-search` | `--query <kw> [--category ID] [--tag <标签名>] [--limit N]` |
 | `tool-get <toolId>` | 获取详情（`data.content` 是 markdown） |
 | `tool-files <toolId>` | 获取文件列表 |
 | `tool-download <toolId> <fileId> <outPath>` | 下载文件到指定路径 |
@@ -188,7 +188,7 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 **触发词**: "查询工具列表"、"安装工具"、"有没有 XX 工具"
 
 #### MCP 通道
-1. `h3_coding_hub_tool_search` 按关键词搜索
+1. `h3_coding_hub_tool_search` 按关键词搜索（可选传 `tag` 参数按标签名称过滤，忽略大小写）
 2. `h3_coding_hub_tool_get` 获取完整文档（含安装说明）
 3. `h3_coding_hub_tool_files` 获取文件列表
 4. `h3_coding_hub_tool_download` 获取下载链接（返回相对路径，需拼 `{baseUrl}`）
@@ -198,6 +198,7 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 #### HTTP 通道（chub CLI）
 ```bash
 $CHUB tool-search --query "<kw>"              # 搜索
+$CHUB tool-search --tag "开源"                # 按标签搜索（忽略大小写）
 $CHUB tool-get <toolId>                       # 读文档
 $CHUB tool-files <toolId>                     # 列文件
 $CHUB tool-download <toolId> <fileId> /path/to/save.ext   # 下载
