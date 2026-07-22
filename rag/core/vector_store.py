@@ -10,7 +10,7 @@ from typing import Optional
 
 import zvec
 
-from core.chunker import Chunk
+from core.chunker import Chunk, embedding_content
 from core.embeddings import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,8 @@ DEFAULT_COLLECTION_CONFIG = {
     "chunk_size": 800,
     "chunk_overlap": 50,
     "rerank": True,
+    "context_header": True,
+    "strategy": "auto",
     "description": "",
 }
 
@@ -148,6 +150,7 @@ class VectorStore:
                 zvec.FieldSchema("text", zvec.DataType.STRING, nullable=True),
                 zvec.FieldSchema("source", zvec.DataType.STRING, nullable=True),
                 zvec.FieldSchema("chunk_index", zvec.DataType.INT64, nullable=True),
+                zvec.FieldSchema("context_header", zvec.DataType.STRING, nullable=True),
             ],
             vectors=zvec.VectorSchema(
                 "embedding",
@@ -158,6 +161,21 @@ class VectorStore:
         coll = zvec.create_and_open(zvec_dir, schema=schema)
         self._collections[name] = coll
         logger.info(f"Created new collection: {name} (dim={dimension})")
+
+        # Create FTS index on text field for BM25 hybrid search
+        try:
+            fts_param = zvec.FtsIndexParam(
+                tokenizer_name="jieba",
+                filters=["lowercase"],
+            )
+            coll.create_index("text", fts_param)
+            logger.info(f"Created FTS index on 'text' field for collection '{name}'")
+        except Exception as fts_err:
+            logger.warning(
+                f"Failed to create FTS index for '{name}': {fts_err}. "
+                f"Hybrid search will be unavailable for this collection."
+            )
+
         return coll
 
     def ingest_chunks(self, chunks: list[Chunk], collection: str = "default") -> int:
@@ -184,7 +202,7 @@ class VectorStore:
 
         for start in range(0, len(chunks), ZVEC_MAX_BATCH):
             batch = chunks[start:start + ZVEC_MAX_BATCH]
-            texts = [c.text for c in batch]
+            texts = [embedding_content(c) for c in batch]
             embeddings = self.embedding_service.encode(texts)
 
             docs = zvec.DocList([
@@ -195,6 +213,7 @@ class VectorStore:
                         "text": chunk.text,
                         "source": chunk.source,
                         "chunk_index": chunk.chunk_index,
+                        "context_header": getattr(chunk, "context_header", "") or "",
                     },
                 )
                 for chunk, emb in zip(batch, embeddings)
@@ -218,24 +237,57 @@ class VectorStore:
         query: str,
         top_k: int = 5,
         collection: str = "default",
+        query_text: str | None = None,
     ) -> list[dict]:
-        """Semantic search across the knowledge base.
+        """Hybrid search: ANN vector + BM25 FTS with RRF fusion.
+
+        When query_text is provided and the collection has an FTS index,
+        performs hybrid search combining vector similarity and BM25 keyword
+        matching via Reciprocal Rank Fusion. Falls back to pure vector
+        search if FTS is unavailable (old collections).
 
         Args:
-            query: Search query string.
+            query: Search query string (used for both embedding and FTS).
             top_k: Number of results to return.
             collection: Collection to search in.
+            query_text: Explicit text for FTS query. If None, uses `query`.
 
         Returns:
-            List of result dicts with keys: id, score, text, source, chunk_index.
+            List of result dicts with keys: id, score, text, source,
+            chunk_index, context_header.
         """
         coll = self._get_or_create_collection(collection)
         query_vec = self.embedding_service.encode_query(query)
+        fts_text = query_text if query_text is not None else query
 
-        results = coll.query(
-            zvec.Query("embedding", vector=query_vec),
-            topk=top_k,
-        )
+        # Try hybrid search (vector + FTS + RRF)
+        results = None
+        if fts_text and fts_text.strip():
+            try:
+                vector_query = zvec.Query("embedding", vector=query_vec)
+                fts_query = zvec.Query(
+                    "text",
+                    fts=zvec.Fts(match_string=fts_text),
+                )
+                reranker = zvec.RrfReRanker(rank_constant=60)
+                results = coll.query(
+                    queries=[vector_query, fts_query],
+                    topk=top_k,
+                    reranker=reranker,
+                )
+            except Exception as e:
+                logger.debug(
+                    f"Hybrid search failed for '{collection}' "
+                    f"(FTS index may not exist): {e}. Falling back to ANN."
+                )
+                results = None
+
+        # Fallback: pure vector search
+        if results is None:
+            results = coll.query(
+                zvec.Query("embedding", vector=query_vec),
+                topk=top_k,
+            )
 
         return [
             {
@@ -244,6 +296,7 @@ class VectorStore:
                 "text": r.fields.get("text", "") if hasattr(r.fields, 'get') else str(r.fields.get("text", "")),
                 "source": r.fields.get("source", "") if hasattr(r.fields, 'get') else str(r.fields.get("source", "")),
                 "chunk_index": r.fields.get("chunk_index", 0) if hasattr(r.fields, 'get') else 0,
+                "context_header": r.fields.get("context_header", "") if hasattr(r.fields, 'get') else "",
             }
             for r in results
         ]
@@ -532,3 +585,29 @@ class VectorStore:
         shutil.rmtree(coll_path)
         logger.info(f"Deleted collection '{name}' at {coll_path}")
         return {"deleted": True, "path": coll_path}
+
+    def rebuild_fts_index(self, name: str) -> dict:
+        """Rebuild the FTS index on an existing collection's text field.
+
+        Useful for collections created before FTS support was added.
+        Does not require re-embedding — only rebuilds the inverted index.
+
+        Args:
+            name: Collection name.
+
+        Returns:
+            {"status": "ok"|"error", "collection": str, "message": str}
+        """
+        try:
+            coll = self._get_or_create_collection(name)
+            fts_param = zvec.FtsIndexParam(
+                tokenizer_name="jieba",
+                filters=["lowercase"],
+            )
+            coll.create_index("text", fts_param)
+            logger.info(f"Rebuilt FTS index for collection '{name}'")
+            return {"status": "ok", "collection": name,
+                    "message": "FTS index rebuilt successfully"}
+        except Exception as e:
+            logger.error(f"Failed to rebuild FTS index for '{name}': {e}")
+            return {"status": "error", "collection": name, "message": str(e)}

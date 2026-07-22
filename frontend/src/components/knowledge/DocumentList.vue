@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { FileText, Trash2, Loader2, Download } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import StatusBadge from './StatusBadge.vue'
+import StrategyBadge from './StrategyBadge.vue'
 import type { RagDocumentStatus } from '@/types/knowledge'
 
 const props = defineProps<{
@@ -151,6 +152,7 @@ defineExpose({ loadDocuments, startPolling })
           <div class="doc-meta">
             <span v-if="doc.file_size">{{ formatFileSize(doc.file_size) }}</span>
             <span v-if="doc.status === 'READY' && doc.chunk_count > 0">{{ doc.chunk_count }} 个分块</span>
+            <StrategyBadge v-if="doc.chunk_mode" :strategy="doc.chunk_mode" />
           </div>
         </div>
         <StatusBadge :status="doc.status" :error-message="doc.error_message" />

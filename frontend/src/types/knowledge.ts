@@ -41,6 +41,8 @@ export interface KbConfig {
   chunk_overlap: number
   rerank: boolean
   description: string | null
+  strategy: string
+  context_header: boolean
 }
 
 export interface KbSearchResult {

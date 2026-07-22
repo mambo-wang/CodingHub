@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Loader2, Save } from '@lucide/vue'
+import { Loader2, Save, ChevronDown, ChevronUp } from '@lucide/vue'
 import { knowledgeService } from '@/services/knowledge'
 import { ElMessage } from 'element-plus'
 import type { KbConfig } from '@/types/knowledge'
+import ChunkingPreviewPanel from './ChunkingPreviewPanel.vue'
 
 const props = defineProps<{
   ragBaseUrl: string
@@ -14,6 +15,7 @@ const props = defineProps<{
 const config = ref<KbConfig | null>(null)
 const loading = ref(true)
 const saving = ref(false)
+const showPreview = ref(false)
 
 const form = ref({
   chunkMode: 'structural',
@@ -21,12 +23,20 @@ const form = ref({
   chunkOverlap: 50,
   rerank: true,
   description: '',
+  strategy: 'auto',
+  contextHeader: true,
 })
 
 const chunkModeOptions = [
   { value: 'structural', label: '结构分块 (Structural)' },
   { value: 'semantic', label: '语义分块 (Semantic)' },
   { value: 'recursive', label: '递归分块 (Recursive)' },
+]
+
+const strategyOptions = [
+  { value: 'auto', label: 'Auto (自动选择)' },
+  { value: 'structural', label: 'Structural (结构优先)' },
+  { value: 'recursive', label: 'Recursive (递归切分)' },
 ]
 
 const loadConfig = async () => {
@@ -40,6 +50,8 @@ const loadConfig = async () => {
       chunkOverlap: data.chunk_overlap ?? 50,
       rerank: data.rerank ?? true,
       description: data.description || '',
+      strategy: data.strategy || 'auto',
+      contextHeader: data.context_header ?? true,
     }
   } catch (e) {
     console.error('Failed to load config:', e)
@@ -57,8 +69,10 @@ const handleSave = async () => {
       chunk_overlap: form.value.chunkOverlap,
       rerank: form.value.rerank,
       description: form.value.description || undefined,
+      strategy: form.value.strategy,
+      context_header: form.value.contextHeader,
     })
-    ElMessage.success('配置已保存')
+    ElMessage.success('配置已保存，新上传文档将使用新策略')
   } catch (e) {
     ElMessage.error('保存失败')
   } finally {
@@ -85,6 +99,32 @@ onMounted(loadConfig)
         <span class="form-hint">决定文档如何被切分为搜索片段</span>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">切分策略</label>
+        <select v-model="form.strategy" class="form-select" :disabled="!isOwner">
+          <option v-for="opt in strategyOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+        <span class="form-hint">Auto 模式根据文档结构自动选择最优策略</span>
+      </div>
+
+      <div class="form-group toggle-label">
+        <div>
+          <label class="form-label">上下文标题</label>
+          <span class="form-hint">为每个分块添加标题路径前缀，提升检索精度</span>
+        </div>
+        <button
+          type="button"
+          class="toggle-btn"
+          :class="{ active: form.contextHeader }"
+          :disabled="!isOwner"
+          @click="form.contextHeader = !form.contextHeader"
+          role="switch"
+          :aria-checked="form.contextHeader"
+        >
+          <span class="toggle-knob"></span>
+        </button>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">分块大小</label>
@@ -108,6 +148,19 @@ onMounted(loadConfig)
           placeholder="描述知识库的内容和用途..."
           :disabled="!isOwner"
         ></textarea>
+      </div>
+
+      <div class="preview-section">
+        <button type="button" class="preview-toggle" @click="showPreview = !showPreview">
+          <ChevronDown v-if="!showPreview" :size="14" />
+          <ChevronUp v-else :size="14" />
+          <span>分片预览</span>
+        </button>
+        <ChunkingPreviewPanel
+          v-if="showPreview"
+          :rag-base-url="ragBaseUrl"
+          :rag-collection="ragCollection"
+        />
       </div>
 
       <button
@@ -255,6 +308,32 @@ onMounted(loadConfig)
 
 .toggle-btn.active .toggle-knob {
   transform: translateX(20px);
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.preview-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.2s ease;
+}
+
+.preview-toggle:hover {
+  color: var(--accent-1);
 }
 
 .save-btn {

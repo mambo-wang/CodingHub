@@ -586,7 +586,7 @@ public class McpSdkServerConfig {
                 {
                     "type":"object",
                     "properties":{
-                        "results":{"type":"array","items":{"type":"object","properties":{"content":{"type":"string"},"score":{"type":"number"},"documentName":{"type":"string"}}}},
+                        "results":{"type":"array","items":{"type":"object","properties":{"content":{"type":"string"},"score":{"type":"number"},"documentName":{"type":"string"},"contextHeader":{"type":"string"}}}},
                         "count":{"type":"integer"}
                     },
                     "required":["results","count"]
@@ -800,6 +800,81 @@ public class McpSdkServerConfig {
                     Integer docId = args.containsKey("docId") && args.get("docId") != null
                             ? ((Number) args.get("docId")).intValue() : null;
                     return toolHandler.handleKbDocumentStatus(kbId, docId);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_get_config", """
+                获取知识库的 RAG 配置信息，包括分块模式、分块大小、切分策略、上下文标题开关等。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"}
+                    },
+                    "required":["kbId"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "chunk_mode":{"type":"string"},"chunk_size":{"type":"integer"},
+                        "chunk_overlap":{"type":"integer"},"rerank":{"type":"boolean"},
+                        "strategy":{"type":"string"},"context_header":{"type":"boolean"},
+                        "description":{"type":"string"}
+                    }
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    return toolHandler.handleKbGetConfig(kbId);
+                });
+
+        registerTool(server, "h3_coding_hub_kb_configure", """
+                配置知识库的 RAG 参数。支持设置切分策略（auto/structural/recursive）、上下文标题开关、分块模式/大小/重叠、重排序等。
+                只更新传入的字段，未传入的字段保持不变。新上传的文档将使用新配置。
+                需要传入账号密码进行认证。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "kbId":{"type":"integer","description":"知识库ID"},
+                        "chunkMode":{"type":"string","description":"分块模式: structural/semantic/recursive"},
+                        "chunkSize":{"type":"integer","description":"分块大小（字符数）"},
+                        "chunkOverlap":{"type":"integer","description":"分块重叠（字符数）"},
+                        "rerank":{"type":"boolean","description":"是否启用重排序"},
+                        "strategy":{"type":"string","description":"切分策略: auto（自动选择）/structural/recursive"},
+                        "contextHeader":{"type":"boolean","description":"是否为分块添加标题路径前缀"},
+                        "username":{"type":"string","description":"登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["kbId","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "chunk_mode":{"type":"string"},"chunk_size":{"type":"integer"},
+                        "chunk_overlap":{"type":"integer"},"rerank":{"type":"boolean"},
+                        "strategy":{"type":"string"},"context_header":{"type":"boolean"}
+                    }
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long kbId = ((Number) args.get("kbId")).longValue();
+                    String chunkMode = args.containsKey("chunkMode") ? String.valueOf(args.get("chunkMode")) : null;
+                    Integer chunkSize = args.containsKey("chunkSize") ? ((Number) args.get("chunkSize")).intValue() : null;
+                    Integer chunkOverlap = args.containsKey("chunkOverlap") ? ((Number) args.get("chunkOverlap")).intValue() : null;
+                    Boolean rerank = args.containsKey("rerank") ? (Boolean) args.get("rerank") : null;
+                    String strategy = args.containsKey("strategy") ? String.valueOf(args.get("strategy")) : null;
+                    Boolean contextHeader = args.containsKey("contextHeader") ? (Boolean) args.get("contextHeader") : null;
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handleKbConfigure(kbId, chunkMode, chunkSize, chunkOverlap, rerank, strategy, contextHeader, username, password);
                 });
     }
 

@@ -1,8 +1,9 @@
-"""Shared business logic layer for MCP tools and REST API.
+"""Shared business logic layer for the RAG REST API.
 
 This module owns the VectorStore singleton and exposes structured
-operations (returning dicts) that both the MCP tools and the HTTP
-API can consume.
+operations (returning dicts) that the HTTP API consumes.
+MCP tools are served by the Java backend (h3_coding_hub_kb_* tools),
+which proxies to this service via REST HTTP.
 """
 
 import fnmatch
@@ -206,6 +207,8 @@ def ingest_file(
                              chunk_mode=chunk_mode)
     chunk_size = config["chunk_size"]
     chunk_mode = config["chunk_mode"]
+    use_context_header = config.get("context_header", True)
+    strategy = config.get("strategy", "auto")
 
     filepath = os.path.abspath(filepath)
 
@@ -224,6 +227,16 @@ def ingest_file(
     if error:
         return {"status": "error", "error": error}
 
+    # Auto strategy: use profiler to select optimal chunk_mode
+    if strategy == "auto":
+        from core.profiler import profile_document, select_strategy
+        profile = profile_document(content)
+        chunk_mode = select_strategy(profile)
+        logger.info(f"Auto profiler selected '{chunk_mode}' for {filepath}")
+    elif strategy in ("structural", "recursive", "semantic"):
+        chunk_mode = strategy
+    # else: use chunk_mode from config (backward compat for old collections)
+
     store = get_store()
     # Idempotent: delete existing chunks first
     store.delete_document(filepath, collection=collection)
@@ -236,6 +249,12 @@ def ingest_file(
                                        chunk_size=chunk_size)
     else:
         chunks = chunk_text(content, filepath=filepath, chunk_size=chunk_size)
+
+    # Clear context_header if disabled in config
+    if not use_context_header:
+        for c in chunks:
+            c.context_header = ""
+
     if not chunks:
         return {"status": "error", "error": f"No chunks created from: {filepath}"}
 
@@ -271,9 +290,20 @@ def ingest_content(
                              chunk_mode=chunk_mode)
     chunk_size = config["chunk_size"]
     chunk_mode = config["chunk_mode"]
+    use_context_header = config.get("context_header", True)
+    strategy = config.get("strategy", "auto")
 
     if not content or not content.strip():
         return {"status": "error", "error": "Empty content"}
+
+    # Auto strategy: use profiler to select optimal chunk_mode
+    if strategy == "auto":
+        from core.profiler import profile_document, select_strategy
+        profile = profile_document(content)
+        chunk_mode = select_strategy(profile)
+        logger.info(f"Auto profiler selected '{chunk_mode}' for upload '{filename}'")
+    elif strategy in ("structural", "recursive", "semantic"):
+        chunk_mode = strategy
 
     store = get_store()
     # Use a separate uploads directory to avoid conflicting with zvec collection path
@@ -296,6 +326,12 @@ def ingest_content(
                                        chunk_size=chunk_size)
     else:
         chunks = chunk_text(content, filepath=virtual_path, chunk_size=chunk_size)
+
+    # Clear context_header if disabled in config
+    if not use_context_header:
+        for c in chunks:
+            c.context_header = ""
+
     if not chunks:
         return {"status": "error", "error": "No chunks could be created"}
 
@@ -446,7 +482,8 @@ def search(
     else:
         fetch_k = top_k
 
-    results = store.search(query, top_k=fetch_k, collection=collection)
+    results = store.search(query, top_k=fetch_k, collection=collection,
+                           query_text=query)
 
     if not results:
         return []
@@ -522,6 +559,8 @@ def set_collection_config(
     chunk_overlap: int | None = None,
     rerank: bool | None = None,
     description: str | None = None,
+    strategy: str | None = None,
+    context_header: bool | None = None,
 ) -> dict:
     """Set configuration values for a collection (only non-None values are applied).
 
@@ -540,4 +579,8 @@ def set_collection_config(
         updates["rerank"] = rerank
     if description is not None:
         updates["description"] = description
+    if strategy is not None:
+        updates["strategy"] = strategy
+    if context_header is not None:
+        updates["context_header"] = context_header
     return store.set_collection_config(collection, updates)

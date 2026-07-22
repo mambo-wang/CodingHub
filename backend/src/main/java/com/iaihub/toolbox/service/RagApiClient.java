@@ -147,6 +147,7 @@ public class RagApiClient {
                     result.put("source", item.has("source") ? item.get("source").asText() : "");
                     result.put("score", item.has("score") ? item.get("score").asDouble() : 0.0);
                     result.put("chunkIndex", item.has("chunk_index") ? item.get("chunk_index").asInt() : 0);
+                    result.put("contextHeader", item.has("context_header") ? item.get("context_header").asText() : "");
                     results.add(result);
                 }
             }

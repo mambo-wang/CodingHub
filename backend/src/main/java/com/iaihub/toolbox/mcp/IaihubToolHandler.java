@@ -39,6 +39,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -625,6 +626,60 @@ public class IaihubToolHandler {
         } catch (Exception e) {
             logger.error("Error querying kb document status", e);
             return errorResult("查询文档状态失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理获取知识库 RAG 配置
+     */
+    public McpSchema.CallToolResult handleKbGetConfig(Long kbId) {
+        logger.info("MCP kb get config: kbId={}", kbId);
+        try {
+            Map<String, Object> config = knowledgeBaseService.getCollectionConfig(kbId);
+            return successResult(toJson(config));
+        } catch (Exception e) {
+            logger.error("Error getting kb config", e);
+            return errorResult("获取知识库配置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理更新知识库 RAG 配置（strategy / context_header / chunk 参数）
+     */
+    public McpSchema.CallToolResult handleKbConfigure(Long kbId, String chunkMode, Integer chunkSize,
+                                                       Integer chunkOverlap, Boolean rerank,
+                                                       String strategy, Boolean contextHeader,
+                                                       String username, String password) {
+        logger.info("MCP kb configure: kbId={}, strategy={}, username={}", kbId, strategy, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            User user = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
+
+            Map<String, Object> config = new LinkedHashMap<>();
+            if (chunkMode != null && !chunkMode.isBlank()) config.put("chunk_mode", chunkMode);
+            if (chunkSize != null && chunkSize > 0) config.put("chunk_size", chunkSize);
+            if (chunkOverlap != null && chunkOverlap >= 0) config.put("chunk_overlap", chunkOverlap);
+            if (rerank != null) config.put("rerank", rerank);
+            if (strategy != null && !strategy.isBlank()) config.put("strategy", strategy);
+            if (contextHeader != null) config.put("context_header", contextHeader);
+
+            if (config.isEmpty()) {
+                return errorResult("未提供任何配置参数");
+            }
+
+            Map<String, Object> updated = knowledgeBaseService.configureCollection(kbId, config, user);
+            return successResult(toJson(updated));
+        } catch (Exception e) {
+            logger.error("Error configuring kb via MCP", e);
+            return errorResult("配置知识库失败: " + e.getMessage());
         }
     }
 

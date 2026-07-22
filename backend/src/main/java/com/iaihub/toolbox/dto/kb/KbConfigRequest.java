@@ -16,4 +16,6 @@ public class KbConfigRequest {
     private Integer chunkOverlap;
     private Boolean rerank;
     private String description;
+    private String strategy;
+    private Boolean contextHeader;
 }

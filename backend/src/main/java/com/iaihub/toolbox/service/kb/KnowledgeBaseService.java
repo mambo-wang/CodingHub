@@ -172,8 +172,22 @@ public class KnowledgeBaseService {
                 .source((String) r.getOrDefault("source", ""))
                 .score(r.get("score") instanceof Number ? ((Number) r.get("score")).doubleValue() : 0.0)
                 .chunkIndex(r.get("chunkIndex") instanceof Number ? ((Number) r.get("chunkIndex")).intValue() : 0)
+                .contextHeader((String) r.getOrDefault("contextHeader", ""))
                 .build()
         ).collect(Collectors.toList());
+    }
+
+    // ── Collection Config (for MCP tools) ─────────────────────
+
+    public Map<String, Object> getCollectionConfig(Long kbId) {
+        KnowledgeBase kb = findActiveKb(kbId);
+        return ragApiClient.getCollectionConfig(kb.getRagCollection());
+    }
+
+    public Map<String, Object> configureCollection(Long kbId, Map<String, Object> config, User user) {
+        KnowledgeBase kb = findActiveKb(kbId);
+        checkOwnerOrAdmin(kb, user);
+        return ragApiClient.configureCollection(kb.getRagCollection(), config);
     }
 
     // ── Helpers ──────────────────────────────────────────────

@@ -182,5 +182,48 @@ export const knowledgeService = {
    */
   async updateConfig(ragBaseUrl: string, ragCollection: string, data: Partial<KbConfig>): Promise<void> {
     await axios.put(`${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/config`, data)
+  },
+
+  // ── 分片预览：直连 RAG 服务 ─────────────────────────────────
+
+  /**
+   * 预览文本分片结果（直连 RAG，不写入数据库）
+   * @param ragBaseUrl RAG 服务地址
+   * @param ragCollection 集合名
+   * @param text 待分片文本
+   * @param options 可选参数：strategy / chunk_size / chunk_overlap
+   */
+  async previewChunking(
+    ragBaseUrl: string,
+    ragCollection: string,
+    text: string,
+    options?: { strategy?: string; chunk_size?: number; chunk_overlap?: number }
+  ): Promise<ChunkPreviewResponse> {
+    const url = `${ragBaseUrl}/api/collections/${encodeURIComponent(ragCollection)}/chunking/preview`
+    const response = await axios.post(url, { text, ...options }, { timeout: 30000 })
+    return response.data
+  }
+}
+
+/** 分片预览响应 */
+export interface ChunkPreviewResponse {
+  strategy_used: string
+  chunks: Array<{
+    index: number
+    text: string
+    char_count: number
+    context_header: string
+  }>
+  stats: {
+    total_chunks: number
+    avg_chars: number
+    min_chars: number
+    max_chars: number
+  }
+  profile: {
+    heading_count: number
+    code_ratio: number
+    has_tables: boolean
+    total_chars: number
   }
 }

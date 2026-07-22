@@ -15,4 +15,5 @@ public class KbSearchResultResponse {
     private String source;
     private double score;
     private Integer chunkIndex;
+    private String contextHeader;
 }

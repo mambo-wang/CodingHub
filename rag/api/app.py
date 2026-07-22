@@ -364,6 +364,8 @@ async def update_config(request: Request):
             chunk_overlap=body.get("chunk_overlap"),
             rerank=body.get("rerank"),
             description=body.get("description"),
+            strategy=body.get("strategy"),
+            context_header=body.get("context_header"),
         )
         return _json(config)
     except Exception as e:
@@ -499,6 +501,95 @@ async def get_single_document_status(request: Request):
         return _error(str(e), 500)
 
 
+# ── Chunking Preview ─────────────────────────────────────────
+
+async def chunking_preview(request: Request):
+    """POST /api/collections/{name}/chunking/preview — preview chunking results.
+
+    Runs the chunker on sample text without writing to DB or calling
+    the embedding API. Returns chunks, statistics, and document profile.
+
+    Expects JSON body:
+    {"text": "...", "strategy": "auto", "chunk_size": 800, "chunk_overlap": 50}
+    """
+    _get_collection(request)  # validate collection exists
+
+    try:
+        body = await request.json()
+    except Exception:
+        return _error("Invalid JSON body", 400)
+
+    text = body.get("text", "")
+    strategy = body.get("strategy", "auto")
+    chunk_size = body.get("chunk_size", 800)
+    chunk_overlap = body.get("chunk_overlap", 50)
+
+    # Input validation
+    if not text or not text.strip():
+        return _error("text is required and must be non-empty", 400)
+    if len(text) > 65536:
+        return _error("text exceeds 64KB limit", 400)
+    if strategy == "semantic":
+        return _error("preview does not support semantic strategy (requires embedding)", 400)
+
+    try:
+        from core.profiler import profile_document, select_strategy
+        from core.chunker import chunk_text, structural_chunk_text
+
+        # Profile the document
+        profile = profile_document(text)
+
+        # Resolve strategy
+        if strategy == "auto":
+            mode = select_strategy(profile)
+        else:
+            mode = strategy
+
+        # Run chunker (no DB, no embedding)
+        if mode == "structural":
+            chunks = structural_chunk_text(text, "preview.md",
+                                           chunk_size=chunk_size,
+                                           chunk_overlap=chunk_overlap)
+        else:
+            chunks = chunk_text(text, "preview.md",
+                                chunk_size=chunk_size,
+                                chunk_overlap=chunk_overlap)
+
+        # Build response
+        chunk_list = [
+            {
+                "index": c.chunk_index,
+                "text": c.text,
+                "context_header": c.context_header,
+                "char_count": len(c.text),
+            }
+            for c in chunks
+        ]
+
+        lengths = [len(c.text) for c in chunks]
+        stats = {
+            "total_chunks": len(chunks),
+            "avg_chars": round(sum(lengths) / max(len(lengths), 1)),
+            "min_chars": min(lengths) if lengths else 0,
+            "max_chars": max(lengths) if lengths else 0,
+        }
+
+        return _json({
+            "strategy_used": mode,
+            "chunks": chunk_list,
+            "stats": stats,
+            "profile": {
+                "heading_count": profile.heading_count,
+                "code_ratio": round(profile.code_ratio, 3),
+                "has_tables": profile.has_tables,
+                "total_chars": profile.total_chars,
+            },
+        })
+    except Exception as e:
+        logger.error(f"chunking_preview failed: {e}")
+        return _error(str(e), 500)
+
+
 # ── Router ───────────────────────────────────────────────────
 
 def create_api_routes() -> list[Route]:
@@ -518,6 +609,7 @@ def create_api_routes() -> list[Route]:
         Route("/api/collections/{name}/documents/download", download_document, methods=["GET"]),
         Route("/api/collections/{name}", delete_collection, methods=["DELETE"]),
         Route("/api/collections/{name}/search", search_documents, methods=["POST"]),
+        Route("/api/collections/{name}/chunking/preview", chunking_preview, methods=["POST"]),
         Route("/api/collections/{name}/config", get_config, methods=["GET"]),
         Route("/api/collections/{name}/config", update_config, methods=["PUT"]),
     ]
