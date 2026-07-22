@@ -82,7 +82,7 @@ vector_store.query()
 
 | 依赖项 | 类型 | 风险 |
 |--------|------|------|
-| `zvec` Python 包 | 向量存储引擎 | L1（schema 新增字段需验证 zvec 兼容性） |
+| `zvec` Python 包 (≥0.5.0) | 向量存储引擎 + 原生 FTS | L1（schema 新增字段 + FtsIndexParam 需 v0.5.0+；旧版本无 MultiQuery API） |
 | `core/embeddings.py` | Embedding 模型 | L0（接口不变，仅输入文本变长） |
 | `core/reranker.py` | Reranker 模型 | L0（不受影响） |
 | `core/database.py` | SQLite 状态追踪 | L0（不受影响） |
@@ -123,6 +123,8 @@ vector_store.query()
 关键风险点：
 - zvec `coll.insert()` 新增 `context_header` 字段：需验证 zvec 是否支持动态 schema（已有 text/source/chunk_index 字段，新增 STRING 字段应兼容）
 - 旧数据无 context_header 字段：`coll.fetch()` 返回时该字段为空/缺失，需在 service.py 中做 `.get("context_header", "")` 防御
+- zvec FTS 版本门槛：`FtsIndexParam` 和 `MultiQuery` 为 v0.5.0+ 新增 API，当前环境需 `pip show zvec` 确认版本；若版本不足需升级
+- 旧 collection 无 FTS 索引：已有 collection 的 text 字段未建 FTS 索引，`MultiQuery` 的 fts 分支可能报错 → 需 try/except 降级为纯 ANN 检索
 
 ---
 
@@ -148,6 +150,8 @@ server.py (MCP tools) / api/app.py (REST) → core/service.py → core/chunker.p
 - [ ] `test_chunker.py::test_context_header` — 验证 structural 模式生成正确面包屑
 - [ ] `test_chunker.py::test_auto_profiler` — 验证不同文档类型选择正确策略
 - [ ] `test_chunker.py::test_backward_compat` — 验证无 strategy 字段时默认 structural 行为不变
+- [ ] `test_hybrid_search.py::test_multiquery_rrf` — 验证新 collection 的 MultiQuery RRF 融合排序正确
+- [ ] `test_hybrid_search.py::test_fts_degradation` — 验证旧 collection（无 FTS 索引）降级为纯 ANN 不报错
 - [ ] 手动验证：已有 collection 重新 search 结果不变（旧数据无 context_header 不影响 ANN）
 - [ ] 手动验证：前端知识库设置页 strategy 选择器 + 预览面板正常工作
 

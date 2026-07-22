@@ -107,6 +107,40 @@ def select_strategy(text: str) -> str:
 
 **理由**：参考 WeKnora 的 `POST /api/v1/chunker/preview` 设计，只读操作，不写 DB，不调 embedding API，5s 超时保护。前端直接调 RAG :8000 端口（已有 CORS）。
 
+### D6: BM25 混合检索实现方式
+
+**选择**：zvec v0.5.0+ 原生 FTS（FtsIndexParam + MultiQuery + RRF 融合）
+
+**备选方案**：
+- A) SQLite FTS5 独立索引：在 `rag/core/bm25_index.py` 中维护一套关键词倒排索引，检索时分别查 ANN 和 FTS5 再手动 RRF 融合——需额外维护索引同步、增加 ingest 复杂度
+- B) rank_bm25 Python 库：内存中构建 BM25 索引——大集合时内存占用高，且进程重启需全量重建
+- C) zvec 原生 FTS ✓：在 text 字段上建 FtsIndexParam，查询时用 MultiQuery 同时走 ANN + FTS，引擎内部 RRF/Weighted 融合排序——零额外依赖，索引自动同步
+
+**理由**：zvec v0.5.0 已原生支持全文检索（BM25 评分 + WAND/Block-Max WAND 剪枝 + Roaring Bitmap 倒排），与向量索引共享同一 collection，insert/delete 时 FTS 索引自动维护，无需额外同步逻辑。MultiQuery 支持 `rrf` 和 `weighted` 两种融合策略，开箱即用。
+
+**实现要点**：
+```python
+# vector_store.py — 建表时
+from zvec import FtsIndexParam
+fts_param = FtsIndexParam(field_name="text")
+coll.create_index(..., fts_index_params=[fts_param])
+
+# vector_store.py — 检索时
+from zvec import MultiQuery
+multi_query = MultiQuery(
+    vector_query=embedding,       # ANN 向量检索
+    fts_query=query_text,         # BM25 全文检索
+    fusion="rrf",                 # RRF 融合排序
+    limit=top_k,
+)
+results = coll.search(multi_query)
+```
+
+**约束**：
+- 需确认当前 zvec 版本 ≥ 0.5.0（`pip show zvec` 验证）
+- FTS 索引仅对 STRING 类型字段生效，text 字段已满足
+- 旧 collection 需重建索引才能启用 FTS（通过 re-ingest 或 `coll.create_index` 补建）
+
 ## 流程图
 
 ```mermaid
@@ -160,6 +194,15 @@ sequenceDiagram
     end
     RAG->>ZVec: insert(text, context_header, embedding)
 
+    Note over FE,ZVec: 混合检索流程（ANN + BM25 + RRF）
+    FE->>RAG: POST /collections/{name}/search {query, top_k}
+    RAG->>RAG: embedding = encode(query)
+    RAG->>ZVec: MultiQuery(vector=embedding, fts=query, fusion="rrf")
+    ZVec->>ZVec: ANN 向量检索 + FTS BM25 检索 → RRF 融合排序
+    ZVec-->>RAG: results[] (text, context_header, score)
+    RAG->>RAG: rerank(query, results) [可选]
+    RAG-->>FE: JSON 检索结果（含 context_header）
+
     Note over FE,ZVec: 分片预览流程
     FE->>RAG: POST /collections/{name}/chunking/preview {text, strategy}
     RAG->>Chunker: preview_chunk(text, strategy, chunk_size)
@@ -174,7 +217,7 @@ erDiagram
     ZVEC_COLLECTION {
         string id PK "doc_id_chunk_index"
         string embedding "VECTOR_FP32 向量"
-        string text "原文内容（不含header）"
+        string text "原文内容（不含header）+ FTS索引"
         string source "源文件路径"
         int chunk_index "序号"
         string context_header "标题面包屑（新增）"
@@ -197,15 +240,19 @@ erDiagram
 - [Validator 误杀] 某些文档天然碎片化（如 FAQ 列表），structural 切出短 chunk 被误判为碎片 → 缓解：排除最后一个 chunk；阈值 25% 足够宽松；用户可手动指定 chunk_mode 绕过 auto
 - [前端直连 RAG 端口] 预览 API 在 :8000，前端需 CORS → 缓解：RAG 已默认开启 CORS（RAG_CORS_ORIGINS）
 - [embedding 维度变化] context_header 拼入后 embedding 输入变长，向量语义偏移 → 缓解：header 通常 <50 字符，对 512-800 字符的 chunk 影响 <10%；且所有 chunk 统一加 header，相对排序不变
+- [zvec FTS 版本要求] 原生 FTS 需 zvec ≥ 0.5.0 → 缓解：实施前 `pip show zvec` 验证版本；若版本不足则 `pip install --upgrade zvec`，FTS 为增量功能不影响已有 ANN 索引
+- [旧 collection FTS 索引缺失] 已有 collection 的 text 字段无 FTS 索引 → 缓解：search 时检测 FTS 可用性，不可用则降级为纯 ANN 检索（行为与变更前一致）；提供 re-ingest 命令补建索引
 
 ## 迁移计划（Migration Plan）
 
-1. **Phase 1（RAG 后端）**：修改 `chunker.py` + `vector_store.py` + `service.py`，新增 protected patterns / validator / profiler / context_header。已有 collection 无 strategy 字段时默认 "structural"（保持现有行为）。
-2. **Phase 2（REST API）**：新增 `/chunking/preview` 端点。
-3. **Phase 3（前端）**：知识库设置页增加分片预览面板；文档列表增加 chunk 统计列。
-4. **回滚策略**：strategy 字段为纯新增，删除即回退；zvec 新字段为空不影响旧逻辑；前端组件独立，移除不影响现有页面。
+1. **Phase 1（RAG 后端 - 切分增强）**：修改 `chunker.py` + `vector_store.py` + `service.py`，新增 protected patterns / validator / profiler / context_header。已有 collection 无 strategy 字段时默认 "structural"（保持现有行为）。
+2. **Phase 1.5（RAG 后端 - 混合检索）**：修改 `vector_store.py`，collection 创建时 text 字段附加 FtsIndexParam；search 改用 MultiQuery（ANN + FTS + RRF）。旧 collection 降级为纯 ANN（向后兼容）。
+3. **Phase 2（REST API）**：新增 `/chunking/preview` 端点。
+4. **Phase 3（前端）**：知识库设置页增加分片预览面板；文档列表增加 chunk 统计列。
+5. **回滚策略**：strategy 字段为纯新增，删除即回退；zvec 新字段为空不影响旧逻辑；FTS 索引为增量，删除后 search 自动降级为纯 ANN；前端组件独立，移除不影响现有页面。
 
 ## 待定问题（Open Questions）
 
 - 是否需要对已有文档提供"重新切片"按钮（re-ingest with new strategy）？当前设计是仅新文档走 auto，旧文档保持不变。
 - semantic 模式是否也应加 Protected Patterns？当前设计不加（semantic 按句子粒度切，本身不会切断行内元素），但如果句子提取逻辑有 bug 仍可能切断。
+- zvec FTS 分词器配置：中文文本需要合适的 tokenizer（jieba / character n-gram），需确认 zvec FtsIndexParam 是否支持自定义 tokenizer 或默认按空格/标点分词。若默认分词对中文效果不佳，可能需要 `analyzer` 参数或退化为 character trigram。

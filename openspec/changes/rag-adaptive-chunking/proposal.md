@@ -20,6 +20,7 @@ WeKnora（腾讯开源）的自适应三层切片架构（Profiler → Tier 链 
 - `rag-protected-patterns`: 切片保护区域机制——识别并保护 LaTeX/图片/链接/表格/代码块不被切断
 - `rag-chunk-validator`: 切片质量验证与自动降级——5 条规则验证 + tier 降级链
 - `rag-auto-profiler`: 文档特征自动分析与切片策略选择——替代手动 chunk_mode 配置
+- `rag-hybrid-search`: 混合检索——zvec 原生 FTS（BM25）+ ANN 向量检索 + RRF 融合排序，替代纯向量检索，提升关键词精确匹配召回率
 - `rag-chunking-preview`: 前端分片调试预览——样本文本实时切片展示（参考 WeKnora Chunking Debug）
 
 ### 修改能力（Modified Capabilities）
@@ -30,7 +31,7 @@ WeKnora（腾讯开源）的自适应三层切片架构（Profiler → Tier 链 
 ## 影响范围（Impact）
 
 - **RAG Python 服务**（`rag/core/chunker.py`）：核心改动，新增 protected patterns、validator、profiler、context_header 逻辑
-- **RAG Python 服务**（`rag/core/vector_store.py`）：zvec schema 新增 `context_header` 字段（STRING），embedding 输入改为 EmbeddingContent()
+- **RAG Python 服务**（`rag/core/vector_store.py`）：zvec schema 新增 `context_header` 字段（STRING）；text 字段附加 FtsIndexParam 启用 BM25 全文索引；`query()` 改用 MultiQuery（ANN + FTS + RRF 融合），旧 collection 降级纯 ANN
 - **RAG Python 服务**（`rag/core/service.py`）：ingest 流程集成 auto profiler；search 返回结果携带 context_header
 - **RAG REST API**（`rag/api/app.py`）：新增 `POST /api/collections/{name}/chunking/preview` 端点
 - **前端**（`frontend/src/pages/knowledge/`）：知识库设置页新增分片预览组件；文档列表增强
