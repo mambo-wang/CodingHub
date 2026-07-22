@@ -12,7 +12,9 @@ import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.model.tag.Tag;
 import com.iaihub.toolbox.model.tag.ToolTag;
 import com.iaihub.toolbox.repository.CategoryRepository;
+import com.iaihub.toolbox.repository.ToolFileRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
+import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.tag.TagRepository;
 import com.iaihub.toolbox.repository.tag.ToolTagRepository;
@@ -24,7 +26,10 @@ import org.springframework.stereotype.Service;
 import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +42,8 @@ public class ToolService {
     private final ToolFileService toolFileService;
     private final TagRepository tagRepository;
     private final ToolTagRepository toolTagRepository;
+    private final UnifiedFavoriteRepository unifiedFavoriteRepository;
+    private final ToolFileRepository toolFileRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<ToolSummaryDTO> getTools(Long categoryId, String keyword, Long tagId, String sortBy, int page, int size) {
@@ -62,7 +69,7 @@ public class ToolService {
         }
 
         return PageResponse.<ToolSummaryDTO>builder()
-                .content(toolPage.getContent().stream().map(this::toSummaryDTO).toList())
+                .content(toSummaryDTOList(toolPage.getContent()))
                 .totalElements(toolPage.getTotalElements())
                 .totalPages(toolPage.getTotalPages())
                 .page(page)
@@ -217,6 +224,21 @@ public class ToolService {
     }
 
     @Transactional
+    public void updateLogo(Long id, String logoUrl, User user) {
+        Tool tool = toolRepository.findByIdAndStatusNormal(id)
+                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
+
+        boolean isOwner = tool.getUploader().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN || user.getRole() == Role.SUPER_ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("无权操作此内容");
+        }
+
+        tool.setLogoUrl(logoUrl);
+        toolRepository.save(tool);
+    }
+
+    @Transactional
     public void incrementViewCount(Long toolId) {
         Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
@@ -233,7 +255,7 @@ public class ToolService {
                 uploaderId, categoryId, keyword, pageable);
 
         return PageResponse.<ToolSummaryDTO>builder()
-                .content(toolPage.getContent().stream().map(this::toSummaryDTO).toList())
+                .content(toSummaryDTOList(toolPage.getContent()))
                 .totalElements(toolPage.getTotalElements())
                 .totalPages(toolPage.getTotalPages())
                 .page(page)
@@ -241,7 +263,58 @@ public class ToolService {
                 .build();
     }
 
+    private List<ToolSummaryDTO> toSummaryDTOList(List<Tool> tools) {
+        if (tools.isEmpty()) {
+            return List.of();
+        }
+        List<Long> toolIds = tools.stream().map(Tool::getId).toList();
+        Map<Long, Long> favoriteCounts = batchFavoriteCounts(toolIds);
+        Map<Long, Long> downloadCounts = batchDownloadCounts(toolIds);
+        return tools.stream()
+                .map(tool -> toSummaryDTO(tool, favoriteCounts, downloadCounts))
+                .toList();
+    }
+
+    private Map<Long, Long> batchFavoriteCounts(List<Long> toolIds) {
+        return unifiedFavoriteRepository.countByTargetTypeAndTargetIdIn("TOOL", toolIds).stream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1], (a, b) -> a));
+    }
+
+    private Map<Long, Long> batchDownloadCounts(List<Long> toolIds) {
+        Map<Long, Long> result = new HashMap<>();
+        for (Object[] row : toolFileRepository.sumDownloadCountGroupByToolId(toolIds)) {
+            result.put((Long) row[0], row[1] == null ? 0L : (Long) row[1]);
+        }
+        return result;
+    }
+
+    private String resolveLogoUrl(Tool tool) {
+        if (tool.getLogoUrl() != null && !tool.getLogoUrl().isBlank()) {
+            return tool.getLogoUrl();
+        }
+        // 分类默认 logo 由前端本地资源渲染，后端只返回工具自身 logo
+        return null;
+    }
+
+    private long countFavorites(Long toolId) {
+        return unifiedFavoriteRepository.countByTargetTypeAndTargetId("TOOL", toolId);
+    }
+
+    private long sumDownloads(Long toolId) {
+        List<Object[]> rows = toolFileRepository.sumDownloadCountGroupByToolId(Collections.singletonList(toolId));
+        if (rows.isEmpty() || rows.get(0)[1] == null) {
+            return 0L;
+        }
+        return (Long) rows.get(0)[1];
+    }
+
     private ToolSummaryDTO toSummaryDTO(Tool tool) {
+        return toSummaryDTO(tool,
+                Map.of(tool.getId(), countFavorites(tool.getId())),
+                Map.of(tool.getId(), sumDownloads(tool.getId())));
+    }
+
+    private ToolSummaryDTO toSummaryDTO(Tool tool, Map<Long, Long> favoriteCounts, Map<Long, Long> downloadCounts) {
         Hibernate.initialize(tool.getCategory());
         Hibernate.initialize(tool.getUploader());
         List<TagDTO> tags = toolTagRepository.findByToolId(tool.getId()).stream()
@@ -256,6 +329,7 @@ public class ToolService {
                 .description(tool.getDescription())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
+                .logoUrl(resolveLogoUrl(tool))
                 .uploaderId(tool.getUploader().getId())
                 .uploaderUsername(tool.getUploader().getUsername())
                 .uploaderNickname(tool.getUploader().getNickname())
@@ -265,6 +339,8 @@ public class ToolService {
                 .viewCount(tool.getViewCount() != null ? tool.getViewCount() : 0)
                 .likeCount(tool.getLikeCount() != null ? tool.getLikeCount() : 0)
                 .commentCount(tool.getCommentCount() != null ? tool.getCommentCount() : 0)
+                .favoriteCount(favoriteCounts.getOrDefault(tool.getId(), 0L).intValue())
+                .downloadCount(downloadCounts.getOrDefault(tool.getId(), 0L).intValue())
                 .tags(tags)
                 .build();
     }
@@ -284,6 +360,7 @@ public class ToolService {
                 .description(tool.getDescription())
                 .categoryName(tool.getCategory().getName())
                 .categoryIcon(tool.getCategory().getIcon())
+                .logoUrl(resolveLogoUrl(tool))
                 .content(tool.getContent())
                 .uploaderId(tool.getUploader().getId())
                 .uploaderUsername(tool.getUploader().getUsername())
@@ -293,6 +370,8 @@ public class ToolService {
                 .viewCount(tool.getViewCount() != null ? tool.getViewCount() : 0)
                 .likeCount(tool.getLikeCount() != null ? tool.getLikeCount() : 0)
                 .commentCount(tool.getCommentCount() != null ? tool.getCommentCount() : 0)
+                .favoriteCount((int) countFavorites(tool.getId()))
+                .downloadCount((int) sumDownloads(tool.getId()))
                 .score(tool.getScore() != null ? tool.getScore() : java.math.BigDecimal.ZERO)
                 .tags(tags)
                 .build();

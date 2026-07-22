@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,4 +26,12 @@ public interface ToolFileRepository extends JpaRepository<ToolFile, Long> {
     @Modifying
     @Query("DELETE FROM ToolFile tf WHERE tf.toolId = :toolId")
     void deleteByToolId(@Param("toolId") Long toolId);
+
+    @Modifying
+    @Query("UPDATE ToolFile tf SET tf.downloadCount = tf.downloadCount + 1 WHERE tf.id = :id")
+    void incrementDownloadCount(@Param("id") Long id);
+
+    @Query("SELECT tf.toolId, SUM(tf.downloadCount) FROM ToolFile tf " +
+            "WHERE tf.toolId IN :toolIds GROUP BY tf.toolId")
+    List<Object[]> sumDownloadCountGroupByToolId(@Param("toolIds") Collection<Long> toolIds);
 }

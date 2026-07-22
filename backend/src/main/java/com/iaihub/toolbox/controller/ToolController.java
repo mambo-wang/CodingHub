@@ -74,6 +74,16 @@ public class ToolController {
         return ResponseEntity.ok(ApiResponse.success("删除成功", null));
     }
 
+    @PostMapping("/{id}/logo")
+    public ResponseEntity<ApiResponse<Void>> updateLogo(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateLogoRequest request,
+            @AuthenticationPrincipal User currentUser) {
+
+        toolService.updateLogo(id, request.getLogoUrl(), currentUser);
+        return ResponseEntity.ok(ApiResponse.success("Logo更新成功", null));
+    }
+
     @PostMapping("/{id}/pin")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Void>> pinTool(@PathVariable Long id) {

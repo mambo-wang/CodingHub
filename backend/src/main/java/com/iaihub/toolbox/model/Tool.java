@@ -46,6 +46,9 @@ public class Tool {
     @Column(length = 200)
     private String description;
 
+    @Column(name = "logo_url", length = 512)
+    private String logoUrl;
+
     @Column(nullable = false, length = 50)
     @Builder.Default
     private String version = "1.0.0";
@@ -77,6 +80,14 @@ public class Tool {
     @Builder.Default
     private Integer commentCount = 0;
 
+    @Column(name = "download_count")
+    @Builder.Default
+    private Integer downloadCount = 0;
+
+    @Column(name = "favorite_count")
+    @Builder.Default
+    private Integer favoriteCount = 0;
+
     @Column(name = "score", precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal score = BigDecimal.ZERO;
@@ -85,11 +96,12 @@ public class Tool {
     @Builder.Default
     private Boolean pinned = false;
 
-    // 更新 score 的方法：score = viewCount * 1 + likeCount * 3 + commentCount * 5
+    // 综合热度分：score = viewCount×1 + downloadCount×2 + likeCount×3 + favoriteCount×4 + commentCount×5
     public void updateScore() {
         this.score = BigDecimal.valueOf(this.viewCount)
-            .multiply(BigDecimal.valueOf(1))
+            .add(BigDecimal.valueOf(this.downloadCount).multiply(BigDecimal.valueOf(2)))
             .add(BigDecimal.valueOf(this.likeCount).multiply(BigDecimal.valueOf(3)))
+            .add(BigDecimal.valueOf(this.favoriteCount).multiply(BigDecimal.valueOf(4)))
             .add(BigDecimal.valueOf(this.commentCount).multiply(BigDecimal.valueOf(5)));
     }
 
@@ -110,6 +122,21 @@ public class Tool {
 
     public void incrementCommentCount() {
         this.commentCount++;
+        updateScore();
+    }
+
+    public void incrementDownloadCount() {
+        this.downloadCount++;
+        updateScore();
+    }
+
+    public void incrementFavoriteCount() {
+        this.favoriteCount++;
+        updateScore();
+    }
+
+    public void decrementFavoriteCount() {
+        if (this.favoriteCount > 0) this.favoriteCount--;
         updateScore();
     }
 

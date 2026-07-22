@@ -166,7 +166,7 @@ public class ToolFileService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ToolFile downloadFile(Long toolId, Long fileId) {
         ToolFile toolFile = toolFileRepository.findByIdAndToolId(fileId, toolId)
                 .orElseThrow(() -> new ResourceNotFoundException("文件不存在"));
@@ -176,6 +176,15 @@ public class ToolFileService {
         if (!Files.exists(filePath)) {
             throw new ResourceNotFoundException("文件不存在或已被删除");
         }
+
+        // Increment download count atomically for stats aggregation
+        toolFileRepository.incrementDownloadCount(toolFile.getId());
+
+        // Update tool-level denormalized counter and hot score
+        toolRepository.findByIdAndStatusNormal(toolId).ifPresent(tool -> {
+            tool.incrementDownloadCount();
+            toolRepository.save(tool);
+        });
 
         return toolFile;
     }

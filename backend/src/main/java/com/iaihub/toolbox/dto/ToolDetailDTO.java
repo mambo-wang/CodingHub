@@ -21,6 +21,7 @@ public class ToolDetailDTO {
     private String description;
     private String categoryName;
     private String categoryIcon;
+    private String logoUrl;
     private String content;
     private Long uploaderId;
     private String uploaderUsername;
@@ -30,6 +31,8 @@ public class ToolDetailDTO {
     private Integer viewCount;
     private Integer likeCount;
     private Integer commentCount;
+    private Integer favoriteCount;
+    private Integer downloadCount;
     private BigDecimal score;
     private List<com.iaihub.toolbox.dto.tag.TagDTO> tags;
 }

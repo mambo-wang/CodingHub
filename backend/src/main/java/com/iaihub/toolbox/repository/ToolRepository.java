@@ -105,8 +105,8 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
                                                @Param("tagId") Long tagId,
                                                Pageable pageable);
 
-    // 热度 Top5
-    @Query("SELECT t.id FROM Tool t WHERE t.status = 'NORMAL' ORDER BY t.score DESC")
+    // 热度 Top5（仅返回有互动数据的工具，避免新工具被标记为热门）
+    @Query("SELECT t.id FROM Tool t WHERE t.status = 'NORMAL' AND t.score > 0 ORDER BY t.score DESC")
     List<Long> findTop5ByStatusOrderByScoreDesc(Pageable pageable);
 
     // 置顶/取消置顶

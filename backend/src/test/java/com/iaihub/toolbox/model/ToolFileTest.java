@@ -47,6 +47,20 @@ class ToolFileTest {
     }
 
     @Test
+    void defaultDownloadCount_isZero() {
+        // When
+        ToolFile toolFile = ToolFile.builder()
+                .toolId(1L)
+                .originalName("test.txt")
+                .storedPath("tools/1/test.txt")
+                .fileSize(100L)
+                .build();
+
+        // Then
+        assertEquals(0, toolFile.getDownloadCount());
+    }
+
+    @Test
     void onCreate_setsCreatedAt() {
         // Given
         ToolFile toolFile = ToolFile.builder()

@@ -4,6 +4,7 @@ import com.iaihub.toolbox.model.ToolFile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,9 @@ class ToolFileRepositoryTest {
 
     @Autowired
     private ToolFileRepository toolFileRepository;
+
+    @Autowired
+    private TestEntityManager entityManager;
 
     @Test
     void save_persistsToolFile() {
@@ -130,5 +134,50 @@ class ToolFileRepositoryTest {
 
         // Then
         assertTrue(toolFileRepository.findByToolId(1L).isEmpty());
+    }
+
+    @Test
+    void incrementDownloadCount_incrementsByOne() {
+        // Given
+        ToolFile saved = toolFileRepository.save(ToolFile.builder()
+                .toolId(1L)
+                .originalName("test.py")
+                .storedPath("tools/1/test.py")
+                .fileSize(100L)
+                .build());
+        assertEquals(0, saved.getDownloadCount());
+
+        // When
+        toolFileRepository.incrementDownloadCount(saved.getId());
+        entityManager.clear();
+
+        // Then
+        ToolFile reloaded = toolFileRepository.findById(saved.getId()).orElseThrow();
+        assertEquals(1, reloaded.getDownloadCount());
+    }
+
+    @Test
+    void sumDownloadCountGroupByToolId_aggregatesPerTool() {
+        // Given
+        toolFileRepository.save(ToolFile.builder()
+                .toolId(1L).originalName("a.py").storedPath("tools/1/a.py")
+                .fileSize(100L).downloadCount(3).build());
+        toolFileRepository.save(ToolFile.builder()
+                .toolId(1L).originalName("b.py").storedPath("tools/1/b.py")
+                .fileSize(100L).downloadCount(4).build());
+        toolFileRepository.save(ToolFile.builder()
+                .toolId(2L).originalName("c.py").storedPath("tools/2/c.py")
+                .fileSize(100L).downloadCount(5).build());
+
+        // When
+        List<Object[]> rows = toolFileRepository.sumDownloadCountGroupByToolId(List.of(1L, 2L));
+
+        // Then
+        java.util.Map<Long, Long> sums = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            sums.put((Long) row[0], (Long) row[1]);
+        }
+        assertEquals(7L, sums.get(1L));
+        assertEquals(5L, sums.get(2L));
     }
 }

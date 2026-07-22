@@ -1,5 +1,6 @@
 package com.iaihub.toolbox.dto;
 
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,11 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryDTO {
+public class UpdateLogoRequest {
 
-    private Long id;
-    private String name;
-    private String icon;
+    @Size(max = 512, message = "Logo地址最大512字符")
     private String logoUrl;
-    private Integer sortOrder;
 }

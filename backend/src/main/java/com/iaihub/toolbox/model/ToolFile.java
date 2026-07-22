@@ -42,6 +42,10 @@ public class ToolFile {
     @Column(name = "content_type", length = 100)
     private String contentType;
 
+    @Column(name = "download_count")
+    @Builder.Default
+    private Integer downloadCount = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

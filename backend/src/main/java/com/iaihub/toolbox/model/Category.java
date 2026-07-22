@@ -26,6 +26,9 @@ public class Category {
     @Column(length = 255)
     private String icon;
 
+    @Column(name = "logo_url", length = 512)
+    private String logoUrl;
+
     @Column(name = "sort_order", nullable = false)
     @Builder.Default
     private Integer sortOrder = 0;

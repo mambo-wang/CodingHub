@@ -70,6 +70,18 @@ public class UnifiedFavoriteService {
             favorited = true;
         }
 
+        // Update tool-level denormalized counter and hot score
+        if (targetType == TargetType.TOOL) {
+            toolRepository.findByIdAndStatusNormal(targetId).ifPresent(tool -> {
+                if (favorited) {
+                    tool.incrementFavoriteCount();
+                } else {
+                    tool.decrementFavoriteCount();
+                }
+                toolRepository.save(tool);
+            });
+        }
+
         return InteractionResponse.favoriteToggle(favorited);
     }
 

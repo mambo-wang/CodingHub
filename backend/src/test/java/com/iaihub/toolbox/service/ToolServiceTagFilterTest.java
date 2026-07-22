@@ -6,7 +6,9 @@ import com.iaihub.toolbox.model.Category;
 import com.iaihub.toolbox.model.Tool;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.repository.CategoryRepository;
+import com.iaihub.toolbox.repository.ToolFileRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
+import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.tag.TagRepository;
 import com.iaihub.toolbox.repository.tag.ToolTagRepository;
@@ -46,6 +48,10 @@ class ToolServiceTagFilterTest {
     private TagRepository tagRepository;
     @Mock
     private ToolTagRepository toolTagRepository;
+    @Mock
+    private UnifiedFavoriteRepository unifiedFavoriteRepository;
+    @Mock
+    private ToolFileRepository toolFileRepository;
 
     private ToolService toolService;
 
@@ -54,7 +60,8 @@ class ToolServiceTagFilterTest {
     @BeforeEach
     void setUp() {
         toolService = new ToolService(toolRepository, categoryRepository,
-                userRepository, toolFileService, tagRepository, toolTagRepository);
+                userRepository, toolFileService, tagRepository, toolTagRepository,
+                unifiedFavoriteRepository, toolFileRepository);
 
         Category cat = Category.builder().id(1L).name("开发工具").build();
         User user = User.builder().id(1L).username("tester").nickname("测试员").build();
