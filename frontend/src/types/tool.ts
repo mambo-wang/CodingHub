@@ -3,6 +3,7 @@ export interface ToolDetailDTO {
   name: string;
   categoryName: string;
   categoryIcon: string;
+  logoUrl?: string | null;
   content: string;
   uploaderId: number;
   uploaderUsername: string;
@@ -11,6 +12,8 @@ export interface ToolDetailDTO {
   viewCount?: number;
   likeCount?: number;
   commentCount?: number;
+  favoriteCount?: number;
+  downloadCount?: number;
   score?: number;
   isLiked?: boolean;
 }

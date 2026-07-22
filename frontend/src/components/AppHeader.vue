@@ -61,6 +61,7 @@ const goToKnowledge = () => router.push('/knowledge')
 const goToFeedback = () => router.push('/feedback')
 const goToApprovals = () => router.push('/admin/approvals')
 const goToUserList = () => router.push('/admin/users')
+const goToCategories = () => router.push('/admin/categories')
 </script>
 
 <template>
@@ -86,6 +87,7 @@ const goToUserList = () => router.push('/admin/users')
         <template v-if="isLoggedIn">
           <button v-if="isSuperAdmin" class="nav-btn" @click="goToApprovals">审批管理</button>
           <button v-if="isAdmin" class="nav-btn" @click="goToUserList">用户管理</button>
+          <button v-if="isAdmin" class="nav-btn" @click="goToCategories">分类管理</button>
           <NotificationBell />
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
             <Moon v-if="isDark" :size="18" />

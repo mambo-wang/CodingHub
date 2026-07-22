@@ -7,6 +7,7 @@ import api, { fileUploadApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import type { Category, CreateToolRequest, Tag } from '@/types'
 import TagSelector from '@/components/common/TagSelector.vue'
+import LogoUploader from '@/components/common/LogoUploader.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -35,6 +36,7 @@ const form = ref<CreateToolRequest>({
 })
 
 const selectedTags = ref<Tag[]>([])
+const toolLogo = ref<string | null>(null)
 
 const md = new MarkdownIt()
 
@@ -123,6 +125,15 @@ const handleSubmit = async () => {
     const response = await api.post('/tools', form.value)
     const toolId = response.data.data.id
 
+    // Bind logo if one was uploaded
+    if (toolLogo.value) {
+      try {
+        await api.post(`/tools/${toolId}/logo`, { logoUrl: toolLogo.value })
+      } catch (e) {
+        console.error('Logo bind failed:', e)
+      }
+    }
+
     // Upload files if selected
     if (selectedFiles.value.length > 0) {
       uploading.value = true
@@ -158,6 +169,7 @@ const handleReset = () => {
   form.value.description = ''
   form.value.tagIds = []
   selectedTags.value = []
+  toolLogo.value = null
   previewContent.value = ''
   selectedFiles.value = []
 }
@@ -230,6 +242,15 @@ onMounted(() => {
               />
               <span class="char-count">{{ (form.description || '').length }}/200</span>
             </div>
+          </div>
+
+          <!-- Logo -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🖼️</span>
+              工具 Logo
+            </label>
+            <LogoUploader v-model="toolLogo" />
           </div>
 
           <!-- Category -->

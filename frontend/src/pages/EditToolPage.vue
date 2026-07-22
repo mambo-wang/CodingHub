@@ -7,6 +7,7 @@ import api, { fileUploadApi } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import type { Category, ToolDetail, ToolFile, UpdateToolRequest, Tag } from '@/types'
 import TagSelector from '@/components/common/TagSelector.vue'
+import LogoUploader from '@/components/common/LogoUploader.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -27,6 +28,7 @@ const maxFileSize = 50 * 1024 * 1024
 
 const form = ref<UpdateToolRequest>({ name: '', categoryId: 0, content: '', version: '', description: '', tagIds: [] })
 const selectedTags = ref<Tag[]>([])
+const toolLogo = ref<string | null>(null)
 
 const md = new MarkdownIt()
 
@@ -62,6 +64,7 @@ const fetchTool = async () => {
     form.value.content = tool.content
     form.value.version = tool.version || '1.0.0'
     form.value.description = tool.description || ''
+    toolLogo.value = tool.logoUrl ?? null
 
     const category = categories.value.find(c => c.name === tool.categoryName)
     if (category) form.value.categoryId = category.id
@@ -204,6 +207,11 @@ onMounted(async () => {
           <div class="form-group">
             <label class="form-label">简短描述</label>
             <input v-model="form.description" type="text" class="form-input" placeholder="一句话介绍这个工具（选填）" maxlength="200" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">工具 Logo</label>
+            <LogoUploader v-model="toolLogo" :tool-id="toolId" />
           </div>
 
           <div class="form-group">

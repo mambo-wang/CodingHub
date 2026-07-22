@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Pencil, Trash2, Upload, Bookmark, Wrench, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
+import { Pencil, Trash2, Upload, Bookmark, Wrench, ArrowUp, Flame, Pin, PinOff, Eye, Heart, Download } from '@lucide/vue'
 import MarkdownIt from 'markdown-it'
 import { ElMessage } from 'element-plus'
 import api, { fileUploadApi } from '@/services/api'
 import { interactionApi } from '@/services/interaction'
 import { pinTool, unpinTool, getHotTop5 } from '@/services/tool'
+import { formatCount } from '@/utils/format'
+import { getDefaultLogo } from '@/utils/categoryLogo'
 import type { ToolSummary, Category, Tag, PageResponse, CreateToolRequest } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import SortTab from '@/components/common/SortTab.vue'
 import TagBadge from '@/components/common/TagBadge.vue'
+import LogoUploader from '@/components/common/LogoUploader.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -34,6 +37,17 @@ const deleteTargetId = ref<number | null>(null)
 const deleting = ref(false)
 const hotTop5Ids = ref<Set<number>>(new Set())
 const pinLoadingId = ref<number | null>(null)
+const logoErrorIds = ref<Set<number>>(new Set())
+
+const onLogoError = (id: number) => {
+  logoErrorIds.value.add(id)
+}
+const showLogo = (tool: ToolSummary): boolean => {
+  return !!tool.logoUrl && !logoErrorIds.value.has(tool.id)
+}
+const getToolLogoSrc = (tool: ToolSummary): string => {
+  return showLogo(tool) ? tool.logoUrl! : getDefaultLogo(tool.categoryName)
+}
 const pagination = ref({
   page: 0,
   size: 12,
@@ -62,6 +76,7 @@ const uploadForm = ref<CreateToolRequest>({
   version: '1.0.0',
   description: ''
 })
+const uploadLogo = ref<string | null>(null)
 
 const md = new MarkdownIt()
 
@@ -318,6 +333,13 @@ const handleUploadSubmit = async () => {
   try {
     const response = await api.post('/tools', uploadForm.value)
     const toolId = response.data.data.id
+    if (uploadLogo.value) {
+      try {
+        await api.post(`/tools/${toolId}/logo`, { logoUrl: uploadLogo.value })
+      } catch (e) {
+        console.error('Logo bind failed:', e)
+      }
+    }
     if (selectedFiles.value.length > 0) {
       uploading.value = true
       uploadProgress.value = 0
@@ -336,6 +358,7 @@ const handleUploadSubmit = async () => {
 
 const resetUploadForm = () => {
   uploadForm.value = { name: '', categoryId: categories.value[0]?.id || 0, content: '', version: '1.0.0', description: '' }
+  uploadLogo.value = null
   previewContent.value = ''
   selectedFiles.value = []
   uploadProgress.value = 0
@@ -555,7 +578,18 @@ onUnmounted(() => {
                     <span>热门</span>
                   </span>
                 </div>
-                <h3 class="tool-name">{{ tool.name }}<span v-if="tool.version" class="version-badge" :title="tool.version">v{{ tool.version }}</span></h3>
+                <div class="tool-name-row">
+                  <div class="tool-logo">
+                    <img
+                      :src="getToolLogoSrc(tool)"
+                      :alt="tool.name"
+                      class="tool-logo-img"
+                      loading="lazy"
+                      @error="onLogoError(tool.id)"
+                    />
+                  </div>
+                  <h3 class="tool-name">{{ tool.name }}<span v-if="tool.version" class="version-badge" :title="tool.version">v{{ tool.version }}</span></h3>
+                </div>
                 <p class="tool-description">{{ tool.description || '\u00A0' }}</p>
                 <div class="tool-tags">
                   <template v-if="tool.tags && tool.tags.length > 0">
@@ -572,6 +606,24 @@ onUnmounted(() => {
                     />
                   </div>
                   <span class="tool-date">{{ new Date(tool.createdAt).toLocaleDateString('zh-CN') }}</span>
+                </div>
+                <div class="tool-stats-row">
+                  <span class="stat-item" title="浏览量">
+                    <Eye :size="14" aria-hidden="true" />
+                    <span class="stat-num">{{ formatCount(tool.viewCount) }}</span>
+                  </span>
+                  <span class="stat-item" title="点赞量">
+                    <Heart :size="14" aria-hidden="true" />
+                    <span class="stat-num">{{ formatCount(tool.likeCount) }}</span>
+                  </span>
+                  <span class="stat-item" title="收藏量">
+                    <Bookmark :size="14" aria-hidden="true" />
+                    <span class="stat-num">{{ formatCount(tool.favoriteCount) }}</span>
+                  </span>
+                  <span class="stat-item" title="下载量">
+                    <Download :size="14" aria-hidden="true" />
+                    <span class="stat-num">{{ formatCount(tool.downloadCount) }}</span>
+                  </span>
                 </div>
               </div>
               <div class="tool-card-glow"></div>
@@ -758,6 +810,15 @@ onUnmounted(() => {
                   <input v-model="uploadForm.description" type="text" class="form-input" placeholder="一句话介绍这个工具（选填）" maxlength="200" />
                   <span class="char-count">{{ (uploadForm.description || '').length }}/200</span>
                 </div>
+              </div>
+
+              <!-- Logo -->
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-icon">🖼️</span>
+                  工具 Logo
+                </label>
+                <LogoUploader v-model="uploadLogo" />
               </div>
 
               <!-- Content -->
@@ -1100,7 +1161,7 @@ onUnmounted(() => {
 .btn-icon-pin-tool:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tool-category-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 16px; font-size: 12px; color: var(--accent-1); }
-.tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.3; }
+.tool-name { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 0; line-height: 1.3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .version-badge { display: inline-flex; align-items: center; padding: 2px 8px; margin-left: 8px; border-radius: 6px; font-size: 12px; font-weight: 500; font-family: var(--font-mono); background: rgba(6, 182, 212, 0.1); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.2); vertical-align: middle; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .version-badge:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2); }
 .tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.4; min-height: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1109,6 +1170,15 @@ onUnmounted(() => {
 .tool-footer { display: flex; justify-content: space-between; align-items: center; }
 .tool-uploader { display: flex; align-items: center; gap: 8px; }
 .tool-date { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+.tool-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; }
+.tool-logo { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.tool-logo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.tool-stats-row { display: flex; align-items: center; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+.tool-stats-row .stat-item { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); }
+.tool-stats-row .stat-item svg { color: var(--text-muted); }
+.tool-stats-row .stat-num { font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono); }
 
 /* Loading Skeleton */
 .tool-card-skeleton { padding: 24px; }

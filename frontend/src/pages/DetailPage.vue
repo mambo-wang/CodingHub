@@ -7,6 +7,7 @@ import { Eye, MessageCircle, Pencil, Trash2 } from '@lucide/vue'
 import api from '@/services/api'
 import { fileUploadApi } from '@/services/api'
 import { getToolDetail } from '@/services/tool'
+import { getDefaultLogo } from '@/utils/categoryLogo'
 import type { ToolDetail, ToolFile } from '@/types'
 import type { CommentResponse } from '@/services/interaction'
 import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
@@ -26,6 +27,13 @@ const loading = ref(false)
 const error = ref(false)
 const files = ref<ToolFile[]>([])
 const filesLoading = ref(false)
+
+const logoError = ref(false)
+const showLogo = computed(() => !!tool.value?.logoUrl && !logoError.value)
+const onLogoError = () => { logoError.value = true }
+const logoSrc = computed(() =>
+  showLogo.value ? tool.value!.logoUrl! : getDefaultLogo(tool.value?.categoryName)
+)
 
 const canModify = computed(() => {
   if (!authStore.isLoggedIn || !tool.value) return false
@@ -97,11 +105,13 @@ const fetchTool = async () => {
   error.value = false
   try {
     const toolDetail = await getToolDetail(Number(route.params.id))
+    logoError.value = false
     tool.value = {
       id: toolDetail.id,
       name: toolDetail.name,
       categoryName: toolDetail.categoryName,
       categoryIcon: toolDetail.categoryIcon,
+      logoUrl: toolDetail.logoUrl ?? null,
       content: toolDetail.content,
       uploaderId: toolDetail.uploaderId,
       uploaderUsername: toolDetail.uploaderUsername,
@@ -215,6 +225,14 @@ const handleCommentAdded = (_comment: CommentResponse) => {
             </div>
 
             <div class="tool-meta-header">
+              <div class="tool-detail-logo">
+                <img
+                  :src="logoSrc"
+                  :alt="tool.name"
+                  class="tool-detail-logo-img"
+                  @error="onLogoError"
+                />
+              </div>
               <div class="category-tag">
                 <span class="cat-icon">{{ tool.categoryIcon }}</span>
                 <span>{{ tool.categoryName }}</span>
@@ -670,6 +688,18 @@ const handleCommentAdded = (_comment: CommentResponse) => {
   flex-direction: column;
   gap: 12px;
 }
+
+.tool-detail-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.tool-detail-logo-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .category-tag {
   display: inline-flex;
