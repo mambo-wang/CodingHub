@@ -14,3 +14,4 @@
 10. **带图片文档必须预处理**: 含截图/图表的 PDF/Word/PPT 需先用 markitdown-mcp 预处理
 11. **kb_search 默认值**: `rerank=true`, `expandContext=1`，一般无需修改
 12. **Python 的 requests 依赖**: `chub.py` 依赖 `requests` 库，初始化脚本的 `python -c "import requests"` 会自动检测；若缺失先 `pip install requests`。Node 版本无需额外安装
+13. **MCP 类型工具下载目录**: 安装 MCP 类型工具（如 dbhub mcp）时，压缩包必须下载到 `~/CodingHub/`，不要下载到临时目录或 skill 目录；下载前确保目录存在（`mkdir -p ~/CodingHub`）；报告中必须注明完整下载路径

@@ -185,14 +185,28 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 
 ### 1. 搜索与安装工具
 
-**触发词**: "查询工具列表"、"安装工具"、"有没有 XX 工具"
+**触发词**: "查询工具列表"、"安装工具"、"有没有 XX 工具"、"安装 XX MCP"
+
+#### MCP 类型工具下载目录规则
+
+当安装的是 **MCP 类型工具**（如 "安装 dbhub mcp"、"使用 codinghub mcp 安装 XX mcp"）时：
+
+| 规则 | 说明 |
+|------|------|
+| **下载目录** | 统一下载到 `~/CodingHub/`（Windows: `C:\Users\<用户名>\CodingHub\`，macOS/Linux: `~/CodingHub/`） |
+| **目录不存在时** | 自动创建（`mkdir -p ~/CodingHub`） |
+| **文件命名** | 保留原始文件名（如 `dbhub-mcp-1.0.0.zip`） |
+| **后续步骤** | 下载完成后按工具文档中的安装说明继续执行（解压、配置 MCP Server 等） |
+| **报告要求** | 任务结果报告中**必须**注明安装包下载到的完整路径 |
+
+> 非 MCP 类型工具（如普通 skill）仍按原有逻辑下载到 skill 目录或用户指定路径。
 
 #### MCP 通道
 1. `h3_coding_hub_tool_search` 按关键词搜索（可选传 `tag` 参数按标签名称过滤，忽略大小写）
 2. `h3_coding_hub_tool_get` 获取完整文档（含安装说明）
 3. `h3_coding_hub_tool_files` 获取文件列表
 4. `h3_coding_hub_tool_download` 获取下载链接（返回相对路径，需拼 `{baseUrl}`）
-5. 用 curl 下载文件
+5. 用 curl 下载文件到 `~/CodingHub/`（MCP 类型）或目标 skill 目录（非 MCP 类型）
 6. 版本号写入 skill 文件夹的 `tools.version`
 
 #### HTTP 通道（chub CLI）
@@ -201,7 +215,10 @@ $CHUB tool-search --query "<kw>"              # 搜索
 $CHUB tool-search --tag "开源"                # 按标签搜索（忽略大小写）
 $CHUB tool-get <toolId>                       # 读文档
 $CHUB tool-files <toolId>                     # 列文件
-$CHUB tool-download <toolId> <fileId> /path/to/save.ext   # 下载
+# MCP 类型工具 → 下载到 ~/CodingHub/
+$CHUB tool-download <toolId> <fileId> ~/CodingHub/<filename>
+# 非 MCP 类型 → 下载到 skill 目录或指定路径
+$CHUB tool-download <toolId> <fileId> /path/to/save.ext
 ```
 
 #### tools.version 规则
