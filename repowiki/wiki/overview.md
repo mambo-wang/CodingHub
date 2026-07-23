@@ -64,7 +64,7 @@ sequenceDiagram
 | [统一互动](modules/统一互动.md) | Java + Vue | 跨内容类型的评论、点赞、收藏、通知 |
 | [论坛社区](modules/论坛社区.md) | Java + Vue | 帖子发布、分类浏览、标签筛选、热门排行 |
 | [知识库与RAG](modules/知识库与RAG.md) | Java + Python | 知识库管理、文档分块、向量嵌入、语义检索 |
-| [MCP服务](modules/MCP服务.md) | Java | MCP 协议端点、18 个 AI 工具、搜索与推荐 |
+| [MCP服务](modules/MCP服务.md) | Java | MCP 协议端点、20 个 AI 工具、搜索与推荐 |
 | [前端应用](modules/前端应用.md) | Vue 3 + TS | SPA 路由、状态管理、API 服务层、页面组件 |
 
 ## 架构分层
@@ -112,7 +112,7 @@ graph LR
 
 1. **统一互动模型**：评论、点赞、收藏通过 `TargetType` 枚举（TOOL/POST/VIDEO）实现跨内容类型复用，避免每种内容单独建表。热度公式统一为 `view×1 + like×3 + comment×5`。
 
-2. **MCP 协议原生集成**：后端直接暴露 MCP Server 端点（SSE 传输），AI Agent 无需中间层即可搜索工具、访问知识库、发布帖子，共 18 个 MCP tools。
+2. **MCP 协议原生集成**：后端直接暴露 MCP Server 端点（SSE 传输），AI Agent 无需中间层即可搜索工具、访问知识库、发布帖子，共 20 个 MCP tools。
 
 3. **RAG 服务独立部署**：Python RAG 服务与 Java 后端解耦，前端可直连 RAG API（文档上传/搜索），Java 后端通过 [RagApiClient](../../backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java) 做服务端调用。支持 CPU-only 部署。
 

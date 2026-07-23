@@ -62,7 +62,7 @@ MCP Server 的核心配置类，职责包括：
 |------|------|
 | 传输层注册 | 通过 `ServletRegistrationBean` 注册 Streamable HTTP (`/mcp`) 和 SSE (`/sse`, `/sse/message`) 两个 Servlet |
 | Server 实例创建 | 构建两个 `McpSyncServer` 实例（`@Primary` 标注 Streamable 实例） |
-| 工具注册 | 调用 `registerAllTools()` 注册 18 个 MCP 工具 |
+| 工具注册 | 调用 `registerAllTools()` 注册 20 个 MCP 工具 |
 | 资源注册 | 调用 `registerAllResources()` 注册 3 个 MCP Resource |
 | Prompt 注册 | 调用 `registerAllPrompts()` 注册 6 个工作流模板 |
 | Server Instructions | 在 initialize 握手时向 Agent 发送全局使用指南 |
@@ -77,7 +77,7 @@ Server 声明的能力（Capabilities）：
 
 **路径**: `com.iaihub.toolbox.mcp.IaihubToolHandler`
 
-MCP 工具调用的核心处理器，实现了 18 个工具的业务逻辑。每个 `handle*` 方法：
+MCP 工具调用的核心处理器，实现了 20 个工具的业务逻辑。每个 `handle*` 方法：
 1. 接收从 MCP 请求中解析的参数
 2. 调用对应 Service 层方法
 3. 将结果序列化为 JSON
@@ -148,13 +148,13 @@ MCP 工具调用的核心处理器，实现了 18 个工具的业务逻辑。每
 
 ## 工具定义
 
-MCP Server 共暴露 18 个工具，按功能分为四组：
+MCP Server 共暴露 20 个工具，按功能分为四组：
 
 ### 工具管理（7 个）
 
 | 工具名 | 说明 | 需认证 |
 |--------|------|--------|
-| `h3_coding_hub_tool_search` | 按关键词/分类搜索工具列表 | 否 |
+| `h3_coding_hub_tool_search` | 按关键词/分类/标签搜索工具列表 | 否 |
 | `h3_coding_hub_tool_get` | 获取工具详情（含完整 markdown 文档） | 否 |
 | `h3_coding_hub_tool_files` | 获取工具文件列表及下载链接 | 否 |
 | `h3_coding_hub_tool_download` | 获取指定文件下载信息 | 否 |
@@ -176,17 +176,19 @@ MCP Server 共暴露 18 个工具，按功能分为四组：
 | `h3_coding_hub_post_get` | 获取帖子完整内容 | 否 |
 | `h3_coding_hub_post_create` | 创建新帖子 | 是 |
 
-### 知识库 RAG（7 个）
+### 知识库 RAG（9 个）
 
 | 工具名 | 说明 | 需认证 |
 |--------|------|--------|
 | `h3_coding_hub_kb_list` | 获取知识库列表（分页） | 否 |
 | `h3_coding_hub_kb_search` | 语义搜索知识库内容 | 否 |
 | `h3_coding_hub_kb_create` | 创建知识库 | 是 |
-| `h3_coding_hub_kb_update` | 更新知识库配置 | 是 |
+| `h3_coding_hub_kb_update` | 更新知识库（含名称、描述、RAG 分块配置） | 是 |
 | `h3_coding_hub_kb_delete` | 删除知识库 | 是 |
 | `h3_coding_hub_kb_upload_document` | 获取文档批量上传 API 信息 | 否 |
 | `h3_coding_hub_kb_document_status` | 查询文档处理状态 | 否 |
+| `h3_coding_hub_kb_get_config` | 获取知识库 RAG 配置（分块模式/大小/策略/上下文标题） | 否 |
+| `h3_coding_hub_kb_configure` | 配置知识库 RAG 参数（strategy、contextHeader、chunk 配置、rerank） | 是 |
 
 ### 工具参数示例
 
@@ -199,6 +201,7 @@ MCP Server 共暴露 18 个工具，按功能分为四组：
   "properties": {
     "query": {"type": "string", "description": "搜索关键词"},
     "category": {"type": "string", "description": "分类名称"},
+    "tag": {"type": "string", "description": "标签名过滤（可选）"},
     "limit": {"type": "integer", "description": "返回数量限制，默认200"}
   }
 }
@@ -227,7 +230,8 @@ MCP Server 共暴露 18 个工具，按功能分为四组：
 **工具搜索流程**：
 1. 调用 `ToolRepository.findApprovedToolsWithCategory()` 执行数据库查询（仅返回已审核工具）
 2. 批量获取所有结果工具的标签（`resolveTagsForTools`），避免 N+1 查询
-3. 组装 `ToolSearchResult` DTO（含 id、name、description 截取前 100 字符、category、version、tags）
+3. 若传入 `tag` 参数，在内存中对候选集（至少取 max(limit, 200) 条）做大小写不敏感的标签过滤
+4. 组装 `ToolSearchResult` DTO（含 id、name、description 截取前 100 字符、category、version、tags、logoUrl）
 
 **帖子搜索流程**：
 1. 有关键词时调用 `ForumPostRepository.searchByTitle()` 按标题搜索

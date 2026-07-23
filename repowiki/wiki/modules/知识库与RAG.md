@@ -16,11 +16,16 @@ tags: [rag, knowledge-base, vector, embedding, search]
 
 核心特性：
 - 支持文本文件（md/txt/py/js 等 40+ 格式）与二进制文档（pdf/docx/pptx/xlsx）
-- 三种分块策略：递归字符分块、语义分块、结构化分块
+- 自适应分块策略：递归字符分块、语义分块、结构化分块，由 `core/profiler.py` 根据文档画像（标题密度、代码占比、长度）自动选择最优策略（auto）
+- 分块质量校验：`core/validator.py` 基于 5 条质量规则（非空、大文档非单块、碎片化率、超长块、非全碎片）校验分块结果，失败时触发降级重试
+- 受保护片段：代码块、表格等结构通过 `protected_spans` 识别，避免在结构边界内被硬切（`_split_with_protection`）
+- 混合检索：向量 ANN + FTS 全文检索（jieba 分词）+ RRF 重排（`core/vector_store.py`），FTS 索引缺失时自动回退纯向量检索
+- 上下文标题（context_header）：为每个分块附加标题路径前缀，提升检索精度与可解释性
 - Cross-Encoder 重排序提升检索精度
 - 异步批量文档处理引擎（带并发控制与超时保护）
 - 文件变更检测（SHA256 哈希），避免重复索引
 - 上下文扩展（相邻分块合并）提供更完整的检索结果
+- 分块预览：新增 `POST /api/collections/{name}/chunking/preview` 端点，无需嵌入即可预览分块结果与文档画像
 
 ## 架构总览
 
@@ -77,6 +82,8 @@ graph TD
 
 在 SSE/streamable-http 模式下，服务通过 `_create_combined_app()` 创建组合 ASGI 应用，将 REST API 路由（`/api/*`）与 MCP 路由（`/mcp`、`/sse`）挂载在同一端口。
 
+> 近期重构：路由与业务逻辑拆分为 `rag/api/app.py`（Starlette 路由 + REST 端点）与 `rag/core/*`（分块、嵌入、检索、画像、校验等核心模块），`server.py` 仅负责传输模式（stdio/sse/streamable-http）的装配与启动。
+
 ### MCP Tools（12 个）
 
 | 工具名 | 功能 |
@@ -108,21 +115,27 @@ graph TD
 | DELETE | `/api/collections/{name}/documents` | 删除文档 |
 | DELETE | `/api/collections/{name}` | 删除集合 |
 | POST | `/api/collections/{name}/search` | 语义搜索 |
-| GET/PUT | `/api/collections/{name}/config` | 读取/更新集合配置 |
+| GET/PUT | `/api/collections/{name}/config` | 读取/更新集合配置（新增 strategy、context_header 字段） |
+| POST | `/api/collections/{name}/chunking/preview` | 分块预览：返回 chunks、统计与文档画像，无需嵌入 |
 
 ### 向量存储（zvec）
 
 `core/vector_store.py` 封装了 zvec 嵌入式向量数据库：
 
-- **Schema**：每个 collection 包含 `embedding`（VECTOR_FP32）、`text`（STRING）、`source`（STRING）、`chunk_index`（INT64）
+- **Schema**：每个 collection 包含 `embedding`（VECTOR_FP32）、`text`（STRING）、`source`（STRING）、`chunk_index`（INT64）、`context_header`（STRING，分块所属标题路径前缀）
 - **批量写入**：按 1024 条为一批插入，避免超出 zvec 限制
 - **文档注册**：通过 `_registry.json` 维护文件路径→chunk 数量/哈希的映射
 - **线程安全**：所有写操作通过 `threading.Lock` 保护
-- **Collection 配置**：每个集合独立的 `_config.json`，默认 chunk_mode=structural, chunk_size=800, rerank=True
+- **混合检索**：`search()` 优先执行向量 ANN + FTS 全文检索（jieba 分词建倒排索引）+ RRF 重排（rank_constant=60）；FTS 索引缺失时自动回退纯向量检索。`rebuild_fts_index()` 可在不重嵌的情况下为存量集合重建 FTS 倒排索引
+- **Collection 配置**：每个集合独立的 `_config.json`，默认 chunk_mode=structural, chunk_size=800, chunk_overlap=50, rerank=True, strategy=auto, context_header=True
 
 ### 分块策略
 
-`core/chunker.py` 实现三种分块模式：
+`core/chunker.py` 实现三种分块模式，并由 `core/profiler.py` 与 `core/validator.py` 协同完成自适应选择和质量保障：
+
+- **自适应策略选择**：`profile_document()` 单遍扫描文档提取特征（标题数/密度、代码占比、是否含表格、总长度），`select_strategy()` 据此在 `structural` 与 `recursive` 间自动抉择；文档过短（<200 字符）时回退 `recursive`
+- **分块校验与降级**：`chunk_with_validation()` 在分块后调用 `validate_chunks()` 执行 5 条质量规则，不通过则尝试降级策略重新分块（最多降级两档）
+- **受保护片段**：`_split_with_protection()` / `protected_spans()` 识别代码围栏与表格区间，避免在结构边界内硬切；必要时 `_split_protected_region_forced()` 强制拆分
 
 **1. 递归字符分块（recursive）**
 - 按段落 → 换行 → 句子 → 字符逐级拆分
@@ -183,6 +196,8 @@ graph TD
 | PUT | `/api/v1/knowledge/{id}` | 更新知识库 |
 | DELETE | `/api/v1/knowledge/{id}` | 删除知识库（软删除） |
 | POST | `/api/v1/knowledge/{id}/search` | 语义搜索代理 |
+| GET | `/api/v1/knowledge/{id}/config` | 获取 RAG 集合配置 |
+| PUT | `/api/v1/knowledge/{id}/config` | 更新 RAG 集合配置（分块/策略/重排等） |
 
 ### [KnowledgeBaseService](../../../backend/src/main/java/com/iaihub/toolbox/service/kb/KnowledgeBaseService.java)
 
@@ -193,6 +208,7 @@ graph TD
 - **搜索代理**：通过 `ragApiClient.search()` 转发到 Python 服务，默认 expandContext=1
 - **权限控制**：仅 Owner 或 ADMIN/SUPER_ADMIN 可修改/删除
 - **响应构建**：返回 `ragBaseUrl` 和 `documentsUrl` 供前端直连 RAG 服务上传文档
+- **集合配置代理**：`getCollectionConfig(kbId)` 与 `configureCollection(kbId, config, user)` 转发到 RAG 服务（仅 Owner/ADMIN），支持更新 chunkMode、chunkSize、chunkOverlap、rerank、strategy（auto/structural/recursive）、contextHeader
 
 ### [RagApiClient](../../../backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java)
 
@@ -294,10 +310,12 @@ app:
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| chunk_mode | structural | 分块策略 |
+| chunk_mode | structural | 分块模式（structural/semantic/recursive） |
 | chunk_size | 800 | 最大字符数/块 |
 | chunk_overlap | 50 | 重叠字符数 |
 | rerank | true | 是否启用重排序 |
+| strategy | auto | 分块策略（auto/structural/recursive；auto 由 profiler 自动选择） |
+| context_header | true | 是否为每个分块附加标题路径前缀 |
 
 ### 部署建议
 
@@ -309,7 +327,7 @@ app:
 ## 交叉引用
 
 - [工具广场](工具广场.md) — 知识库作为工具广场中的核心工具之一，为 AI 对话提供上下文增强
-- [MCP服务](MCP服务.md) — RAG 服务通过 FastMCP 暴露 12 个 MCP Tools，可被任意 MCP 客户端调用
+- [MCP服务](MCP服务.md) — RAG 服务通过 FastMCP 暴露 12 个 MCP Tools；同时 CodingHub 后端 MCP Server 提供 9 个 `h3_coding_hub_kb_*` 工具（含 kb_get_config / kb_configure）代理知识库能力
 
 
 <!-- crosslinks (auto-generated) -->

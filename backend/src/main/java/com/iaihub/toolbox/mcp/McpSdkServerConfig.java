@@ -30,7 +30,7 @@ import java.util.function.BiFunction;
  *   <li><b>SSE</b>（/sse + /mcp/message）— 旧版传输，兼容不支持 streamable-http 的客户端</li>
  * </ul>
  *
- * <p>两个 McpServer 实例各自注册相同的 18 个工具，客户端通过任一传输协议均可调用。
+ * <p>两个 McpServer 实例各自注册相同的 20 个工具，客户端通过任一传输协议均可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -45,9 +45,9 @@ public class McpSdkServerConfig {
             CodingHub 工具广场 MCP Server — AI 工具的搜索、安装、发布、更新与社区协作平台。
 
             ## 能力概览
-            - **工具管理**: 搜索/获取/创建/修改工具，文件上传/下载/删除（18 个工具）
+            - **工具管理**: 搜索/获取/创建/修改工具，文件上传/下载/删除（共 20 个工具）
             - **社区论坛**: 帖子搜索/获取/创建
-            - **知识库 (RAG)**: 知识库 CRUD、语义搜索、文档上传与状态查询
+            - **知识库 (RAG)**: 知识库 CRUD、语义搜索、文档上传与状态查询、RAG 分块配置读取/更新
             - **工作流指引**: 6 个 Prompt 模板（install-tool, publish-tool, update-tool 等）
             - **上下文资源**: 工具目录 (codinghub://tools/catalog)、最近更新 (codinghub://tools/recent)、单工具详情 (codinghub://tool/{id})
 
@@ -135,7 +135,7 @@ public class McpSdkServerConfig {
         registerAllTools(server, toolHandler);
         registerAllResources(server, resourceHandler);
         registerAllPrompts(server, promptProvider);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 18 tools, 3 resources, 6 prompts");
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 20 tools, 3 resources, 6 prompts");
         return server;
     }
 
@@ -161,14 +161,14 @@ public class McpSdkServerConfig {
         registerAllTools(server, toolHandler);
         registerAllResources(server, resourceHandler);
         registerAllPrompts(server, promptProvider);
-        logger.info("MCP Server (SSE, /sse) initialized with 18 tools, 3 resources, 6 prompts");
+        logger.info("MCP Server (SSE, /sse) initialized with 20 tools, 3 resources, 6 prompts");
         return server;
     }
 
     // ── 工具注册 ──────────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册相同的 18 个工具。
+     * 在所有 McpServer 实例上注册相同的 20 个工具。
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
