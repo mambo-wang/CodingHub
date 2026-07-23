@@ -316,7 +316,11 @@ async def search_documents(request: Request):
     expand_context = int(body.get("expand_context", 0))
 
     try:
-        results = service.search(
+        # Run the (potentially heavy, model-loading) search in a worker thread
+        # so loading the embedding/reranker models does not block the event
+        # loop, which previously made the first search request time out.
+        results = await asyncio.to_thread(
+            service.search,
             query=query, top_k=top_k,
             collection=collection, rerank=rerank,
             filter=filter_pattern,

@@ -7,11 +7,13 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Default model — all-MiniLM-L6-v2 is fast on CPU (22M params vs Qwen3's 600M).
-# Set RAG_EMBEDDING_MODEL for higher-quality models when GPU is available.
-DEFAULT_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
-# Expected embedding dimension for the default model
-DEFAULT_DIMENSION = 384
+# Default model — Qwen/Qwen3-Embedding-0.6B is a Chinese+English bilingual
+# embedding model (1024-dim, 32K context) and is what the whole project targets
+# (deploy scripts download it, encode_query uses the "query: " instruction prefix).
+# all-MiniLM-L6-v2 was English-only and gave poor Chinese recall, so it is no
+# longer the default. For a lighter CPU-only model set RAG_EMBEDDING_MODEL, e.g.
+# "BAAI/bge-small-zh-v1.5". The embedding dimension is detected at load time.
+DEFAULT_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-0.6B")
 
 
 class EmbeddingService:
@@ -46,6 +48,20 @@ class EmbeddingService:
             model_name = DEFAULT_MODEL
             logger.info(f"Loading embedding model: {model_name}")
 
+            # Configure the HuggingFace endpoint BEFORE importing sentence-transformers.
+            # huggingface_hub caches HF_ENDPOINT as a module-level constant at import
+            # time, so the env var must be set first; otherwise requests hit
+            # huggingface.co directly and time out on restricted networks. We also
+            # override an explicitly-set official endpoint, since it is unreachable
+            # from this network.
+            current_ep = os.environ.get("HF_ENDPOINT", "")
+            if not current_ep or "huggingface.co" in current_ep:
+                os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+            # Allow online model download — override any inherited offline flag so
+            # the model can actually be fetched on first run.
+            os.environ["TRANSFORMERS_OFFLINE"] = "0"
+            os.environ["HF_HUB_OFFLINE"] = "0"
+
             try:
                 from sentence_transformers import SentenceTransformer
             except ImportError:
@@ -54,10 +70,17 @@ class EmbeddingService:
                     "Run: pip install sentence-transformers"
                 )
 
-            # Set HuggingFace mirror for China users (if not already configured)
-            os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-            os.environ.setdefault("TRANSFORMERS_OFFLINE", "0")
-            os.environ.setdefault("HF_HUB_OFFLINE", "0")
+            # Refresh huggingface_hub's cached endpoint constant. It was read at
+            # import time (above) and won't pick up the env change otherwise.
+            try:
+                import huggingface_hub.constants as _hf_constants
+                _hf_constants.HF_ENDPOINT = os.environ.get(
+                    "HF_ENDPOINT", "https://huggingface.co"
+                )
+            except Exception:
+                pass
+
+            logger.info(f"HuggingFace endpoint: {os.environ.get('HF_ENDPOINT')}")
 
             self._model = SentenceTransformer(model_name)
 

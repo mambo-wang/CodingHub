@@ -289,7 +289,7 @@ sequenceDiagram
 | `RAG_MCP_HOST` | 127.0.0.1 | 绑定地址 |
 | `RAG_MCP_PORT` | 8000 | 绑定端口 |
 | `RAG_DATA_DIR` | ./data/ | 数据存储目录 |
-| `RAG_EMBEDDING_MODEL` | all-MiniLM-L6-v2 | 嵌入模型 |
+| `RAG_EMBEDDING_MODEL` | Qwen/Qwen3-Embedding-0.6B | 嵌入模型（中英文双语，替换了对中文不友好的 all-MiniLM-L6-v2） |
 | `RAG_EMBEDDING_BATCH_SIZE` | 32 | 嵌入批大小 |
 | `RAG_RERANKER_MODEL` | bge-reranker-v2-m3 | 重排序模型 |
 | `RAG_MAX_CONCURRENT` | 1 | 最大并发处理数 |

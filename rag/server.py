@@ -28,6 +28,15 @@ import logging
 import os
 import sys
 
+# Route HuggingFace downloads through a mirror. huggingface_hub caches
+# HF_ENDPOINT as a constant at import time, so it must be set before any
+# huggingface-related import happens.
+_current_ep = os.environ.get("HF_ENDPOINT", "")
+if not _current_ep or "huggingface.co" in _current_ep:
+    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+os.environ["TRANSFORMERS_OFFLINE"] = "0"
+os.environ["HF_HUB_OFFLINE"] = "0"
+
 # Ensure the project root is in the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -90,7 +99,12 @@ def main():
 
     app = create_app()
     logger.info(f"Starting RAG REST API: http://{_args.host}:{_args.port}/api/")
-    uvicorn.run(app, host=_args.host, port=_args.port)
+    # Use the default asyncio event loop (NOT uvloop). Under uvicorn's uvloop,
+    # the blocking C extensions executed inside asyncio.to_thread — the zvec
+    # vector store (create_and_open) and sentence-transformers model loading —
+    # deadlock in the worker thread, hanging document ingestion at CHUNKING.
+    # The standard asyncio loop does not exhibit this deadlock.
+    uvicorn.run(app, host=_args.host, port=_args.port, loop="asyncio")
 
 
 if __name__ == "__main__":

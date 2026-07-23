@@ -37,6 +37,15 @@ class RerankerService:
         model_name = DEFAULT_RERANKER_MODEL
         logger.info(f"Loading reranker model: {model_name}")
 
+        # Configure the HuggingFace endpoint BEFORE importing sentence-transformers
+        # (huggingface_hub caches HF_ENDPOINT as a constant at import time). Override
+        # an explicitly-set official endpoint too, since it is unreachable here.
+        current_ep = os.environ.get("HF_ENDPOINT", "")
+        if not current_ep or "huggingface.co" in current_ep:
+            os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+        os.environ["TRANSFORMERS_OFFLINE"] = "0"
+        os.environ["HF_HUB_OFFLINE"] = "0"
+
         try:
             from sentence_transformers import CrossEncoder
         except ImportError:
@@ -45,10 +54,16 @@ class RerankerService:
                 "Run: pip install sentence-transformers"
             )
 
-        # Set HuggingFace mirror for China users (if not already configured)
-        os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
-        os.environ.setdefault("TRANSFORMERS_OFFLINE", "0")
-        os.environ.setdefault("HF_HUB_OFFLINE", "0")
+        # Refresh huggingface_hub's cached endpoint constant (read at import time).
+        try:
+            import huggingface_hub.constants as _hf_constants
+            _hf_constants.HF_ENDPOINT = os.environ.get(
+                "HF_ENDPOINT", "https://huggingface.co"
+            )
+        except Exception:
+            pass
+
+        logger.info(f"HuggingFace endpoint: {os.environ.get('HF_ENDPOINT')}")
 
         self._model = CrossEncoder(model_name)
         self._model_name = model_name
