@@ -98,11 +98,16 @@ public class Tool {
 
     // 综合热度分：score = viewCount×1 + downloadCount×2 + likeCount×3 + favoriteCount×4 + commentCount×5
     public void updateScore() {
-        this.score = BigDecimal.valueOf(this.viewCount)
-            .add(BigDecimal.valueOf(this.downloadCount).multiply(BigDecimal.valueOf(2)))
-            .add(BigDecimal.valueOf(this.likeCount).multiply(BigDecimal.valueOf(3)))
-            .add(BigDecimal.valueOf(this.favoriteCount).multiply(BigDecimal.valueOf(4)))
-            .add(BigDecimal.valueOf(this.commentCount).multiply(BigDecimal.valueOf(5)));
+        int view = this.viewCount != null ? this.viewCount : 0;
+        int download = this.downloadCount != null ? this.downloadCount : 0;
+        int like = this.likeCount != null ? this.likeCount : 0;
+        int favorite = this.favoriteCount != null ? this.favoriteCount : 0;
+        int comment = this.commentCount != null ? this.commentCount : 0;
+        this.score = BigDecimal.valueOf(view)
+            .add(BigDecimal.valueOf(download).multiply(BigDecimal.valueOf(2)))
+            .add(BigDecimal.valueOf(like).multiply(BigDecimal.valueOf(3)))
+            .add(BigDecimal.valueOf(favorite).multiply(BigDecimal.valueOf(4)))
+            .add(BigDecimal.valueOf(comment).multiply(BigDecimal.valueOf(5)));
     }
 
     public void incrementViewCount() {

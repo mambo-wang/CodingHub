@@ -93,10 +93,14 @@ public class ToolService {
         return toolRepository.findTop5ByStatusOrderByScoreDesc(PageRequest.of(0, 5));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ToolDetailDTO getToolById(Long id) {
         Tool tool = toolRepository.findByIdAndStatusNormal(id)
                 .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
+
+        // 浏览量 +1（与论坛帖子、视频详情页保持一致）
+        tool.incrementViewCount();
+        toolRepository.save(tool);
 
         return toDetailDTO(tool);
     }
