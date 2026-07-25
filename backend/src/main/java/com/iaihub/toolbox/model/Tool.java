@@ -111,36 +111,38 @@ public class Tool {
     }
 
     public void incrementViewCount() {
-        this.viewCount++;
+        this.viewCount = (this.viewCount == null ? 0 : this.viewCount) + 1;
         updateScore();
     }
 
     public void incrementLikeCount() {
-        this.likeCount++;
+        this.likeCount = (this.likeCount == null ? 0 : this.likeCount) + 1;
         updateScore();
     }
 
     public void decrementLikeCount() {
+        this.likeCount = this.likeCount == null ? 0 : this.likeCount;
         if (this.likeCount > 0) this.likeCount--;
         updateScore();
     }
 
     public void incrementCommentCount() {
-        this.commentCount++;
+        this.commentCount = (this.commentCount == null ? 0 : this.commentCount) + 1;
         updateScore();
     }
 
     public void incrementDownloadCount() {
-        this.downloadCount++;
+        this.downloadCount = (this.downloadCount == null ? 0 : this.downloadCount) + 1;
         updateScore();
     }
 
     public void incrementFavoriteCount() {
-        this.favoriteCount++;
+        this.favoriteCount = (this.favoriteCount == null ? 0 : this.favoriteCount) + 1;
         updateScore();
     }
 
     public void decrementFavoriteCount() {
+        this.favoriteCount = this.favoriteCount == null ? 0 : this.favoriteCount;
         if (this.favoriteCount > 0) this.favoriteCount--;
         updateScore();
     }

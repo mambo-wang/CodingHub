@@ -28,7 +28,7 @@ public interface ToolFileRepository extends JpaRepository<ToolFile, Long> {
     void deleteByToolId(@Param("toolId") Long toolId);
 
     @Modifying
-    @Query("UPDATE ToolFile tf SET tf.downloadCount = tf.downloadCount + 1 WHERE tf.id = :id")
+    @Query("UPDATE ToolFile tf SET tf.downloadCount = COALESCE(tf.downloadCount, 0) + 1 WHERE tf.id = :id")
     void incrementDownloadCount(@Param("id") Long id);
 
     @Query("SELECT tf.toolId, SUM(tf.downloadCount) FROM ToolFile tf " +

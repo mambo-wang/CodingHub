@@ -191,8 +191,13 @@ public class ToolFileService {
 
     @Transactional(readOnly = true)
     public InputStream getFileInputStream(Long toolId, Long fileId) {
-        ToolFile toolFile = downloadFile(toolId, fileId);
+        ToolFile toolFile = toolFileRepository.findByIdAndToolId(fileId, toolId)
+                .orElseThrow(() -> new ResourceNotFoundException("文件不存在"));
+
         Path filePath = Paths.get(uploadConfig.getBaseDir(), toolFile.getStoredPath());
+        if (!Files.exists(filePath)) {
+            throw new ResourceNotFoundException("文件不存在或已被删除");
+        }
 
         try {
             return Files.newInputStream(filePath);
