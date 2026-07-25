@@ -28,7 +28,7 @@ public class FeedbackMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(length = 50)
@@ -54,7 +54,7 @@ public class FeedbackMessage {
     @Builder.Default
     private Status status = Status.NORMAL;
 
-    @Column(name = "admin_reply", columnDefinition = "TEXT")
+    @Column(name = "admin_reply", columnDefinition = "text")
     private String adminReply;
 
     @ManyToOne(fetch = FetchType.LAZY)

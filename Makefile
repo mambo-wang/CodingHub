@@ -1,10 +1,12 @@
-.PHONY: help backend frontend db init install run stop build test clean lint lint-arch lint-quality lint-deps
+.PHONY: help backend frontend db db-pg init install run stop build test clean lint lint-arch lint-quality lint-deps
 
 help:
 	@echo "CodingHub - Makefile"
 	@echo ""
 	@echo "可用命令:"
-	@echo "  make db       - 创建数据库并初始化表结构"
+	@echo "  make db       - 创建 MySQL 数据库并初始化表结构"
+	@echo "  make db-pg    - 创建 PostgreSQL 数据库（表结构由应用启动自动生成）"
+	@echo "  make db-pg-seed - 应用建表后写入 PostgreSQL 种子数据"
 	@echo "  make install  - 安装前端依赖"
 	@echo "  make backend  - 启动后端服务 (8082端口)"
 	@echo "  make frontend - 启动前端服务 (5173端口)"
@@ -217,6 +219,15 @@ db:
 			('问题求助', '遇到问题寻求帮助', 3), \
 			('心得体会', '使用 AI 工具的感悟', 4);"
 	@echo "数据库初始化完成"
+
+db-pg:
+	@PGPASSWORD=codinghub psql -U codinghub -h localhost -p 5432 -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='ai_tool_square'" | grep -q 1 || \
+	PGPASSWORD=codinghub psql -U codinghub -h localhost -p 5432 -d postgres -c "CREATE DATABASE ai_tool_square;"
+	@echo "PostgreSQL 数据库已创建（表结构由应用启动时 Hibernate 自动生成）"
+
+db-pg-seed:
+	@PGPASSWORD=codinghub psql -U codinghub -h localhost -p 5432 -d ai_tool_square -f scripts/init-db-postgres.sql
+	@echo "PostgreSQL 种子数据写入完成（需先启动应用建表）"
 
 install:
 	cd frontend && npm install

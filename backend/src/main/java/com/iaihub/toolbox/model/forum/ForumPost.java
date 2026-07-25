@@ -28,7 +28,7 @@ public class ForumPost {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(name = "author_id", nullable = false)

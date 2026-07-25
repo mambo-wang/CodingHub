@@ -40,7 +40,7 @@ public class Tool {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(length = 200)

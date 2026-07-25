@@ -27,7 +27,7 @@ public class Video {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(name = "file_path", nullable = false, length = 500)

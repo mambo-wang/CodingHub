@@ -36,6 +36,8 @@ dependencies {
 
     // MySQL
     runtimeOnly 'com.mysql:mysql-connector-j:8.3.0'
+    // PostgreSQL（与 MySQL 驱动共存，由配置选择数据源）
+    runtimeOnly 'org.postgresql:postgresql'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'

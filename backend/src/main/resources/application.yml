@@ -5,22 +5,16 @@ server:
 spring:
   main:
     allow-bean-definition-overriding: true
-  datasource:
-    url: jdbc:mysql://localhost:3306/ai_tool_square?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
+  # 默认使用 mysql profile（向后兼容，种子数据在 MySQL）；启动时可用 --spring.profiles.active=postgresql 切换到 PostgreSQL
+  profiles:
+    default: mysql
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        # 方言交由 Hibernate 6 按 JDBC 连接自动探测（MySQLDialect / PostgreSQLDialect），无需硬编码
         format_sql: true
     open-in-view: false
   servlet:
@@ -32,15 +26,12 @@ spring:
 app:
   jwt:
     secret: ai-tool-square-2026-iaihub-secret-key-min-256-bits-for-security
-    access-token-expiration: 900000    # 15 min in ms
-    refresh-token-expiration: 604800000 # 7 days in ms
+    access-token-expiration: 900000
+    refresh-token-expiration: 604800000
   upload:
-    # 文件存储根目录，可通过环境变量 AIHUB_FILE_BASE_DIR 覆盖，默认 ~/.aifiles
     base-dir: ${AIHUB_FILE_BASE_DIR:}
     max-file-size: 50MB
     max-request-size: 200MB
-    # 工具附件已放开格式限制：allowedExtensions 留空时不做后缀校验
-    # 紧急回滚：在下方加回 allowed-extensions: [zip, tar, gz, py, js, ts, md, txt, json, yaml, yml, toml, xml, html, css] 即可恢复白名单
     allowed-extensions: []
   super-admin:
     username: admin
@@ -56,3 +47,39 @@ logging:
     org.springframework.security: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    url: jdbc:mysql://localhost:3306/ai_tool_square?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgresql
+  # 全局引号：仅 PostgreSQL 需要，将标识符加双引号以解决保留字 `user`；
+  # 不放 common 以免 H2 测试的手写原生 SQL 受影响
+  jpa:
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ai_tool_square
+    username: codinghub
+    password: codinghub
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000

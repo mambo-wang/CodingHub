@@ -6,7 +6,7 @@
 
 - **项目名称**: CodingHub (ai-tool-square)
 - **技术栈**: Java 17 / Spring Boot 3.2.5 + Vue 3.4 / TypeScript 5.4 / Vite 5.2
-- **构建工具**: Gradle 8.5 + npm · **数据库**: MySQL 8.x (ai_tool_square) + Flyway (V1~V9)
+- **构建工具**: Gradle 8.5 + npm · **数据库**: MySQL 8.x / PostgreSQL 双库共存（配置切换，默认 MySQL）。`ai_tool_square` 库；Schema 由 Hibernate(`ddl-auto: update`) 按激活 Profile(mysql/postgresql) 生成，方言自动探测。初始化：`make db`(MySQL) / `make db-pg`(建库)+`make db-pg-seed`(种子)
 - **端口**: 后端 8082, 前端 5173, MySQL 3306 · **部署**: 本地裸机，无 Docker/CI
 - **设计系统**: 双主题 (Cyberpunk Dark / Glassmorphism Light)，见 `design-system/`
 

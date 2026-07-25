@@ -41,7 +41,7 @@ public class UnifiedComment {
     @Column(name = "root_id")
     private Long rootId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(name = "like_count")
