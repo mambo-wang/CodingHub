@@ -165,8 +165,8 @@ export const fileUploadApi = {
       .then(res => res.data as void)
   },
 
-  downloadFile: (toolId: number, fileId: number, fileName: string): void => {
-    api.get(`/tools/${toolId}/files/${fileId}/download`, {
+  downloadFile: (toolId: number, fileId: number, fileName: string): Promise<void> => {
+    return api.get(`/tools/${toolId}/files/${fileId}/download`, {
       responseType: 'blob'
     }).then(response => {
       const blob = new Blob([response.data], { type: response.headers['content-type'] as string })
@@ -181,6 +181,7 @@ export const fileUploadApi = {
     }).catch(error => {
       ElMessage.error('文件下载失败')
       console.error('Download error:', error)
+      throw error
     })
   }
 }

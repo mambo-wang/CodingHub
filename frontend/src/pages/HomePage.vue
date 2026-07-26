@@ -11,6 +11,7 @@ import { formatCount } from '@/utils/format'
 import { getDefaultLogo } from '@/utils/categoryLogo'
 import type { ToolSummary, Category, Tag, PageResponse, CreateToolRequest } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { sessionDownloads, clearDownloads } from '@/composables/downloadBus'
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import SortTab from '@/components/common/SortTab.vue'
@@ -196,6 +197,8 @@ const fetchTools = async () => {
   } catch (error) {
     console.error('Failed to fetch tools:', error)
   } finally {
+    // 拉取到服务端最新下载量后清空会话内增量，避免与真实值重复累加
+    clearDownloads()
     loading.value = false
   }
 }
@@ -622,7 +625,7 @@ onUnmounted(() => {
                   </span>
                   <span class="stat-item" title="下载量">
                     <Download :size="14" aria-hidden="true" />
-                    <span class="stat-num">{{ formatCount(tool.downloadCount) }}</span>
+                    <span class="stat-num">{{ formatCount((tool.downloadCount ?? 0) + (sessionDownloads[tool.id] ?? 0)) }}</span>
                   </span>
                 </div>
               </div>

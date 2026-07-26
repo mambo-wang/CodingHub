@@ -16,6 +16,7 @@ import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue
 import AuthorBadge from '@/components/AuthorBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useAuthStore } from '@/stores/auth'
+import { addDownload } from '@/composables/downloadBus'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,9 +146,13 @@ const fetchFiles = async () => {
   }
 }
 
-const handleDownload = (file: ToolFile) => {
-  if (tool.value) {
-    fileUploadApi.downloadFile(tool.value.id, file.id, file.originalName)
+const handleDownload = async (file: ToolFile) => {
+  if (!tool.value) return
+  try {
+    await fileUploadApi.downloadFile(tool.value.id, file.id, file.originalName)
+    addDownload(tool.value.id)
+  } catch {
+    // 下载失败提示已在 api 层处理
   }
 }
 
