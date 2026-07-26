@@ -37,6 +37,11 @@ export default defineConfig({
         target: ragTarget,
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/rag/, '')
+      },
+      '/ws': {
+        target: backendTarget,
+        changeOrigin: true,
+        ws: true
       }
     }
   }

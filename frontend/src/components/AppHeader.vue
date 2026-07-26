@@ -59,6 +59,7 @@ const goToAbout = () => router.push('/about')
 const goToVideos = () => router.push('/videos')
 const goToKnowledge = () => router.push('/knowledge')
 const goToFeedback = () => router.push('/feedback')
+const goToChat = () => router.push('/chat')
 const goToApprovals = () => router.push('/admin/approvals')
 const goToUserList = () => router.push('/admin/users')
 const goToCategories = () => router.push('/admin/categories')
@@ -80,6 +81,7 @@ const goToCategories = () => router.push('/admin/categories')
         <button class="nav-btn" @click="goToVideos">微课</button>
         <button class="nav-btn" @click="goToKnowledge">知识库</button>
         <button class="nav-btn" @click="goToFeedback">留言板</button>
+        <button class="nav-btn" @click="goToChat">聊天室</button>
         <button class="nav-btn" @click="goToOverview">热榜</button>
         <button class="nav-btn" @click="goToQuickStart">快速开始</button>
         <button class="nav-btn" @click="goToAbout">关于</button>

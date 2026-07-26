@@ -176,6 +176,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/feedback/FeedbackPage.vue')
   },
   {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('@/pages/ChatPage.vue')
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/pages/NotFoundPage.vue')
