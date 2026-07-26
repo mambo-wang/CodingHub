@@ -2,8 +2,12 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
-import { Send, Users, Wifi, WifiOff, Trash2, X } from '@lucide/vue'
+import { Send, Users, Wifi, WifiOff, Trash2, X, Reply, Smile, Pencil, Undo2 } from '@lucide/vue'
 import type { ChatMessage } from '@/types/chat'
+import ReplyQuote from './ReplyQuote.vue'
+import MessageReactions from './MessageReactions.vue'
+import MessageMarkdown from './MessageMarkdown.vue'
+import TypingIndicator from './TypingIndicator.vue'
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()
@@ -14,6 +18,10 @@ const showNickModal = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
+const replyTarget = ref<ChatMessage | null>(null)
+const editingId = ref<number | null>(null)
+const editContent = ref('')
+
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isAdmin = computed(() => authStore.isAdmin || authStore.isSuperAdmin)
 const myUserId = computed(() => authStore.user?.id)
@@ -22,6 +30,13 @@ const onlineCount = computed(() => chatStore.onlineCount)
 const messages = computed(() => chatStore.messages)
 const loading = computed(() => chatStore.loading)
 const errorMsg = computed(() => chatStore.error)
+
+const typingNames = computed(() => {
+  const self = myUserId.value
+  return chatStore.typingUsers
+    .filter((u) => !(self != null && u.userId === self))
+    .map((u) => u.displayName || '某人')
+})
 
 const charCount = computed(() => inputContent.value.length)
 const isOverLimit = computed(() => charCount.value > 1000)
@@ -40,16 +55,41 @@ watch(messages, () => {
 
 onMounted(() => {
   chatStore.connect()
+  chatStore.loadHistory().finally(() => scrollToBottom())
   if (!isLoggedIn.value && !guestNick.value) {
     showNickModal.value = true
   }
 })
 
 function isSelf(msg: ChatMessage): boolean {
-  if (msg.userId && myUserId.value) {
+  if (msg.userId != null && myUserId.value != null) {
     return msg.userId === myUserId.value
   }
+  if (!isLoggedIn.value && msg.guest && msg.displayName) {
+    return msg.displayName === guestNick.value
+  }
   return false
+}
+
+function isDeleted(msg: ChatMessage): boolean {
+  return msg.status === 'DELETED'
+}
+
+function deletedText(msg: ChatMessage): string {
+  return msg.deletedType === 'SELF' ? '该消息已被撤回' : '该消息已被删除'
+}
+
+function isRefDeleted(id: number | null | undefined): boolean {
+  if (!id) return false
+  const ref = messages.value.find((m) => m.id === id)
+  return !!ref && ref.status === 'DELETED'
+}
+
+function canEditRecall(msg: ChatMessage): boolean {
+  if (!isLoggedIn.value) return false
+  if (msg.status !== 'ACTIVE') return false
+  if (msg.userId == null || msg.userId !== myUserId.value) return false
+  return Date.now() - new Date(msg.createdAt).getTime() <= 5 * 60 * 1000
 }
 
 function formatTime(dateStr: string): string {
@@ -66,16 +106,22 @@ function handleSend() {
   const content = inputContent.value.trim()
   if (!content || isOverLimit.value) return
 
+  const payload: { roomId: string; content: string; displayName?: string; replyTo?: number | null } = {
+    roomId: 'global',
+    content,
+  }
   if (!isLoggedIn.value) {
     if (!guestNick.value) {
       showNickModal.value = true
       return
     }
-    chatStore.send({ roomId: 'global', content, displayName: guestNick.value })
-  } else {
-    chatStore.send({ roomId: 'global', content })
+    payload.displayName = guestNick.value
   }
+  if (replyTarget.value) payload.replyTo = replyTarget.value.id
+
+  chatStore.send(payload)
   inputContent.value = ''
+  replyTarget.value = null
   autoResize()
 }
 
@@ -84,6 +130,11 @@ function handleKeydown(e: KeyboardEvent) {
     e.preventDefault()
     handleSend()
   }
+}
+
+function onInput() {
+  autoResize()
+  chatStore.sendTyping(true)
 }
 
 function autoResize() {
@@ -100,6 +151,52 @@ function saveNick() {
     localStorage.setItem('chatGuestNick', nick)
     showNickModal.value = false
   }
+}
+
+function startReply(msg: ChatMessage) {
+  replyTarget.value = msg
+  textareaRef.value?.focus()
+}
+
+function cancelReply() {
+  replyTarget.value = null
+}
+
+function startEdit(msg: ChatMessage) {
+  editingId.value = msg.id
+  editContent.value = msg.content
+  nextTick(() => autoResizeEdit())
+}
+
+function saveEdit() {
+  if (editingId.value == null) return
+  const content = editContent.value.trim()
+  if (!content) return
+  chatStore.editMessage(editingId.value, content)
+  editingId.value = null
+  editContent.value = ''
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editContent.value = ''
+}
+
+function autoResizeEdit() {
+  const el = document.querySelector('.edit-textarea') as HTMLTextAreaElement | null
+  if (el) {
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  }
+}
+
+function handleRecall(msg: ChatMessage) {
+  chatStore.recallMessage(msg.id)
+}
+
+function scrollToMessage(id: number) {
+  const el = document.getElementById('msg-' + id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 async function handleDelete(id: number) {
@@ -151,6 +248,7 @@ function dismissError() {
       <div
         v-for="msg in messages"
         :key="msg.id"
+        :id="'msg-' + msg.id"
         class="message-row"
         :class="{ self: isSelf(msg), other: !isSelf(msg) }"
       >
@@ -166,16 +264,83 @@ function dismissError() {
             <span v-if="msg.guest" class="guest-badge">游客</span>
             <span class="message-time">{{ formatTime(msg.createdAt) }}</span>
           </div>
-          <div class="message-content">{{ msg.content }}</div>
-          <button
-            v-if="isAdmin && !isSelf(msg)"
-            class="delete-btn"
-            @click="handleDelete(msg.id)"
-            :aria-label="'删除消息'"
-            title="删除消息"
-          >
-            <Trash2 :size="12" />
-          </button>
+
+          <ReplyQuote
+            v-if="msg.replyTo"
+            :display-name="msg.replyToDisplayName"
+            :preview="msg.replyToContentPreview"
+            :deleted="isRefDeleted(msg.replyTo)"
+            @jump="scrollToMessage(msg.replyTo)"
+          />
+
+          <template v-if="isDeleted(msg)">
+            <div class="recalled-text">{{ deletedText(msg) }}</div>
+          </template>
+
+          <template v-else-if="editingId === msg.id">
+            <textarea
+              v-model="editContent"
+              class="edit-textarea"
+              rows="2"
+              @keydown.enter.exact.prevent="saveEdit"
+            ></textarea>
+            <div class="edit-actions">
+              <button class="edit-save" @click="saveEdit">保存</button>
+              <button class="edit-cancel" @click="cancelEdit">取消</button>
+            </div>
+          </template>
+
+          <template v-else>
+            <MessageMarkdown :content="msg.content" />
+            <span v-if="msg.edited" class="edited-mark">（已编辑）</span>
+            <MessageReactions
+              v-if="msg.reactions && Object.keys(msg.reactions).length"
+              :reactions="msg.reactions"
+              :my-reactions="msg.myReactions || []"
+              @react="(e: string) => chatStore.react(msg.id, e)"
+            />
+          </template>
+
+          <div class="message-actions" v-if="!isDeleted(msg)">
+            <button class="action-btn" @click="startReply(msg)" :aria-label="'回复'" title="回复">
+              <Reply :size="13" />
+            </button>
+            <button
+              class="action-btn"
+              @click="chatStore.react(msg.id, '👍')"
+              :aria-label="'表情回应'"
+              title="表情回应"
+            >
+              <Smile :size="13" />
+            </button>
+            <button
+              v-if="canEditRecall(msg)"
+              class="action-btn"
+              @click="startEdit(msg)"
+              :aria-label="'编辑'"
+              title="编辑"
+            >
+              <Pencil :size="13" />
+            </button>
+            <button
+              v-if="canEditRecall(msg)"
+              class="action-btn danger"
+              @click="handleRecall(msg)"
+              :aria-label="'撤回'"
+              title="撤回"
+            >
+              <Undo2 :size="13" />
+            </button>
+            <button
+              v-if="isAdmin && !isSelf(msg)"
+              class="action-btn danger"
+              @click="handleDelete(msg.id)"
+              :aria-label="'删除消息'"
+              title="删除消息"
+            >
+              <Trash2 :size="12" />
+            </button>
+          </div>
         </div>
         <div class="message-avatar" v-if="isSelf(msg)">
           <img v-if="msg.avatarUrl" :src="msg.avatarUrl" :alt="msg.displayName" class="avatar-img" />
@@ -186,8 +351,17 @@ function dismissError() {
       </div>
     </div>
 
+    <!-- Typing indicator -->
+    <TypingIndicator :names="typingNames" />
+
     <!-- Input -->
     <div class="chat-input-area">
+      <div v-if="replyTarget" class="reply-banner">
+        <span>回复 @{{ replyTarget.displayName }}</span>
+        <button class="reply-cancel" @click="cancelReply" aria-label="取消回复">
+          <X :size="14" />
+        </button>
+      </div>
       <div class="input-wrapper">
         <textarea
           ref="textareaRef"
@@ -197,7 +371,7 @@ function dismissError() {
           :placeholder="isLoggedIn ? '输入消息... (Enter 发送, Shift+Enter 换行)' : '输入消息...'"
           :disabled="!connected"
           @keydown="handleKeydown"
-          @input="autoResize"
+          @input="onInput"
           rows="1"
           :aria-invalid="isOverLimit"
         ></textarea>
@@ -452,6 +626,18 @@ function dismissError() {
   font-size: 11px;
 }
 
+.edited-mark {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.recalled-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .message-content {
   font-size: 14px;
   line-height: 1.5;
@@ -459,29 +645,79 @@ function dismissError() {
   white-space: pre-wrap;
 }
 
-.delete-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 4px;
-  color: #ef4444;
-  cursor: pointer;
-  padding: 3px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.message-bubble:hover .delete-btn {
+.message-actions {
   display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.delete-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+.message-bubble:hover .message-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: 0.15s;
+}
+
+.action-btn:hover {
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+}
+
+.action-btn.danger:hover {
+  color: #ef4444;
   border-color: rgba(239, 68, 68, 0.4);
+}
+
+.action-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, #00ffff);
+  outline-offset: 2px;
+}
+
+.edit-textarea {
+  width: 100%;
+  resize: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-glow);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.edit-save,
+.edit-cancel {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.edit-save {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  border: none;
+  color: #fff;
 }
 
 .chat-input-area {
@@ -490,6 +726,29 @@ function dismissError() {
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+.reply-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.reply-cancel {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
 .input-wrapper {
@@ -516,7 +775,7 @@ function dismissError() {
 
 .chat-textarea:focus {
   border-color: var(--border-glow);
-  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline: 2px solid var(--focus-ring, #00ffff);
   outline-offset: 2px;
 }
 
@@ -630,7 +889,7 @@ function dismissError() {
 
 .nick-input:focus {
   border-color: var(--border-glow);
-  outline: 2px solid var(--focus-ring, #00FFFF);
+  outline: 2px solid var(--focus-ring, #00ffff);
   outline-offset: 2px;
 }
 
@@ -658,19 +917,21 @@ function dismissError() {
 }
 
 /* Transitions */
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.2s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 
 /* Light theme adjustments */
-[data-theme="light"] .chat-textarea:focus {
+[data-theme='light'] .chat-textarea:focus {
   outline-color: #7c3aed;
 }
 
-[data-theme="light"] .nick-input:focus {
+[data-theme='light'] .nick-input:focus {
   outline-color: #7c3aed;
 }
 </style>

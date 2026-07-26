@@ -22,8 +22,10 @@ public class ChatController {
     @GetMapping("/messages")
     public ResponseEntity<Map<String, Object>> getHistory(
             @RequestParam(defaultValue = "global") String roomId,
-            @RequestParam(defaultValue = "50") int limit) {
-        List<ChatMessageDTO> messages = chatService.getHistory(roomId, limit);
+            @RequestParam(defaultValue = "50") int limit,
+            @AuthenticationPrincipal User user) {
+        String ownerKey = user != null ? String.valueOf(user.getId()) : null;
+        List<ChatMessageDTO> messages = chatService.getHistory(roomId, limit, ownerKey);
         return ResponseEntity.ok(Map.of("code", 200, "data", messages));
     }
 

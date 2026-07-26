@@ -1,18 +1,13 @@
 package com.iaihub.toolbox.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ChatEventDTO {
-    private String type;
+public class EditPayload {
     private Long id;
-    private String message;
-    private Integer online;
-    private String deletedType; // ADMIN / SELF
+    private String content;
 }

@@ -17,6 +17,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findRecentByRoomId(@Param("roomId") String roomId,
                                          org.springframework.data.domain.Pageable pageable);
 
+    List<ChatMessage> findByIdIn(List<Long> ids);
+
     @Modifying
     @Query("UPDATE ChatMessage m SET m.status = 'DELETED' WHERE m.id = :id")
     int softDeleteById(@Param("id") Long id);

@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatEventDTO {
-    private String type;
-    private Long id;
-    private String message;
-    private Integer online;
-    private String deletedType; // ADMIN / SELF
+public class TypingEventDTO {
+    private String roomId;
+    private Long userId;
+    private String displayName;
+    private boolean isTyping;
 }

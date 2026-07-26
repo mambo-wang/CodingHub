@@ -5,14 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatEventDTO {
-    private String type;
-    private Long id;
-    private String message;
-    private Integer online;
-    private String deletedType; // ADMIN / SELF
+public class ChatReactionUpdateDTO {
+    private Long messageId;
+    private Map<String, Integer> reactions;
 }

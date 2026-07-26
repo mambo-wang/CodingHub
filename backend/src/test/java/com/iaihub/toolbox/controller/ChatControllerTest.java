@@ -39,7 +39,7 @@ class ChatControllerTest {
                         .status("ACTIVE").createdAt(LocalDateTime.now())
                         .guest(false).build()
         );
-        when(chatService.getHistory("global", 50)).thenReturn(messages);
+        when(chatService.getHistory("global", 50, null)).thenReturn(messages);
 
         mockMvc.perform(get("/api/v1/chat/messages")
                         .param("roomId", "global")

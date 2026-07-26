@@ -1,171 +1,208 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { Client } from '@stomp/stompjs'
-import type { ChatMessage, SendPayload } from '@/types/chat'
-import { chatService } from '@/services/chat'
+import type {
+  ChatEvent,
+  ChatMessage,
+  PresencePayload,
+  ReactionUpdateEvent,
+  RecallEvent,
+  SendPayload,
+  ReactionActionPayload,
+  EditPayload,
+  RecallPayload,
+  TypingPayload,
+} from '@/types/chat'
 import { useAuthStore } from './auth'
+
+const ROOM = 'global'
 
 export const useChatStore = defineStore('chat', () => {
   const messages = ref<ChatMessage[]>([])
   const onlineCount = ref(0)
+  const error = ref('')
+  const typingUsers = ref<{ userId: number | null; displayName: string | null }[]>([])
   const connected = ref(false)
-  const connecting = ref(false)
-  const error = ref<string | null>(null)
   const loading = ref(false)
-  const unreadCount = ref(0)
-  const drawerOpen = ref(false)
 
-  let stompClient: Client | null = null
+  let client: Client | null = null
+  let typingTimer: number | null = null
+  let lastTypingSent = 0
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-  const WS_URL = (() => {
-    const base = API_BASE as string
-    if (base.startsWith('http')) {
-      return base.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/ws')
+  function isSelf(msg: ChatMessage): boolean {
+    const auth = useAuthStore()
+    if (msg.userId != null && auth.user?.id != null) {
+      return msg.userId === auth.user.id
     }
-    const loc = window.location
-    const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${proto}//${loc.host}/ws`
-  })()
+    return false
+  }
 
-  async function loadHistory() {
+  function onConnect() {
+    connected.value = true
+    client?.subscribe('/topic/chat.global', (msg) => {
+      const data = JSON.parse(msg.body) as ChatEvent
+      if (data.type === 'DELETE') {
+        const idx = messages.value.findIndex((m) => m.id === (data as { id: number }).id)
+        if (idx !== -1) messages.value.splice(idx, 1)
+      } else if (data.type === 'PRESENCE') {
+        onlineCount.value = (data as PresencePayload).online
+      } else if (data.type === 'ERROR') {
+        error.value = (data as { message: string }).message
+      } else if ((data as ChatMessage).id != null && !('type' in data)) {
+        messages.value.push(data as ChatMessage)
+      }
+    })
+
+    client?.subscribe('/user/queue/errors', (msg) => {
+      const data = JSON.parse(msg.body)
+      error.value = data.message
+    })
+
+    client?.subscribe('/topic/chat.reactions.global', (msg) => {
+      const data = JSON.parse(msg.body) as ReactionUpdateEvent
+      const target = messages.value.find((m) => m.id === data.messageId)
+      if (target) target.reactions = data.reactions
+    })
+
+    client?.subscribe('/topic/chat.edit.global', (msg) => {
+      const data = JSON.parse(msg.body) as ChatMessage
+      const idx = messages.value.findIndex((m) => m.id === data.id)
+      if (idx !== -1) messages.value[idx] = { ...messages.value[idx], ...data }
+    })
+
+    client?.subscribe('/topic/chat.recall.global', (msg) => {
+      const data = JSON.parse(msg.body) as RecallEvent
+      const target = messages.value.find((m) => m.id === data.id)
+      if (target) {
+        target.status = 'DELETED'
+        target.deletedType = data.deletedType || 'SELF'
+      }
+    })
+
+    client?.subscribe('/topic/chat.typing.global', (msg) => {
+      const data = JSON.parse(msg.body) as TypingPayload & { userId?: number | null; displayName?: string | null }
+      if (!data.isTyping) {
+        typingUsers.value = typingUsers.value.filter(
+          (u) => !(u.userId === data.userId && u.displayName === data.displayName)
+        )
+      } else {
+        const exists = typingUsers.value.some(
+          (u) => u.userId === data.userId && u.displayName === data.displayName
+        )
+        if (!exists) {
+          typingUsers.value.push({ userId: data.userId ?? null, displayName: data.displayName ?? null })
+        }
+      }
+    })
+  }
+
+  function connect() {
+    const auth = useAuthStore()
+    const token = auth.accessToken || ''
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+    const host = `${location.hostname}:${location.port}`
+    const base = `${protocol}://${host}/ws`
+    const url = token ? `${base}?token=${encodeURIComponent(token)}` : base
+    client = new Client({
+      brokerURL: url,
+      reconnectDelay: 5000,
+      onConnect,
+    })
+    client.activate()
+  }
+
+  function disconnect() {
+    client?.deactivate()
+    connected.value = false
+  }
+
+  function send(payload: SendPayload) {
+    if (!client?.connected) return
+    client.publish({ destination: '/app/chat.send', body: JSON.stringify(payload) })
+  }
+
+  function react(messageId: number, emoji: string) {
+    if (!client?.connected) return
+    const payload: ReactionActionPayload = { messageId, emoji }
+    client.publish({ destination: '/app/chat.react', body: JSON.stringify(payload) })
+  }
+
+  function editMessage(id: number, content: string) {
+    if (!client?.connected) return
+    const payload: EditPayload = { id, content }
+    client.publish({ destination: '/app/chat.edit', body: JSON.stringify(payload) })
+  }
+
+  function recallMessage(id: number) {
+    if (!client?.connected) return
+    const payload: RecallPayload = { id }
+    client.publish({ destination: '/app/chat.recall', body: JSON.stringify(payload) })
+  }
+
+  function sendTyping(isTyping: boolean) {
+    if (!client?.connected) return
+    const now = Date.now()
+    if (typingTimer) window.clearTimeout(typingTimer)
+    if (isTyping) {
+      typingTimer = window.setTimeout(() => sendTyping(false), 3000)
+      if (now - lastTypingSent > 1000) {
+        lastTypingSent = now
+        const payload: TypingPayload = { roomId: ROOM, isTyping: true }
+        client.publish({ destination: '/app/chat.typing', body: JSON.stringify(payload) })
+      }
+    } else {
+      const payload: TypingPayload = { roomId: ROOM, isTyping: false }
+      client.publish({ destination: '/app/chat.typing', body: JSON.stringify(payload) })
+    }
+  }
+
+  async function loadHistory(roomId = ROOM, limit = 50) {
+    const auth = useAuthStore()
     loading.value = true
-    error.value = null
+    const params = new URLSearchParams({ roomId, limit: String(limit) })
+    const headers: Record<string, string> = {}
+    if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`
     try {
-      messages.value = await chatService.getHistory('global', 50)
-    } catch (e: any) {
-      error.value = '加载历史消息失败'
+      const res = await fetch(`/api/v1/chat/messages?${params.toString()}`, { headers })
+      const json = await res.json()
+      messages.value = json.data || []
     } finally {
       loading.value = false
     }
   }
 
-  function connect() {
-    if (stompClient?.active) return
-    connecting.value = true
-
-    const authStore = useAuthStore()
-    const token = authStore.accessToken || ''
-    const url = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL
-
-    stompClient = new Client({
-      brokerURL: url,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-      onConnect: () => {
-        connected.value = true
-        connecting.value = false
-        error.value = null
-
-        stompClient!.subscribe('/topic/chat.global', (msg) => {
-          try {
-            const data = JSON.parse(msg.body)
-            if (data.type === 'DELETE') {
-              messages.value = messages.value.filter(m => m.id !== data.id)
-            } else if (data.type === 'PRESENCE') {
-              onlineCount.value = data.online
-            } else if (data.type === 'ERROR') {
-              error.value = data.message
-            } else if (data.id) {
-              messages.value.push(data)
-              if (!drawerOpen.value) {
-                unreadCount.value++
-              }
-            }
-          } catch (e) {
-            console.error('Failed to parse chat message', e)
-          }
-        })
-
-        stompClient!.subscribe('/topic/chat.presence', (msg) => {
-          try {
-            const data = JSON.parse(msg.body)
-            if (data.online !== undefined) {
-              onlineCount.value = data.online
-            }
-          } catch (e) { /* ignore */ }
-        })
-
-        stompClient!.subscribe('/user/queue/errors', (msg) => {
-          try {
-            const data = JSON.parse(msg.body)
-            error.value = data.message
-          } catch (e) { /* ignore */ }
-        })
-
-        loadHistory()
-      },
-      onDisconnect: () => {
-        connected.value = false
-        connecting.value = false
-      },
-      onStompError: (frame) => {
-        error.value = '连接错误: ' + (frame.headers['message'] || '未知')
-        connecting.value = false
-      },
-      onWebSocketError: () => {
-        connecting.value = false
-      }
-    })
-
-    stompClient.activate()
-  }
-
-  function disconnect() {
-    if (stompClient) {
-      stompClient.deactivate()
-      stompClient = null
-    }
-    connected.value = false
-    connecting.value = false
-  }
-
-  function send(payload: SendPayload) {
-    if (!stompClient?.active) return
-    stompClient.publish({
-      destination: '/app/chat.send',
-      body: JSON.stringify(payload)
-    })
-  }
-
-  async function deleteMessage(id: number) {
-    try {
-      await chatService.deleteMessage(id)
-    } catch (e: any) {
-      error.value = '删除失败'
-    }
+  function deleteMessage(id: number) {
+    const auth = useAuthStore()
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (auth.accessToken) headers['Authorization'] = `Bearer ${auth.accessToken}`
+    return fetch(`/api/v1/chat/messages/${id}`, {
+      method: 'DELETE',
+      headers,
+    }).then((r) => r.json())
   }
 
   function clearError() {
-    error.value = null
-  }
-
-  function openDrawer() {
-    drawerOpen.value = true
-    unreadCount.value = 0
-  }
-
-  function closeDrawer() {
-    drawerOpen.value = false
+    error.value = ''
   }
 
   return {
     messages,
     onlineCount,
-    connected,
-    connecting,
     error,
+    typingUsers,
+    connected,
     loading,
-    unreadCount,
-    drawerOpen,
     connect,
     disconnect,
     send,
-    deleteMessage,
+    react,
+    editMessage,
+    recallMessage,
+    sendTyping,
     loadHistory,
+    deleteMessage,
     clearError,
-    openDrawer,
-    closeDrawer
+    isSelf,
+    ROOM,
   }
 })

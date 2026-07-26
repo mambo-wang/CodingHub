@@ -45,6 +45,16 @@ public class ChatMessage {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "reply_to")
+    private Long replyTo;
+
+    @Column(name = "edited", nullable = false)
+    @Builder.Default
+    private boolean edited = false;
+
+    @Column(name = "deleted_type", length = 10)
+    private String deletedType; // ADMIN / SELF
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -21,4 +21,12 @@ public class ChatMessageDTO {
     private String status;
     private LocalDateTime createdAt;
     private boolean guest;
+
+    private Long replyTo;
+    private String replyToDisplayName;
+    private String replyToContentPreview;
+    private boolean edited;
+    private String deletedType; // ADMIN / SELF
+    private java.util.Map<String, Integer> reactions;
+    private java.util.List<String> myReactions;
 }
