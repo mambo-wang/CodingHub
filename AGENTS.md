@@ -132,12 +132,15 @@ make lint        # lint-arch + lint-quality + lint-deps
 
 **模块列表：**
 
-- [工具广场](repowiki/wiki/modules/工具广场.md)
-- [用户与认证](repowiki/wiki/modules/用户与认证.md)
-- [统一互动](repowiki/wiki/modules/统一互动.md)
-- [论坛社区](repowiki/wiki/modules/论坛社区.md)
-- [知识库与RAG](repowiki/wiki/modules/知识库与RAG.md)
 - [MCP服务](repowiki/wiki/modules/MCP服务.md)
+- [知识库与RAG](repowiki/wiki/modules/知识库与RAG.md)
+- [论坛社区](repowiki/wiki/modules/论坛社区.md)
+- [微课视频](repowiki/wiki/modules/微课视频.md)
+- [实时聊天](repowiki/wiki/modules/实时聊天.md)
+- [统一互动与通知](repowiki/wiki/modules/统一互动与通知.md)
+- [用户与认证](repowiki/wiki/modules/用户与认证.md)
+- [工具广场](repowiki/wiki/modules/工具广场.md)
+- [平台基础](repowiki/wiki/modules/平台基础.md)
 - [前端应用](repowiki/wiki/modules/前端应用.md)
 
 ### MCP 工具用法

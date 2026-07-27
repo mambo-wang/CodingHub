@@ -1,294 +1,172 @@
 ---
 type: Module
 title: MCP服务
-description: 基于 MCP 协议将 CodingHub 工具广场能力暴露给 AI Agent，支持工具搜索、发布、知识库语义检索等操作
-tags: [mcp, tool-handler, search, protocol]
+description: 基于 MCP 协议将 CodingHub 工具广场、论坛、知识库能力暴露给 AI Agent，支持 Streamable HTTP 与 SSE 双传输
+tags: [mcp, tool-handler, streamable-http, sse, prompt, resource]
+aliases: [MCP, mcp-server, MCP Server]
 ---
 
 # MCP服务
 
 ## 模块概述
 
-MCP（Model Context Protocol）服务是 CodingHub 平台面向 AI Agent 的标准化接入层。它实现了 MCP 协议规范，让外部 AI 客户端（如 CodeBuddy、QoderWork 等）能够通过统一协议访问工具广场的全部能力，包括：
+MCP（Model Context Protocol）服务是 CodingHub 平台面向 AI Agent 的标准化接入层。基于 **Java MCP SDK**（`io.modelcontextprotocol`）构建，让外部 AI 客户端（CodeBuddy、QoderWork、Claude Code 等）通过统一协议访问平台全部能力：
 
-- **工具管理**：搜索、获取详情、创建、修改工具，文件上传/下载/删除
-- **社区论坛**：帖子搜索、获取、创建
-- **知识库 (RAG)**：知识库 CRUD、语义搜索、文档上传与状态查询
-- **工作流引导**：6 个 Prompt 模板指导 Agent 完成安装、发布、更新等操作
-- **上下文资源**：通过 MCP Resource 暴露工具目录和详情
+- **工具管理（8 个 tool）**：搜索、详情、文件列表、下载、创建、修改、文件上传/删除
+- **社区论坛（3 个 tool）**：帖子搜索、帖子详情、发帖
+- **知识库 RAG（9 个 tool）**：知识库 CRUD、语义搜索、文档上传、状态查询、配置管理
+- **工作流引导（6 个 Prompt）**：search-tools / install-tool / check-versions / publish-tool / update-tool / forum-post
+- **上下文资源（3 类 Resource）**：`codinghub://tools/catalog`、`codinghub://tools/recent`、`codinghub://tool/{id}`
 
-该模块基于 Java MCP SDK 2.0.0 构建，同时支持 **Streamable HTTP**（MCP 2025-03-26 规范）和 **SSE**（兼容旧客户端）两种传输协议。
+共 **20 个 MCP 工具**，同时支持 **Streamable HTTP**（MCP 2025-03-26 规范，`/mcp`）与 **SSE**（旧客户端兼容，`/sse` + `/sse/message`）两种传输协议。
 
 ## 架构总览
 
 ```mermaid
 graph TD
-    A[MCP Client] -->|Streamable HTTP /mcp| B[HttpServletStreamableServerTransportProvider]
-    A -->|SSE /sse| C[HttpServletSseServerTransportProvider]
-    B --> D[McpSyncServer Primary]
-    C --> E[McpSyncServer SSE]
-    D --> F[IaihubToolHandler]
-    D --> G[McpResourceHandler]
-    D --> H[McpPromptProvider]
-    E --> F
-    E --> G
-    E --> H
-    F --> I[McpSearchService]
-    F --> J[ToolService]
-    F --> K[KnowledgeBaseService]
-    F --> L[McpNotificationService]
-    I --> M[ToolRepository]
-    I --> N[ForumPostRepository]
-    K --> O[RagApiClient]
-    L -->|notifyResourcesListChanged| D
-    L -->|notifyResourcesListChanged| E
+    Client[MCP 客户端] -->|Streamable HTTP /mcp| TP1[StreamableServerTransportProvider]
+    Client -->|SSE /sse| TP2[SseServerTransportProvider]
+    TP1 --> S1[McpSyncServer 主服务]
+    TP2 --> S2[McpSyncServer SSE]
+    S1 --> TH[IaihubToolHandler]
+    S2 --> TH
+    S1 --> RH[McpResourceHandler]
+    S1 --> PP[McpPromptProvider]
+    TH --> SS[McpSearchService]
+    TH --> TS[ToolService]
+    TH --> FS[ForumPostService]
+    TH --> KS[KnowledgeBaseService]
+    TH --> NS[McpNotificationService]
+    SS --> RepoT[ToolRepository]
+    SS --> RepoF[ForumPostRepository]
+    SS --> RepoTag[TagRepository]
+    NS -->|resources/list_changed| S1
+    NS -->|resources/list_changed| S2
 ```
 
-**数据流说明**：
-1. MCP 客户端通过 `/mcp`（Streamable HTTP）或 `/sse`（SSE）建立连接
-2. `McpSyncServer` 接收 `tools/call` 请求并路由到 `IaihubToolHandler`
-3. `IaihubToolHandler` 调用底层 Service 层完成业务逻辑
-4. 写操作完成后，`McpNotificationService` 向所有已连接客户端推送资源变更通知
+**数据流**：
+1. 客户端通过 `/mcp`（Streamable HTTP）或 `/sse`（SSE）建立连接并完成 `initialize` 握手
+2. `McpSyncServer` 接收 `tools/call` 请求，路由到 `IaihubToolHandler` 对应的处理方法
+3. `IaihubToolHandler` 调用 Service 层（`McpSearchService` / `ToolService` / `KnowledgeBaseService` 等）完成业务
+4. 写操作（工具创建/修改/文件变更）完成后，`McpNotificationService` 向所有已连接客户端推送 `notifications/resources/list_changed`
 
 ## 核心组件
 
 ### [McpSdkServerConfig](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java)
 
-**路径**: `com.iaihub.toolbox.mcp.McpSdkServerConfig`
+**路径**: `backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java`（约 1180 行）
 
-MCP Server 的核心配置类，职责包括：
+MCP Server 的核心配置类，职责：
 
-| 职责 | 说明 |
-|------|------|
-| 传输层注册 | 通过 `ServletRegistrationBean` 注册 Streamable HTTP (`/mcp`) 和 SSE (`/sse`, `/sse/message`) 两个 Servlet |
-| Server 实例创建 | 构建两个 `McpSyncServer` 实例（`@Primary` 标注 Streamable 实例） |
-| 工具注册 | 调用 `registerAllTools()` 注册 20 个 MCP 工具 |
-| 资源注册 | 调用 `registerAllResources()` 注册 3 个 MCP Resource |
-| Prompt 注册 | 调用 `registerAllPrompts()` 注册 6 个工作流模板 |
-| Server Instructions | 在 initialize 握手时向 Agent 发送全局使用指南 |
+- 注册两个 `McpSyncServer` Bean：主服务（Streamable HTTP）与 SSE 兼容服务，共享同一套 tool/resource/prompt 规格
+- 定义全部 20 个工具的 JSON Schema（名称、描述、输入参数），统一 `h3_coding_hub_` 前缀
+- 将工具调用绑定到 `IaihubToolHandler` 的处理方法
+- 注册 `McpResourceHandler` 的资源规格与 `McpPromptProvider` 的 6 个 Prompt
+- 通过 `ServletRegistrationBean` 将 SDK 的 Transport Servlet 挂载到 `/mcp` 与 `/sse`
 
-Server 声明的能力（Capabilities）：
-- `tools`: true
-- `resources`: true（支持 listChanged 通知）
-- `prompts`: true
-- `logging`: true
+**工具清单**：
+
+| 分类 | 工具名 |
+|------|--------|
+| 工具广场 | `h3_coding_hub_tool_search` / `tool_get` / `tool_files` / `tool_download` / `tool_create` / `tool_modify` / `tool_file_upload` / `tool_file_delete` |
+| 论坛 | `h3_coding_hub_post_search` / `post_get` / `post_create` |
+| 知识库 | `h3_coding_hub_kb_list` / `kb_search` / `kb_create` / `kb_update` / `kb_delete` / `kb_upload_document` / `kb_document_status` / `kb_get_config` / `kb_configure` |
 
 ### [IaihubToolHandler](../../../backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java)
 
-**路径**: `com.iaihub.toolbox.mcp.IaihubToolHandler`
+**路径**: `backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java`（约 1500 行）
 
-MCP 工具调用的核心处理器，实现了 20 个工具的业务逻辑。每个 `handle*` 方法：
-1. 接收从 MCP 请求中解析的参数
-2. 调用对应 Service 层方法
-3. 将结果序列化为 JSON
-4. 封装为 `McpSchema.CallToolResult`（含 `structuredContent`）返回
+所有 MCP 工具调用的实际执行者：
 
-**认证机制**：写操作（创建/修改/删除）需要 `username` + `password` 参数，Handler 内部调用 `UserService.login()` 完成身份验证。
-
-**依赖注入**：
-- `McpSearchService` — 搜索与查询
-- `ToolService` — 工具 CRUD
-- `ToolFileService` — 文件管理
-- `ForumPostService` — 帖子管理
-- `KnowledgeBaseService` — 知识库操作
-- `RagApiClient` — RAG 服务通信
-- `McpNotificationService` — 变更通知
-- `TagService` — 标签解析与创建
-
-### [McpPromptProvider](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpPromptProvider.java)
-
-**路径**: `com.iaihub.toolbox.mcp.McpPromptProvider`
-
-提供 6 个标准 MCP Prompt 模板，将常见工作流封装为可复用的提示词：
-
-| Prompt 名称 | 功能 | 参数 |
-|-------------|------|------|
-| `search-tools` | 搜索工具广场 | query（可选） |
-| `install-tool` | 安装工具到本地项目 | toolName（必填） |
-| `check-versions` | 检查工具版本更新 | 无 |
-| `publish-tool` | 发布本地 Skill 到广场 | skillName（必填） |
-| `update-tool` | 更新已发布的工具 | skillName（必填），version（可选） |
-| `forum-post` | 发帖到论坛 | filePath（可选），title（可选） |
-
-每个 Prompt 返回包含完整操作步骤的 `USER` 角色消息，引导 Agent 按序调用 MCP 工具完成任务。
-
-### [McpResourceHandler](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpResourceHandler.java)
-
-**路径**: `com.iaihub.toolbox.mcp.McpResourceHandler`
-
-将工具广场数据暴露为标准 MCP Resource：
-
-| URI | 类型 | 说明 |
-|-----|------|------|
-| `codinghub://tools/catalog` | 静态资源 | 全量工具摘要目录（最多 200 条） |
-| `codinghub://tools/recent` | 静态资源 | 最近更新的工具（前 20 条） |
-| `codinghub://tool/{id}` | Resource Template | 单个工具完整详情 |
-
-### [McpNotificationService](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java)
-
-**路径**: `com.iaihub.toolbox.mcp.McpNotificationService`
-
-工具变更时向已连接 MCP 客户端推送通知：
-- 工具新增/更新/删除 → `notifications/resources/list_changed`
-- 特定资源变更 → `notifications/resources/updated`（携带 URI）
-
-使用 `@Lazy` 注入 `List<McpSyncServer>` 打破循环依赖。
-
-### [McpConnectionManager](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java)（已废弃）
-
-**路径**: `com.iaihub.toolbox.mcp.McpConnectionManager`
-
-标记为 `@Deprecated`，原用于手动管理 SSE 连接。现已被 MCP SDK 的 `HttpServletSseServerTransportProvider` 内部连接管理替代。
-
-### [McpController](../../../backend/src/main/java/com/iaihub/toolbox/controller/McpController.java)
-
-**路径**: `com.iaihub.toolbox.controller.McpController`
-
-仅提供 `/mcp/health` 健康检查端点，返回服务状态、版本和时间戳。实际 MCP 协议交互由 TransportProvider Servlet 处理。
-
-## 工具定义
-
-MCP Server 共暴露 20 个工具，按功能分为四组：
-
-### 工具管理（7 个）
-
-| 工具名 | 说明 | 需认证 |
-|--------|------|--------|
-| `h3_coding_hub_tool_search` | 按关键词/分类/标签搜索工具列表 | 否 |
-| `h3_coding_hub_tool_get` | 获取工具详情（含完整 markdown 文档） | 否 |
-| `h3_coding_hub_tool_files` | 获取工具文件列表及下载链接 | 否 |
-| `h3_coding_hub_tool_download` | 获取指定文件下载信息 | 否 |
-| `h3_coding_hub_tool_create` | 创建新工具 | 是 |
-| `h3_coding_hub_tool_modify` | 修改工具（版本自动递增） | 是 |
-| `h3_coding_hub_tool_file_upload` | 获取文件上传 REST API 信息 | 否 |
-
-### 文件管理（1 个）
-
-| 工具名 | 说明 | 需认证 |
-|--------|------|--------|
-| `h3_coding_hub_tool_file_delete` | 删除工具文件 | 是 |
-
-### 社区论坛（3 个）
-
-| 工具名 | 说明 | 需认证 |
-|--------|------|--------|
-| `h3_coding_hub_post_search` | 搜索社区帖子 | 否 |
-| `h3_coding_hub_post_get` | 获取帖子完整内容 | 否 |
-| `h3_coding_hub_post_create` | 创建新帖子 | 是 |
-
-### 知识库 RAG（9 个）
-
-| 工具名 | 说明 | 需认证 |
-|--------|------|--------|
-| `h3_coding_hub_kb_list` | 获取知识库列表（分页） | 否 |
-| `h3_coding_hub_kb_search` | 语义搜索知识库内容 | 否 |
-| `h3_coding_hub_kb_create` | 创建知识库 | 是 |
-| `h3_coding_hub_kb_update` | 更新知识库（含名称、描述、RAG 分块配置） | 是 |
-| `h3_coding_hub_kb_delete` | 删除知识库 | 是 |
-| `h3_coding_hub_kb_upload_document` | 获取文档批量上传 API 信息 | 否 |
-| `h3_coding_hub_kb_document_status` | 查询文档处理状态 | 否 |
-| `h3_coding_hub_kb_get_config` | 获取知识库 RAG 配置（分块模式/大小/策略/上下文标题） | 否 |
-| `h3_coding_hub_kb_configure` | 配置知识库 RAG 参数（strategy、contextHeader、chunk 配置、rerank） | 是 |
-
-### 工具参数示例
-
-以 `h3_coding_hub_tool_search` 为例：
-
-**输入 Schema**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "query": {"type": "string", "description": "搜索关键词"},
-    "category": {"type": "string", "description": "分类名称"},
-    "tag": {"type": "string", "description": "标签名过滤（可选）"},
-    "limit": {"type": "integer", "description": "返回数量限制，默认200"}
-  }
-}
-```
-
-**输出 Schema**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "tools": {"type": "array", "items": {"type": "object"}},
-    "count": {"type": "integer"}
-  },
-  "required": ["tools", "count"]
-}
-```
-
-## 搜索与推荐
+- 每个工具对应一个 `handleXxx(Map<String,Object> args)` 方法，解析参数 → 调用 Service → 组装 `CallToolResult`
+- 写操作需要 `apiKey` 参数完成用户身份认证（映射到平台账号）
+- 搜索/详情等读操作委托 [McpSearchService](#mcpsearchservice)，知识库操作委托 `KnowledgeBaseService`（见 [知识库与RAG](知识库与RAG.md)）
+- 发布/修改工具后调用 `McpNotificationService` 推送资源变更通知
+- 返回统一 JSON 文本内容，出错时返回 `isError=true` 的结果而非抛异常
 
 ### [McpSearchService](../../../backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java)
 
-**路径**: `com.iaihub.toolbox.service.McpSearchService`
+**路径**: `backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java`
 
-搜索服务封装了工具和帖子的检索逻辑：
+MCP 专用查询服务，聚合多个 Repository：
 
-**工具搜索流程**：
-1. 调用 `ToolRepository.findApprovedToolsWithCategory()` 执行数据库查询（仅返回已审核工具）
-2. 批量获取所有结果工具的标签（`resolveTagsForTools`），避免 N+1 查询
-3. 若传入 `tag` 参数，在内存中对候选集（至少取 max(limit, 200) 条）做大小写不敏感的标签过滤
-4. 组装 `ToolSearchResult` DTO（含 id、name、description 截取前 100 字符、category、version、tags、logoUrl）
+- `ToolRepository` + `ToolTagRepository` + `TagRepository`：关键词搜索工具（名称/描述/标签），返回 `ToolSearchResult`
+- `ToolFileRepository`：列出工具文件清单
+- `ForumPostRepository` + `UserRepository`：论坛帖子搜索与详情，返回 `PostSearchResult`
+- 仅暴露 `PUBLISHED` 状态的内容，软删除内容不可见
 
-**帖子搜索流程**：
-1. 有关键词时调用 `ForumPostRepository.searchByTitle()` 按标题搜索
-2. 无关键词时按创建时间倒序返回
-3. 仅返回状态为 NORMAL 且可见性为 PUBLIC 的帖子
-4. 关联查询作者用户名
+### [McpResourceHandler](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpResourceHandler.java)
 
-**性能优化**：
-- 标签批量查询避免 N+1 问题
-- 使用 `@Transactional(readOnly = true)` 优化只读事务
-- 搜索结果描述截取前 100 字符减少传输量
+**路径**: `backend/src/main/java/com/iaihub/toolbox/mcp/McpResourceHandler.java`
 
-### 知识库语义搜索
+MCP Resource 提供者，暴露三类资源：
 
-知识库搜索通过 `KnowledgeBaseService.search()` 委托给 RAG 服务：
-- 支持 `topK` 控制返回数量（默认 5）
-- 支持 `rerank` 重排序提升相关性
-- 支持 `expandContext` 上下文扩展
+| URI | 说明 |
+|-----|------|
+| `codinghub://tools/catalog` | 工具广场全量目录（摘要列表） |
+| `codinghub://tools/recent` | 最近更新/新增的前 20 个工具 |
+| `codinghub://tool/{id}` | 单个工具详情（资源模板） |
 
-## 配置
+### [McpPromptProvider](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpPromptProvider.java)
 
-### [McpServerConfig](../../../backend/src/main/java/com/iaihub/toolbox/config/McpServerConfig.java)
+**路径**: `backend/src/main/java/com/iaihub/toolbox/mcp/McpPromptProvider.java`
 
-**路径**: `com.iaihub.toolbox.config.McpServerConfig`
+将 QuickStart 页面的工作流提示词封装为 6 个标准 MCP Prompt：`search-tools`（参数 query）、`install-tool`（参数 toolName）、`check-versions`、`publish-tool`、`update-tool`、`forum-post`。客户端可直接引用这些 Prompt 引导 Agent 完成端到端工作流。
 
-配置前缀: `mcp.server`
+### [McpNotificationService](../../../backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java)
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `mcp.server.port` | int | 8082 | MCP Server 监听端口 |
-| `mcp.server.host` | String | 0.0.0.0 | 绑定地址 |
-| `mcp.server.enabled` | boolean | true | 是否启用 MCP Server |
-| `mcp.server.maxConnections` | int | 10 | 最大连接数 |
-| `mcp.server.connectionTimeoutMs` | int | 30000 | 连接超时（毫秒） |
+**路径**: `backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java`
 
-### 传输端点
+资源变更通知服务。当工具新增/更新/删除时，向所有已连接客户端广播：
 
-| 协议 | 端点 | 说明 |
+- `notifications/resources/list_changed` — 工具列表整体变化
+- `notifications/resources/updated` — 指定 URI 资源内容更新
+
+通过 `@Lazy` 注入 `List<McpSyncServer>` 打破循环依赖（`streamableMcpServer → IaihubToolHandler → McpNotificationService → List<McpSyncServer>`）。
+
+### [McpController](../../../backend/src/main/java/com/iaihub/toolbox/controller/McpController.java)
+
+**路径**: `backend/src/main/java/com/iaihub/toolbox/controller/McpController.java`
+
+轻量辅助控制器，仅提供 `GET /mcp/health` 健康检查端点（返回服务状态、工具数量）。协议消息本身由 SDK Transport Servlet 直接处理，不经过 Spring MVC。
+
+### 已废弃组件
+
+- `McpConnectionManager`（`@Deprecated`）：早期手写的 SSE 连接管理器，已被 SDK `HttpServletSseServerTransportProvider` 取代，保留仅为兼容
+- `McpServerConfig`（config 包）：早期手写 JSON-RPC 实现的配置类，功能已迁移至 `McpSdkServerConfig`
+
+## 关键 DTO
+
+| DTO | 用途 |
+|-----|------|
+| `ToolSearchResult` | 工具搜索结果（id、名称、描述、分类、标签、版本、统计） |
+| `PostSearchResult` | 论坛帖子搜索结果（id、标题、摘要、作者、分类） |
+| `McpSearchRequest` | 搜索入参（keyword、category、page、size） |
+
+## 端点一览
+
+| 端点 | 协议 | 说明 |
 |------|------|------|
-| Streamable HTTP | `/mcp` | MCP 2025-03-26 规范，主传输通道 |
-| SSE | `/sse` + `/sse/message` | 兼容旧版客户端 |
-| 健康检查 | `/mcp/health` | 服务状态探测 |
+| `POST /mcp` | Streamable HTTP | MCP 2025-03-26 主端点（JSON-RPC 2.0） |
+| `GET /sse` | SSE | 旧客户端 SSE 握手 |
+| `POST /sse/message` | HTTP | SSE 模式下的消息回传端点 |
+| `GET /mcp/health` | REST | 健康检查 |
 
-### 关键约束
+## 认证与安全
 
-- **文件传输**: MCP 通道不传输二进制文件，上传/下载通过返回的 REST 端点执行（HTTP Multipart POST）
-- **认证**: 写操作需 username + password，对应 CodingHub 平台账号
-- **版本号**: 遵循 SemVer，修改时不传则自动递增最后一位（如 1.0.0 → 1.0.1）
-- **分类 ID**: Skill(1), MCP(2), 插件(3), Prompt(4), 其他(5)
+- 读操作（搜索/详情/下载/资源）无需认证
+- 写操作（发布/修改工具、发帖、知识库管理）需在参数中提供 `apiKey`，由服务端映射到平台用户并校验权限（内容操作 `isOwner || isAdmin`）
+- 所有入参经 `XssSanitizer` 清洗后入库
 
-## 交叉引用
+## 与其他模块的关系
 
-- [工具广场](工具广场.md) — MCP 服务暴露的核心业务实体，[ToolService](../../../backend/src/main/java/com/iaihub/toolbox/service/ToolService.java) 和 [ToolFileService](../../../backend/src/main/java/com/iaihub/toolbox/service/ToolFileService.java) 的具体实现
-- [知识库与RAG](知识库与RAG.md) — 知识库 MCP 工具依赖 [KnowledgeBaseService](../../../backend/src/main/java/com/iaihub/toolbox/service/kb/KnowledgeBaseService.java) 和 [RagApiClient](../../../backend/src/main/java/com/iaihub/toolbox/service/RagApiClient.java) 的底层实现
+- 依赖 [工具广场](工具广场.md) 的 `ToolService`/`ToolFileService` 完成工具 CRUD 与文件管理
+- 依赖 [论坛社区](论坛社区.md) 的 `ForumPostService` 完成发帖
+- 依赖 [知识库与RAG](知识库与RAG.md) 的 `KnowledgeBaseService` 转发 RAG 请求
+- 依赖 [用户与认证](用户与认证.md) 的 apiKey → [User](../../../backend/src/main/java/com/iaihub/toolbox/model/User.java) 映射完成身份识别
 
 
 <!-- crosslinks (auto-generated) -->
 ## Related Modules
 - Depends on: [工具广场](工具广场.md), [用户与认证](用户与认证.md), [知识库与RAG](知识库与rag.md), [论坛社区](论坛社区.md)
-- Used by: [前端应用](前端应用.md), [工具广场](工具广场.md), [用户与认证](用户与认证.md), [知识库与RAG](知识库与rag.md), [统一互动](统一互动.md), [论坛社区](论坛社区.md)
+- Used by: [工具广场](工具广场.md)
