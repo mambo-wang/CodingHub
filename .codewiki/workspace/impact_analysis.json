@@ -1,159 +1,35 @@
 {
   "query": {
     "start_components": [
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost",
-      "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost"
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.createPost",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.deletePost",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getHotTop5",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.pinPost",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+      "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost"
     ],
-    "direction": "depended_by",
-    "max_depth": 5,
+    "direction": "depends_on",
+    "max_depth": 10,
     "include_paths": true
   },
   "summary": {
-    "total_affected": 26,
-    "start_count": 11,
-    "modules_affected": 2,
-    "high_risk_count": 0
+    "total_affected": 53,
+    "start_count": 10,
+    "modules_affected": 0,
+    "high_risk_count": 16
   },
   "affected_components": [
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
-      "name": "ForumPostService",
-      "component_type": "class",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-      "name": "ForumPostService.createPost",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost",
-      "name": "ForumPostService.deletePost",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5",
-      "name": "ForumPostService.getHotTop5",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
-      "name": "ForumPostService.getMyPosts",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
-      "name": "ForumPostService.getPostById",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
-      "name": "ForumPostService.getPostList",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost",
-      "name": "ForumPostService.pinPost",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO",
-      "name": "ForumPostService.toDTO",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost",
-      "name": "ForumPostService.unpinPost",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost"
-      ]
-    },
-    {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
-      "name": "ForumPostService.updatePost",
-      "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
-      "depth": 0,
-      "module": "论坛社区",
-      "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost"
-      ]
-    },
     {
       "component_id": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
       "name": "ForumPostController",
       "component_type": "class",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController"
       ]
     },
@@ -162,10 +38,8 @@
       "name": "ForumPostController.createPost",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.createPost"
       ]
     },
@@ -174,10 +48,8 @@
       "name": "ForumPostController.deletePost",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.deletePost"
       ]
     },
@@ -186,10 +58,8 @@
       "name": "ForumPostController.getHotTop5",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getHotTop5"
       ]
     },
@@ -198,10 +68,8 @@
       "name": "ForumPostController.getMyPosts",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts"
       ]
     },
@@ -210,10 +78,8 @@
       "name": "ForumPostController.getPostById",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById"
       ]
     },
@@ -222,10 +88,8 @@
       "name": "ForumPostController.getPostList",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList"
       ]
     },
@@ -234,10 +98,8 @@
       "name": "ForumPostController.pinPost",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.pinPost"
       ]
     },
@@ -246,10 +108,8 @@
       "name": "ForumPostController.unpinPost",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost"
       ]
     },
@@ -258,116 +118,617 @@
       "name": "ForumPostController.updatePost",
       "component_type": "method",
       "file_path": "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java",
-      "depth": 1,
-      "module": "论坛社区",
+      "depth": 0,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
         "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost"
       ]
     },
     {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler",
-      "name": "IaihubToolHandler",
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success",
+      "name": "ApiResponse.success",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+        "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+      "name": "ForumPostService",
       "component_type": "class",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
       "depth": 1,
-      "module": "MCP服务",
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler"
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService"
       ]
     },
     {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate",
-      "name": "IaihubToolHandler.handlePostCreate",
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
+      "name": "ForumPostService.createPost",
       "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
       "depth": 1,
-      "module": "MCP服务",
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate"
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.createPost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost"
       ]
     },
     {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.registerAllTools",
-      "name": "McpSdkServerConfig.registerAllTools",
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost",
+      "name": "ForumPostService.deletePost",
       "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.deletePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5",
+      "name": "ForumPostService.getHotTop5",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getHotTop5",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
+      "name": "ForumPostService.getMyPosts",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
+      "name": "ForumPostService.getPostById",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+      "name": "ForumPostService.getPostList",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost",
+      "name": "ForumPostService.pinPost",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.pinPost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost",
+      "name": "ForumPostService.unpinPost",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+      "name": "ForumPostService.updatePost",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost"
+      ]
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::of",
+      "name": "of",
+      "component_type": "function",
+      "file_path": "frontend/dist/assets/index-DPq32n3s.js",
+      "depth": 1,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "frontend/dist/assets/index-DPq32n3s.js::of"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult.setTitle",
+      "name": "PostSearchResult.setTitle",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java",
       "depth": 2,
-      "module": "MCP服务",
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.registerAllTools"
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult.setTitle"
       ]
     },
     {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.sseMcpServer",
-      "name": "McpSdkServerConfig.sseMcpServer",
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java::VideoRankDto.getViewCount",
+      "name": "VideoRankDto.getViewCount",
       "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java",
-      "depth": 3,
-      "module": "MCP服务",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java",
+      "depth": 2,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.registerAllTools",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.sseMcpServer"
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
+        "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java::VideoRankDto.getViewCount"
       ]
     },
     {
-      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.streamableMcpServer",
-      "name": "McpSdkServerConfig.streamableMcpServer",
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java::VideoRankDto.setViewCount",
+      "name": "VideoRankDto.setViewCount",
       "component_type": "method",
-      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java",
-      "depth": 3,
-      "module": "MCP服务",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java",
+      "depth": 2,
       "call_path": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.registerAllTools",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.streamableMcpServer"
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
+        "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java::VideoRankDto.setViewCount"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/forum/ForumPostDTO.java::ForumPostDTO",
+      "name": "ForumPostDTO",
+      "component_type": "record",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/forum/ForumPostDTO.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/dto/forum/ForumPostDTO.java::ForumPostDTO"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/tag/TagDTO.java::TagDTO",
+      "name": "TagDTO",
+      "component_type": "record",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/tag/TagDTO.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/dto/tag/TagDTO.java::TagDTO"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/ForbiddenException.java::ForbiddenException",
+      "name": "ForbiddenException",
+      "component_type": "class",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/exception/ForbiddenException.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/exception/ForbiddenException.java::ForbiddenException"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/ResourceNotFoundException.java::ResourceNotFoundException",
+      "name": "ResourceNotFoundException",
+      "component_type": "class",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/exception/ResourceNotFoundException.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/exception/ResourceNotFoundException.java::ResourceNotFoundException"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.builder",
+      "name": "SseEmitterEvent.builder",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+        "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success",
+        "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.builder"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTag",
+      "name": "ForumPostTag",
+      "component_type": "class",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTag"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java::UserRepository",
+      "name": "UserRepository",
+      "component_type": "interface",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java::UserRepository"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumCategoryRepository.java::ForumCategoryRepository",
+      "name": "ForumCategoryRepository",
+      "component_type": "interface",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumCategoryRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumCategoryRepository.java::ForumCategoryRepository"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository",
+      "name": "ForumPostRepository",
+      "component_type": "interface",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByAuthorIdAndStatusOrderByCreatedAtDesc",
+      "name": "ForumPostRepository.findByAuthorIdAndStatusOrderByCreatedAtDesc",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByAuthorIdAndStatusOrderByCreatedAtDesc"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByCategoryIdAndStatusAndVisibility",
+      "name": "ForumPostRepository.findByCategoryIdAndStatusAndVisibility",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByCategoryIdAndStatusAndVisibility"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByCategoryIdAndStatusAndVisibilityOrderByHot",
+      "name": "ForumPostRepository.findByCategoryIdAndStatusAndVisibilityOrderByHot",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByCategoryIdAndStatusAndVisibilityOrderByHot"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByStatusAndVisibilityOrderByCreatedAtDesc",
+      "name": "ForumPostRepository.findByStatusAndVisibilityOrderByCreatedAtDesc",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByStatusAndVisibilityOrderByCreatedAtDesc"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByStatusAndVisibilityOrderByHot",
+      "name": "ForumPostRepository.findByStatusAndVisibilityOrderByHot",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.findByStatusAndVisibilityOrderByHot"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.searchByTitle",
+      "name": "ForumPostRepository.searchByTitle",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.searchByTitle"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.searchByTitleOrderByHot",
+      "name": "ForumPostRepository.searchByTitleOrderByHot",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository.searchByTitleOrderByHot"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository",
+      "name": "ForumPostTagRepository",
+      "component_type": "interface",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository.deleteByPostId",
+      "name": "ForumPostTagRepository.deleteByPostId",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository.deleteByPostId"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository.findByPostId",
+      "name": "ForumPostTagRepository.findByPostId",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostTagRepository.java::ForumPostTagRepository.findByPostId"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/tag/TagRepository.java::TagRepository",
+      "name": "TagRepository",
+      "component_type": "interface",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/repository/tag/TagRepository.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/repository/tag/TagRepository.java::TagRepository"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO",
+      "name": "ForumPostService.toDTO",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO"
+      ]
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::Xt",
+      "name": "Xt",
+      "component_type": "function",
+      "file_path": "frontend/dist/assets/index-DPq32n3s.js",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "frontend/dist/assets/index-DPq32n3s.js::of",
+        "frontend/dist/assets/index-DPq32n3s.js::Xt"
+      ]
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::aa",
+      "name": "aa",
+      "component_type": "function",
+      "file_path": "frontend/dist/assets/index-DPq32n3s.js",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "frontend/dist/assets/index-DPq32n3s.js::of",
+        "frontend/dist/assets/index-DPq32n3s.js::aa"
+      ]
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::cd",
+      "name": "cd",
+      "component_type": "function",
+      "file_path": "frontend/dist/assets/index-DPq32n3s.js",
+      "depth": 2,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
+        "frontend/dist/assets/index-DPq32n3s.js::of",
+        "frontend/dist/assets/index-DPq32n3s.js::cd"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult.getTitle",
+      "name": "PostSearchResult.getTitle",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java",
+      "depth": 3,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO",
+        "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult.getTitle"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/BusinessException.java::BusinessException",
+      "name": "BusinessException",
+      "component_type": "class",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/exception/BusinessException.java",
+      "depth": 3,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
+        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
+        "backend/src/main/java/com/iaihub/toolbox/exception/ResourceNotFoundException.java::ResourceNotFoundException",
+        "backend/src/main/java/com/iaihub/toolbox/exception/BusinessException.java::BusinessException"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.data",
+      "name": "SseEmitterEvent.data",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java",
+      "depth": 3,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+        "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success",
+        "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.builder",
+        "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.data"
+      ]
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.name",
+      "name": "SseEmitterEvent.name",
+      "component_type": "method",
+      "file_path": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java",
+      "depth": 3,
+      "call_path": [
+        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost",
+        "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success",
+        "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.builder",
+        "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.name"
       ]
     }
   ],
-  "module_impact": {
-    "论坛社区": {
-      "affected_count": 21,
-      "max_depth": 1,
-      "components": [
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.deletePost",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getHotTop5",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getMyPosts",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostById",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.getPostList",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.pinPost",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.toDTO",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.unpinPost",
-        "backend/src/main/java/com/iaihub/toolbox/service/forum/ForumPostService.java::ForumPostService.updatePost",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.createPost",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.deletePost",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getHotTop5",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getMyPosts",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostById",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.getPostList",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.pinPost",
-        "backend/src/main/java/com/iaihub/toolbox/controller/forum/ForumPostController.java::ForumPostController.unpinPost"
-      ]
+  "module_impact": {},
+  "high_risk_components": [
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.builder",
+      "name": "SseEmitterEvent.builder",
+      "direct_dependents": 70,
+      "depth": 2
     },
-    "MCP服务": {
-      "affected_count": 5,
-      "max_depth": 3,
-      "components": [
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::IaihubToolHandler.handlePostCreate",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.registerAllTools",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.sseMcpServer",
-        "backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java::McpSdkServerConfig.streamableMcpServer"
-      ]
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/ApiResponse.java::ApiResponse.success",
+      "name": "ApiResponse.success",
+      "direct_dependents": 67,
+      "depth": 1
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::of",
+      "name": "of",
+      "direct_dependents": 21,
+      "depth": 1
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::Xt",
+      "name": "Xt",
+      "direct_dependents": 20,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java::UserRepository",
+      "name": "UserRepository",
+      "direct_dependents": 16,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/BusinessException.java::BusinessException",
+      "name": "BusinessException",
+      "direct_dependents": 11,
+      "depth": 3
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/ResourceNotFoundException.java::ResourceNotFoundException",
+      "name": "ResourceNotFoundException",
+      "direct_dependents": 10,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.name",
+      "name": "SseEmitterEvent.name",
+      "direct_dependents": 9,
+      "depth": 3
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/exception/ForbiddenException.java::ForbiddenException",
+      "name": "ForbiddenException",
+      "direct_dependents": 8,
+      "depth": 2
+    },
+    {
+      "component_id": "frontend/dist/assets/index-DPq32n3s.js::aa",
+      "name": "aa",
+      "direct_dependents": 8,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java::SseEmitterEvent.data",
+      "name": "SseEmitterEvent.data",
+      "direct_dependents": 8,
+      "depth": 3
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/forum/ForumPostRepository.java::ForumPostRepository",
+      "name": "ForumPostRepository",
+      "direct_dependents": 6,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/VideoRankDto.java::VideoRankDto.getViewCount",
+      "name": "VideoRankDto.getViewCount",
+      "direct_dependents": 6,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/tag/TagDTO.java::TagDTO",
+      "name": "TagDTO",
+      "direct_dependents": 5,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/repository/tag/TagRepository.java::TagRepository",
+      "name": "TagRepository",
+      "direct_dependents": 5,
+      "depth": 2
+    },
+    {
+      "component_id": "backend/src/main/java/com/iaihub/toolbox/dto/PostSearchResult.java::PostSearchResult.getTitle",
+      "name": "PostSearchResult.getTitle",
+      "direct_dependents": 5,
+      "depth": 3
     }
-  }
+  ]
 }

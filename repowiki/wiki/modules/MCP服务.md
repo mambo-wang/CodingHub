@@ -5,7 +5,6 @@ description: 嵌入式 MCP 服务（Streamable HTTP/SSE），注册 5 个工具�
 resource: backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java
 tags: [mcp, model-context-protocol, tool-calling, notification, streamable-http]
 ---
-
 # MCP服务
 
 MCP 服务在 CodingHub 后端内嵌了一个符合 Model Context Protocol 的服务器，使外部 AI 客户端（如 Claude/Cursor 等支持 MCP 的 IDE）能通过标准协议检索平台资源。它注册了 5 个工具（`h3_coding_hub_tool_search/get/files`、`h3_coding_hub_post_search/get`），对外暴露 `Streamable HTTP` 与 `SSE` 两种传输，并在工具/帖子发生变更时主动推送资源通知。入口为 `/mcp`（JSON-RPC）、`/mcp/sse`、`/mcp/health`。
@@ -14,12 +13,12 @@ MCP 服务在 CodingHub 后端内嵌了一个符合 Model Context Protocol 的�
 
 | Component | Constraints | Risks | Summary |
 |-----------|-------------|-------|---------|
-| IaihubToolHandler | 3 | 1 | 5 工具分发，参数 schema 校验 |
-| McpSdkServerConfig | 2 | 0 | 注册工具/资源/提示，双传输 |
-| McpConnectionManager | 1 | 0 | 维护客户端会话 |
-| McpNotificationService | 2 | 0 | 变更 → 推送 clients |
-| McpController | 2 | 0 | /mcp JSON-RPC + SSE + health |
-| McpSearchService | 2 | 0 | 工具/帖子检索共享逻辑 |
+| [IaihubToolHandler](../../backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java) | 3 | 1 | 5 工具分发，参数 schema 校验 |
+| [McpSdkServerConfig](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java) | 2 | 0 | 注册工具/资源/提示，双传输 |
+| [McpConnectionManager](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java) | 1 | 0 | 维护客户端会话 |
+| [McpNotificationService](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java) | 2 | 0 | 变更 → 推送 clients |
+| [McpController](../../backend/src/main/java/com/iaihub/toolbox/controller/McpController.java) | 2 | 0 | /mcp JSON-RPC + SSE + health |
+| [McpSearchService](../../backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java) | 2 | 0 | 工具/帖子检索共享逻辑 |
 
 ## 架构总览 (Architecture Overview)
 
@@ -58,14 +57,14 @@ graph TD
 
 ## 组件职责 (Component Responsibilities)
 
-### McpSdkServerConfig
+### [McpSdkServerConfig](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpSdkServerConfig.java)
 
 基于 MCP SDK 构建 `McpServer`，注册：
 - 5 个 `Tool`（`h3_coding_hub_tool_search`、`h3_coding_hub_tool_get`、`h3_coding_hub_tool_files`、`h3_coding_hub_post_search`、`h3_coding_hub_post_get`），每个含 `name/description/inputSchema(JSON Schema)`。
 - 资源（Resource）与提示（Prompt）模板（如适用）。
 - 传输：`Streamable HTTP`（`/mcp`）+ `SSE`（`/mcp/sse`），由 `McpController` 暴露端点。
 
-### IaihubToolHandler
+### [IaihubToolHandler](../../backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java)
 
 工具调用分发器：解析 `tool name` 与 `arguments`，按名称 `switch` 到对应处理分支，返回 `CallToolResult`（文本内容）：
 - `h3_coding_hub_tool_search`：关键词/分类检索工具列表。
@@ -73,18 +72,18 @@ graph TD
 - `h3_coding_hub_tool_files`：取工具附件清单。
 - `h3_coding_hub_post_search` / `h3_coding_hub_post_get`：论坛帖子检索/详情（复用 [论坛社区](论坛社区.md) 的 `ForumPostService`）。
 
-**Business Constraints — IaihubToolHandler**
+**Business Constraints — [IaihubToolHandler](../../backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java)**
 
 - 工具参数先按 inputSchema 校验，缺失/类型错直接返回错误结果 (confidence: 0.9)
   > Evidence: 每个分支先读取并校验 `arguments.getString(...)`/`getLong(...)`，非法时返回带 `isError=true` 的 `CallToolResult`。
 - 帖子类工具复用论坛 Service，不重复实现检索逻辑 (confidence: 0.95)
   > Evidence: `h3_coding_hub_post_*` 分支调用 `forumPostService.getPostList/getPostById`，与 REST 共用同一业务层。
 
-### McpSearchService
+### [McpSearchService](../../backend/src/main/java/com/iaihub/toolbox/service/McpSearchService.java)
 
 被 `IaihubToolHandler` 调用的共享检索逻辑：把 MCP 入参映射为 `ToolService`/`ForumPostService` 的查询条件，归一化结果结构（标题、摘要、URL、id）后返回，屏蔽后端 DTO 差异。
 
-### McpConnectionManager / McpNotificationService
+### [McpConnectionManager](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpConnectionManager.java) / [McpNotificationService](../../backend/src/main/java/com/iaihub/toolbox/mcp/McpNotificationService.java)
 
 - `McpConnectionManager`：维护当前已连接的 MCP 客户端会话集合（按 session/transport 索引）。
 - `McpNotificationService`：提供 `notifyToolCreated/Updated/Deleted` 等；当 [工具广场](工具广场.md) 的 `ToolService` 或 [论坛社区](论坛社区.md) 的 `ForumPostService` 发生写操作时调用，向所有连接客户端推送资源变更通知（`resources/updated` 风格），让客户端刷新上下文。
@@ -96,7 +95,7 @@ graph TD
 - 通知面向“所有在线连接”，单客户端掉线不阻塞主流程 (confidence: 0.9)
   > Evidence: `McpNotificationService` 遍历 `McpConnectionManager` 会话逐个推送，单条失败 catch 记日志继续。
 
-### McpController
+### [McpController](../../backend/src/main/java/com/iaihub/toolbox/controller/McpController.java)
 
 暴露三个端点：
 - `POST /mcp`：JSON-RPC 2.0 入口（initialize/tools/list/tools/call/resources/...）。
@@ -141,3 +140,9 @@ sequenceDiagram
 - 通知为“尽力推送”：客户端离线/会话不存在则跳过，不持久化离线消息。
 - `/mcp/health` 仅反映服务存活，不校验 Python RAG 等下游依赖。
 - 传输层同时提供 Streamable HTTP 与 SSE，客户端可二选一；SSE 主要用于旧式兼容。
+
+## 知识笔记与外部文档 (Knowledge)
+
+- 源文档：[mcp-server-best-practices](../sources/mcp-server-best-practices.md) — MCP 开发最佳实践与踩坑记录（SSE 泄漏、大数据传输、二进制交接）
+- 概念：[Streamable-HTTP传输模式](../concepts/Streamable-HTTP传输模式.md) · [MCP控制通道与数据通道分离](../concepts/MCP控制通道与数据通道分离.md) · [MCP与SKILL能力对等](../concepts/MCP与SKILL能力对等.md)
+- 实体：[McpPromptProvider](../entities/McpPromptProvider.md) · [McpResourceHandler](../entities/McpResourceHandler.md) · [McpNotificationService](../entities/McpNotificationService.md)

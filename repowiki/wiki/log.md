@@ -22,3 +22,21 @@
 | 2026-07-28T18:04:39+08:00 | lint_wiki | 检查完成: 13 个问题 |
 | 2026-07-28T18:06:17+08:00 | close_session | 会话关闭 |
 | 2026-07-28T18:06:35+08:00 | lint_wiki | 检查完成: 0 个问题 |
+| 2026-07-28T18:50:10+08:00 | analyze_repo | 分析仓库 CodingHub，2847 个组件 |
+| 2026-07-28T18:50:31+08:00 | lint_wiki | 检查完成: 0 个问题 |
+| 2026-07-28T18:50:35+08:00 | close_session | 会话关闭 |
+| 2026-07-28T18:54:01+08:00 | analyze_repo | 分析仓库 CodingHub，2847 个组件 |
+| 2026-07-28T18:54:01+08:00 | ingest_source | 导入外部文档: mcp-server-best-practices (md) |
+| 2026-07-28T18:54:42+08:00 | write_doc_file | 创建 mcp-server-best-practices.md |
+| 2026-07-28T18:54:58+08:00 | write_doc_file | 创建 McpPromptProvider.md |
+| 2026-07-28T18:55:05+08:00 | write_doc_file | 创建 McpResourceHandler.md |
+| 2026-07-28T18:55:24+08:00 | write_doc_file | 创建 McpNotificationService.md |
+| 2026-07-28T18:55:40+08:00 | write_doc_file | 创建 MCP控制通道与数据通道分离.md |
+| 2026-07-28T18:55:58+08:00 | write_doc_file | 创建 Streamable-HTTP传输模式.md |
+| 2026-07-28T18:56:17+08:00 | write_doc_file | 创建 MCP与SKILL能力对等.md |
+| 2026-07-28T18:57:03+08:00 | edit_doc_file | 更新 MCP服务.md (str_replace) |
+| 2026-07-28T18:57:09+08:00 | lint_wiki | 检查完成: 2 个问题 |
+| 2026-07-28T18:57:21+08:00 | edit_doc_file | 更新 mcp-server-best-practices.md (str_replace) |
+| 2026-07-28T18:57:26+08:00 | lint_wiki | 检查完成: 0 个问题 |
+| 2026-07-28T18:57:31+08:00 | close_session | 会话关闭 |
+| 2026-07-28T19:08:22+08:00 | ingest_note | 添加笔记: 新增评论/点赞/收藏功能须复用统一互动代码，禁止重复造轮子 |

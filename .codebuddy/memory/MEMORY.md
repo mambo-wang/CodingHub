@@ -6,6 +6,7 @@
 2. 禁止在循环中请求数据库或调接口
 3. 遍历集合优先用 for，避免 while/foreach/stream/iterator
 4. 方法不返回 null（抛异常或 Optional）
+5. **新增评论/点赞/收藏功能禁止重复造轮子**：复用已有统一互动代码（`UnifiedLikeService`/`UnifiedFavoriteService`/`UnifiedCommentService` + `UnifiedInteractionController` `/api/v1/interactions` + `TargetType` 枚举扩展），不要新建 `xxx_like`/`xxx_favorite` 表
 
 ## 数据库（双库共存，Profile 切换）
 
@@ -35,3 +36,12 @@
 - `overview.md` **不是合法 page_type** → 直接 `write_to_file` 到 `repowiki/wiki/overview.md`（不走 `write_doc_file`）。其内链接须写 `modules/X.md`（从 `wiki/` 解析）；模块文档互链用裸 `X.md`（在 `modules/` 内解析）。
 - `lint_wiki` 的 checks 合法值：`all`/`stale_refs`/`undocumented`/`broken_links`/`cycles`/`coverage`/`orphan_pages`/`no_outlinks`/`missing_aliases`/`stale_sources`/`superseded_pages`。`missing_aliases` 仅 info（不阻断）。目标 `health_score: 100`、0 error。
 - 论坛接口路径是 `/api/forum/...`（**不含 /v1**），与其余 `/api/v1/...` 不同——文档与前端 `forum.ts` 都别多写 `/v1`。
+
+## CodingHub 项目自带 MCP Server（后端 /mcp，20 工具）
+
+- 启动：后端 `./gradlew bootRun`（8082）→ MCP 随应用初始化，暴露 `/mcp`(streamable-http) 与 `/sse`，各 20 tools/3 resources/6 prompts。`/mcp/**`、`/sse/**` 在 SecurityConfig 为 **permitAll**（MCP 调用无需 token）。
+- RAG 服务独立：`cd rag && python3 server.py --host 127.0.0.1 --port 8000`（前端 KB 类工具依赖它）。
+- 写类工具（tool_create/post_create/kb_*）内部用调用方传入的 username/password 调 `userService.login` 鉴权；可用 admin/Cloud@1234。
+- **【BUG】`h3_coding_hub_kb_document_status` 单文档分支（传 docId）会触发 `output validation failed: 未找到所需属性 kbId/documents/totalCount`**——工具输出 schema 只匹配"列表"分支结构，单文档分支返回裸文档对象不合规。位置 `backend/.../mcp/IaihubToolHandler.java` `handleKbDocumentStatus`（L612-630）。修复：单文档分支也包成 `KbDocumentStatusResponse` 形状，或放宽输出 schema。列表分支（不传 docId）正常。
+- 验证客户端：Python `mcp` SDK `streamablehttp_client("http://127.0.0.1:8082/mcp")` + `ClientSession`。
+- **后端空闲久了会僵死**：TCP 端口 LISTEN 但 HTTP 全部超时（curl/python HTTP 000，仅 nc 通），多为 DB 连接池陈旧。重启后端即可恢复；`/actuator/health` 在本项目未暴露（返回 500 是 404 被全局异常转译），不代表异常。
