@@ -23,8 +23,10 @@
 > 仓库 LLM Wiki 用 CodeWiki MCP 生成，落在 `repowiki/wiki/`（模块在 `modules/`，总览 `overview.md`）。
 
 - 流程：`analyze_repo`（重建会话；若缓存丢失会报 "Session not found"，重跑即可）→ classifier 脚本建 `module_tree.json` → `save_module_tree` → `get_processing_order`（叶优先）→ 逐模块 `write_doc_file` → 写 `overview.md` → `lint_wiki` → `close_session`。
-- **`close_session` 可能清空 `repowiki/` + `.codewiki/workspace/`**（会话开始时曾观测到 repowiki 消失，需重生成）；本次末次调用却保留了。行为不稳定 → **调用前先 `cp -R repowiki /tmp/repowiki-backup` 备份**。
-- `write_doc_file` **不会覆盖**已存在的 module 文件 → 必须 `rm` 后重写；`edit_doc_file` 当前**损坏**（`UnboundLocalError: cannot access local variable 'repo_path'`）→ 用「删+重写」代替。
+- **`close_session` 和 `analyze_repo` 都可能清空 `repowiki/` 文档**（2026-07-28 回归测试确认：一次 `analyze_repo` 重新初始化清掉了全部 13 个模块文档）。任何 CodeWiki 会话操作前 → **先 `cp -R repowiki /tmp/repowiki-backup` 备份**。恢复 = 拷回 `wiki/modules/`、`wiki/overview.md`、`.meta/module_tree.json`，然后 `close_session` 重建索引。
+- `query_wiki` 在 BM25 索引未建/丢失时**静默返回空结果**（不报错）→ 结果为空先怀疑索引，跑一次 `close_session` 重建再查。
+- `write_doc_file` **不会覆盖**已存在的 module 文件 → 必须 `rm` 后重写；`edit_doc_file` **已修复**（2026-07-28 验证 str_replace/insert/undo 均正常，此前 UnboundLocalError 已消失），可正常用于小修改。小 bug：frontmatter 注入后 `---` 与正文首行 `#` 标题会粘连成 `---# 标题`。
+- `generate_docs`(legacy) 依赖服务端内置 LLM（火山 CodingPlan 订阅），订阅过期即 400；IDE 流程用细粒度工具，不受影响。
 - **Mermaid 坑（本校验器严格）**：
   - 禁止一行多节点（`A[x] B[y]` 解析报错）→ 每节点独占一行；
   - 节点/边标签里**禁花括号**（`{id}` 会破坏解析）→ 改用 `(id)`；

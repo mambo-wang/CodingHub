@@ -1,0 +1,31 @@
+{
+  "sources": {
+    "mcp-regression-test-source": {
+      "path": "raw/sources/mcp-regression-test-source.md",
+      "original_path": "/private/tmp/codewiki-test-source.md",
+      "source_type": "md",
+      "description": "MCP 回归测试临时源文档",
+      "version": "1.0",
+      "imported_at": "2026-07-28T18:02:44.178667",
+      "related_pages": [],
+      "status": "retracted",
+      "content_hash": "sha256:485ce4209dd1b787b0ac5cfaee6871d39f52b20f9bc851bf271a9a56c9c8b9cb",
+      "retracted_at": "2026-07-28T18:03:13.882446",
+      "retract_mode": "remove_refs"
+    },
+    "mcp-batch-test-source": {
+      "path": "raw/sources/mcp-batch-test-source.md",
+      "original_path": "/private/tmp/codewiki-batch-source.md",
+      "source_type": "md",
+      "description": "batch_ingest 测试源",
+      "version": "",
+      "imported_at": "2026-07-28T18:02:57.726614",
+      "related_pages": [],
+      "status": "retracted",
+      "content_hash": "sha256:2756ddd826990839de655aa7e66d9b427784df923b61a62c3e7a5a0580cb79cc",
+      "retracted_at": "2026-07-28T18:03:12.523320",
+      "retract_mode": "remove_refs"
+    }
+  },
+  "version": 1
+}
