@@ -1,0 +1,36 @@
+{
+  "session_id": "5bdb4b454eb9",
+  "repo_name": "CodingHub",
+  "repo_path": "/Users/kirito/repos/CodingHub",
+  "output_dir": "/Users/kirito/repos/CodingHub/repowiki",
+  "total_components": 2847,
+  "total_leaf_nodes": 299,
+  "languages": {
+    "javascript": 1674,
+    "python": 146,
+    "typescript": 167,
+    "java": 860
+  },
+  "leaf_nodes_preview": [
+    "backend/src/main/java/com/iaihub/toolbox/service/OverviewServiceImpl.java::OverviewServiceImpl",
+    "backend/src/main/java/com/iaihub/toolbox/service/ToolFileService.java::ToolFileService",
+    "frontend/src/types/chat.ts::TypingPayload",
+    "backend/src/main/java/com/iaihub/toolbox/config/SecurityConfig.java::SecurityConfig",
+    "backend/src/main/java/com/iaihub/toolbox/dto/ChatMessageDTO.java::ChatMessageDTO",
+    "backend/src/main/java/com/iaihub/toolbox/model/forum/ForumPostTag.java::ForumPostTagId",
+    "frontend/src/types/index.ts::ToolSummary",
+    "backend/src/main/java/com/iaihub/toolbox/dto/kb/KbUpdateRequest.java::KbUpdateRequest",
+    "frontend/src/types/feedback.ts::FeedbackCreateRequest",
+    "backend/src/main/java/com/iaihub/toolbox/dto/UserDTO.java::UserDTO",
+    "backend/src/main/java/com/iaihub/toolbox/repository/UserRepository.java::UserRepository",
+    "frontend/src/types/knowledge.ts::RagDocumentStatus",
+    "backend/src/main/java/com/iaihub/toolbox/mcp/IaihubToolHandler.java::KbListResponse",
+    "backend/src/main/java/com/iaihub/toolbox/model/ToolComment.java::ToolComment",
+    "backend/src/main/java/com/iaihub/toolbox/controller/ChatController.java::ChatController",
+    "backend/src/main/java/com/iaihub/toolbox/controller/UserController.java::UserController",
+    "frontend/src/types/chat.ts::ReactionActionPayload",
+    "frontend/src/services/interaction.ts::LikeResponse",
+    "backend/src/main/java/com/iaihub/toolbox/service/CategoryService.java::CategoryService",
+    "frontend/src/types/chat.ts::EditPayload"
+  ]
+}
