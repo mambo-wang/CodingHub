@@ -1,127 +1,162 @@
 ---
+title: "知识库与Rag"
 type: Module
-title: 知识库与RAG
-description: 知识库的元数据管理与语义检索模块，后端 KnowledgeBase 服务经 HTTP 调用 Python RAG 服务完成向量索引与重排。
-resource: backend/src/main/java/com/iaihub/toolbox/service/kb/KnowledgeBaseService.java
-tags: [knowledge-base, rag, vector-search, embedding, rerank]
+description: "知识库与 RAG 模块由两部分组成："
+aliases: [知识库与RAG]
 ---
-
 # 知识库与RAG
 
-知识库与 RAG 模块为 CodingHub 提供领域知识的管理与语义检索能力。后端 `KnowledgeBaseService` 负责知识库/文档的元数据 CRUD、上传触发索引、检索代理；真正的向量化、向量存储与重排由独立的 Python RAG 服务（`rag/`）完成，二者通过 HTTP（REST）解耦。后端入口为 `/api/v1/knowledge`，Python 服务暴露 `/api/v1/index`、`/api/v1/search` 等端点。
+## 模块概述
 
-## Component Constraint Index
+知识库与 RAG 模块由两部分组成：
 
-| Component | Constraints | Risks | Summary |
-|-----------|-------------|-------|---------|
-| KnowledgeBaseService | 3 | 1 | CRUD + 索引/检索代理 |
-| RagApiClient | 2 | 1 | HTTP 调 Python，超时/降级 |
-| KnowledgeBase | 2 | 0 | 知识库元数据实体 |
-| KnowledgeBaseController | 2 | 0 | REST 入口 |
-| vector_store.py | 2 | 0 | 向量存储与 ANN 检索 |
-| embeddings.py | 1 | 0 | 嵌入模型与维度 |
-| reranker.py | 1 | 0 | 结果重排 |
+1. **Java 后端知识库层**（`/api/v1/knowledge`）：知识库元数据 CRUD、权限管理，并作为**代理**将文档上传/语义搜索请求转发给 Python RAG 服务
+2. **Python RAG 服务**（`rag/` 目录，独立进程，默认 `127.0.0.1:8000`）：基于 zvec 向量库 + Qwen3-Embedding 的本地检索增强服务，暴露 REST API
 
-## 架构总览 (Architecture Overview)
+这是全仓库唯一的多语言协作模块（Java ↔ Python HTTP 集成）。
+
+- **组件数量**: 156 个（Java 后端 kb 相关 + rag/ 全部 Python 组件）
+- **启动方式**: `cd rag && python3 server.py --host 127.0.0.1 --port 8000`（前端知识库功能依赖此服务在线）
+
+## 架构图
 
 ```mermaid
 graph TD
     subgraph "前端"
-        KBP[KnowledgePage]
-        KBS[knowledge.ts]
+        KBPage[pages/knowledge 知识库页面]
     end
-    subgraph "后端"
-        KBC[KnowledgeBaseController /api/v1/knowledge]
+    subgraph "Java 后端 8082"
+        KBCtl[KnowledgeBaseController api v1 knowledge]
         KBSvc[KnowledgeBaseService]
-        RAC[RagApiClient]
+        RagClient[RagApiClient HTTP 代理]
+        KBTbl[(knowledge_base 表)]
     end
-    subgraph "RAG_Python服务"
-        VS[VectorStore 向量存储]
-        ES[EmbeddingService 嵌入]
-        RS[RerankerService 重排]
-        API[RAG REST /api/v1/...]
+    subgraph "Python RAG 服务 8000"
+        App[api app.py REST 路由]
+        Svc[core service.py 编排]
+        Chunker[core chunker.py 文档分块]
+        Embed[core embeddings.py Qwen3 嵌入]
+        Rerank[core reranker.py 重排]
+        VStore[core vector_store.py zvec 向量库]
+        AsyncE[core async_engine.py 异步批量索引]
     end
-    KBP --> KBS --> KBC --> KBSvc
-    KBSvc --> RAC -.HTTP.-> API
-    API --> ES
-    API --> VS
-    API --> RS
-    KBSvc --> KB[(knowledge_base 表)]
+    KBPage --> KBCtl
+    KBCtl --> KBSvc
+    KBSvc --> KBTbl
+    KBSvc --> RagClient
+    RagClient -->|REST HTTP| App
+    App --> Svc
+    Svc --> Chunker
+    Svc --> Embed
+    Svc --> Rerank
+    Svc --> VStore
+    Svc --> AsyncE
 ```
 
-## 组件职责 (Component Responsibilities)
+## Java 后端知识库层
 
-### KnowledgeBaseService
+### knowledge_base 表（KnowledgeBase 实体）
 
-- **知识库 CRUD**：`create/list/get/update/delete` 知识库元数据（`name/description/ownerId/status`），软删除。
-- **文档上传索引**：`uploadDocument` 把文件交给 `RagApiClient.index(baseId, file)` → Python 服务做分块、嵌入、写向量库；记录文档元数据（`kb_document`）。
-- **语义检索**：`search(baseId, query, topK)` → 经 `RagApiClient.search` 拿到候选，后端做权限/来源过滤后返回；命中带 `score` 与原文片段。
+| 字段 | 说明 |
+|------|------|
+| `name` / `description` | 知识库名称（100 字）/ 描述 |
+| `owner_id` | 拥有者（Long 直存） |
+| `rag_collection` | 对应 RAG 服务的 collection 名（一对一映射） |
+| `status` | `NORMAL` / `DELETED`（KbStatus，软删除） |
 
-**Business Constraints — KnowledgeBaseService**
+### REST 接口（/api/v1/knowledge）
 
-- 检索与索引全部委托给 Python RAG 服务，后端只做编排与鉴权 (confidence: 0.95)
-  > Evidence: `RagApiClient.index(...)` / `RagApiClient.search(...)` 被 `uploadDocument`/`search` 直接调用，后端不持有向量。
-- 文档/知识库的删除为软删除，索引侧需同步清理 (confidence: 0.85)
-  > Evidence: `delete` 置 `status=DELETED`；注释/逻辑提示需通知 RAG 服务清理对应 collection。
+| 端点 | 权限 | 说明 |
+|------|------|------|
+| `GET /?ownerId=&sortBy=` | 公开 | 知识库分页列表 |
+| `GET /{id}` | 公开 | 详情 |
+| `POST /` | 登录 | 创建（同时初始化 RAG collection 配置） |
+| `PUT /{id}` | owner 或 admin | 更新元数据 |
+| `DELETE /{id}` | owner 或 admin | 软删除（联动删除 RAG collection） |
+| `POST /{id}/search` | 公开 | **语义搜索**（代理到 RAG `/api/collections/{name}/search`） |
 
-### RagApiClient
+文档管理（上传/删除/状态查询）同样经 Controller → Service → RagApiClient 代理链路转发。
 
-HTTP 客户端，`baseUrl` 来自配置（如 `rag.service.url`）。封装：
-- `POST /api/v1/index`：上传文档并索引，返回 `documentId`。
-- `POST /api/v1/search`：提交 `{baseId, query, topK}`，返回带 `score` 的命中文段。
-- 统一超时与降级：服务不可用时抛 `RuntimeException` 并记日志，不拖垮主链路。
+### RagApiClient（代理客户端）
 
-**Business Constraints**
+- 基于 JDK 11 `HttpClient`，`app.rag.base-url` 配置目标地址（`RagClientConfig` 装配）
+- 覆盖 collection 配置读写、文档上传（multipart）、批量异步上传、状态轮询、语义搜索、删除
+- 错误策略：RAG 返回 >=400 抛 `RuntimeException`（含 RAG 错误消息）；连接失败统一转译为 "RAG 服务不可用"——**RAG 进程离线时知识库读元数据可用，涉及文档/搜索的操作报错**
 
-- 调用 RAG 服务失败应降级而非阻断业务主流程 (confidence: 0.85)
-  > Evidence: `catch (RestClientException e)` 记 `log.error` 并抛受控异常，由上层 `GlobalExceptionHandler` 收敛（见 [平台基础](平台基础.md)）。
+## Python RAG 服务
 
-### 数据模型
+### REST API（server.py 声明）
 
-`KnowledgeBase`：`name(200)`、`description(text)`、`ownerId`、`status(NORMAL/DELETED)`、`createdAt/updatedAt`。`kb_document`：`baseId/documentName/chunkCount/status`。
+| 端点 | 说明 |
+|------|------|
+| `GET /api/health` | 健康检查 |
+| `GET /api/collections` | collection 列表 |
+| `POST /api/collections/{name}/documents` | 单文件同步上传索引 |
+| `POST /api/collections/{name}/documents/batch` | 批量异步上传（async_engine 后台索引） |
+| `GET /api/collections/{name}/documents/status` | 文档索引状态列表 |
+| `POST /api/collections/{name}/search` | 语义搜索（嵌入 → 向量检索 → 可选重排） |
+| `GET/PUT /api/collections/{name}/config` | 分块/嵌入配置读写 |
+| `POST /api/collections/{name}/chunking/preview` | 分块预览（调参用） |
 
-### Python RAG 服务（`rag/`）
+### 核心管线（core/）
 
-- **embeddings.py · EmbeddingService**：加载嵌入模型（如 `sentence-transformers` 或远程 Embedding API），输出固定维度向量（如 384/768），提供 `embed(texts)->List[float]`。
-- **vector_store.py · VectorStore**：基于向量库（Chroma / FAISSI）的 `add(embeddings, metas)` 与 `search(query_vector, topK)` ANN 检索，返回候选 id + 距离。
-- **reranker.py · RerankerService**：对向量召回候选做第二阶段重排（交叉编码器/规则），提升相关性，输出最终 `topK`。
+```mermaid
+graph LR
+    Doc[原始文档] --> CH[chunker 分块]
+    CH --> EM[embeddings Qwen3-Embedding]
+    EM --> VS[vector_store zvec 持久化]
+    Q[查询文本] --> EM2[查询嵌入]
+    EM2 --> VS
+    VS --> RR[reranker 重排]
+    RR --> Top[TopK 结果]
+```
 
-## 数据流：语义检索
+| 组件 | 职责 |
+|------|------|
+| `chunker.py` | 文档解析与分块（chunk_size / overlap 可配） |
+| `embeddings.py` | Qwen3-Embedding 文本嵌入（HuggingFace 模型，启动时强制 `HF_ENDPOINT=hf-mirror.com` 镜像加速） |
+| `vector_store.py` | zvec 向量库封装（本地持久化，`rag/data/`） |
+| `reranker.py` | 检索结果重排提升精度 |
+| `async_engine.py` | 批量上传的后台异步索引引擎（状态：pending → indexing → completed / failed） |
+| `service.py` | 上述组件的编排门面 |
+| `validator.py` / `profiler.py` | 输入校验 / 性能剖析 |
+
+### MCP 集成说明
+
+RAG 服务本身**不直接暴露 MCP**——知识库类 MCP 工具（`kb_list` / `kb_create` / `kb_upload` / `kb_search` / `kb_document_status` 等 `h3_coding_hub_kb_*`）由 Java 后端 [MCP服务](MCP服务.md) 提供，内部同样走 RagApiClient 代理链路。
+
+## 文档上传与搜索时序
 
 ```mermaid
 sequenceDiagram
-    participant U as 用户
-    participant KBC as KnowledgeBaseController
-    participant Svc as KnowledgeBaseService
-    participant RAC as RagApiClient
-    participant PY as RAG服务
-    U->>KBC: GET /api/v1/knowledge/(id)/search?q=...
-    KBC->>Svc: search(baseId, q, topK)
-    Svc->>RAC: search(q, topK)
-    RAC->>PY: POST /api/v1/search
-    PY->>PY: embed + VectorStore + Reranker
-    PY-->>RAC: 命中片段+score
-    RAC-->>Svc: 候选
-    Svc-->>KBC: 过滤后结果
-    KBC-->>U: ApiResponse
+    participant FE as 前端
+    participant KB as KnowledgeBaseService
+    participant RC as RagApiClient
+    participant RAG as Python RAG 8000
+    FE->>KB: 上传文档 (multipart)
+    KB->>KB: 权限校验 isOwner or isAdmin
+    KB->>RC: uploadDocument(collection, file)
+    RC->>RAG: POST /api/collections/x/documents/batch
+    RAG-->>RC: docId + pending
+    Note over RAG: async_engine 后台分块+嵌入+入库
+    FE->>KB: 轮询文档状态
+    KB->>RC: GET documents/status
+    FE->>KB: POST /{id}/search
+    KB->>RC: search(collection, query, topK)
+    RC->>RAG: POST search
+    RAG-->>FE: 语义匹配片段 + 相似度分数
 ```
 
-## 接口契约与副作用
+## 依赖关系
 
-- REST 响应统一包 `ApiResponse`（见 [平台基础](平台基础.md)）。
-- 上传文档副作用：写入 `kb_document` 元数据 + 触发 Python 索引（异步/同步取决于配置）；检索为只读。
-- RAG 服务返回的原始 `score` 直接透传给前端用于相关性排序。
+- **依赖 [平台基础](平台基础.md)**: `ApiResponse` / `PageResponse`、异常体系
+- **依赖 [用户与认证](用户与认证.md)**: `User`、owner 鉴权
+- **被依赖**: [MCP服务](MCP服务.md) 的 6 个 kb_* 工具；前端 `pages/knowledge/` + `components/knowledge/` 经 [前端服务层](前端服务层.md) `knowledge.ts`
+- **外部依赖**: HuggingFace 模型（首次启动下载，走 hf-mirror 镜像）、zvec 本地向量库
 
-## 依赖关系 (Cross-References)
+## 设计要点
 
-- [平台基础](平台基础.md) — `ApiResponse`、`GlobalExceptionHandler`、异常兜底。
-- [用户与认证](用户与认证.md) — `ownerId` 关联 `User`、管理端权限。
-- [MCP服务](MCP服务.md) — MCP 工具未来可复用本模块检索能力（如 `h3_*` 扩展）。
-- [前端应用](前端应用.md) — `frontend/src/services/knowledge.ts`、`pages/knowledge/*`、`components/knowledge/*`。
-
-## 约束、假设与边界情况
-
-- 后端不持有任何向量，重建索引必须依赖 Python 服务的持久化（向量库落盘）。
-- `RagApiClient` 的 `baseUrl` 在测试/本地需指向运行中的 Python 服务，否则检索不可用。
-- 知识库粒度即检索范围：`search` 限定在单个 `baseId` 内，不支持跨库混合检索（除非上层聚合）。
-- 文档分块策略、嵌入模型与重排器均在 Python 侧配置，后端无感知。
+1. **元数据与向量数据分离**: MySQL/PostgreSQL 存知识库元数据（权限、命名），zvec 存向量——Java 层永远不碰向量细节
+2. **代理而非直连**: 前端不直接访问 8000 端口，所有 RAG 流量经 Java 后端转发，统一鉴权与错误格式
+3. **同步/异步双上传**: 单文件走同步（小文档即时可搜），批量走异步（大量文档不阻塞请求）
+4. **降级友好**: RAG 离线只影响文档与搜索功能，知识库列表/详情仍可用

@@ -3,7 +3,7 @@
 # Fields under 'project' are always auto-updated.
 ---
 version: 1
-generated_at: '2026-07-28T18:54:01.214443'
+generated_at: '2026-07-29T14:28:02.073314'
 project:
   name: CodingHub
   languages:
@@ -11,7 +11,7 @@ project:
   - javascript
   - python
   - typescript
-  total_components: 2847
+  total_components: 1213
 conventions:
   module_naming: snake_case
   file_pattern: '*.md'
@@ -38,6 +38,8 @@ update_policy:
   cascade_to_overview: true
 lint:
   high_impact_threshold: 5
+export:
+  html: false
 page_types:
   module:
     directory: wiki/modules

@@ -12,6 +12,12 @@
       },
       "description": "CodeGraph 本地代码知识图谱 —— 符号/调用链/影响范围分析",
       "disabled": true
+    },
+    "codebase-memory": {
+      "type": "stdio",
+      "command": "/Users/kirito/.npm-global/bin/codebase-memory-mcp",
+      "args": [],
+      "description": "codebase-memory-mcp —— 高性能代码知识图谱 (Leiden 社区检测 / Cypher 查询 / 复杂度分析 / 跨服务追踪)"
     }
   }
 }
