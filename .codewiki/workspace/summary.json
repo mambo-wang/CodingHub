@@ -1,0 +1,36 @@
+{
+  "session_id": "85ba000273ec",
+  "repo_name": "CodingHub",
+  "repo_path": "D:\\repos\\CodingHub",
+  "output_dir": "D:\\repos\\CodingHub\\repowiki",
+  "total_components": 1438,
+  "total_leaf_nodes": 279,
+  "languages": {
+    "javascript": 263,
+    "typescript": 164,
+    "python": 151,
+    "java": 860
+  },
+  "leaf_nodes_preview": [
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\UnifiedCommentService.java::UnifiedCommentService",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::KbUploadDocumentInfoResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\notification\\NotificationDTO.java::NotificationDTO",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\model\\forum\\ForumPostTag.java::ForumPostTagId",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\InteractionResponse.java::InteractionResponse",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\tag\\VideoTagRepository.java::VideoTagRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\EditPayload.java::EditPayload",
+    "frontend\\src\\services\\interaction.ts::MyCommentItem",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\video\\VideoCommentRequest.java::VideoCommentRequest",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::PostDetailResponse",
+    "frontend\\src\\types\\video.ts::VideoListItem",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\ToolFileRepository.java::ToolFileRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\ChatReactionRepository.java::ChatReactionRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\OverviewServiceImpl.java::OverviewServiceImpl",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\repository\\forum\\ForumPostTagRepository.java::ForumPostTagRepository",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\service\\McpSearchService.java::McpSearchService",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\mcp\\IaihubToolHandler.java::FileInfo",
+    "frontend\\src\\types\\index.ts::PageResponse",
+    "frontend\\src\\types\\feedback.ts::FeedbackMessage",
+    "backend\\src\\main\\java\\com\\iaihub\\toolbox\\dto\\CategoryDTO.java::CategoryDTO"
+  ]
+}
