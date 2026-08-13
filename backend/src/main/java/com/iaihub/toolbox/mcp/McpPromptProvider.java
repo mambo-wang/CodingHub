@@ -176,9 +176,11 @@ public class McpPromptProvider {
                        - version: 从 SKILL.md 的 frontmatter 读取，或默认 1.0.0
                        - username/password: 从记忆中获取，或询问用户
                     5. 记录返回的 toolId
-                    6. 准备上传文件:
-                       - 如果 skill 目录只有 SKILL.md 一个文件，直接上传
-                       - 如果有多个文件，压缩为 zip 包并保留目录结构
+                    6. 准备上传文件（重要）:
+                       - 检查 skill 目录的文件数量
+                       - 如果包含多个文件（不止 SKILL.md，如还有 references/、scripts/ 等），必须先将其压缩为 zip 包（保留目录结构）再上传
+                       - 只有目录中仅有一个 SKILL.md 文件时，才可以直接上传该文件
+                       - 严禁将多个文件逐个直接上传
                     7. 调用 h3_coding_hub_tool_file_upload 获取 REST 上传端点
                     8. 用 curl 执行 HTTP multipart POST 上传文件:
                        curl -X POST http://<host>:8082/api/v1/tools/{toolId}/files \\
@@ -228,8 +230,11 @@ public class McpPromptProvider {
                        - version: "%s"（留空则自动递增最后一段版本号）
                        - username/password: 从记忆中获取
                        - 未传入的字段保持不变
-                    5. 准备新版本文件:
-                       - 多文件时压缩为 zip，保留目录结构
+                    5. 准备新版本文件（重要）:
+                       - 检查 skill 目录的文件数量
+                       - 如果包含多个文件（不止 SKILL.md），必须先压缩为 zip 包（保留目录结构）再上传
+                       - 只有仅含一个 SKILL.md 文件时才可直接上传
+                       - 严禁将多个文件逐个直接上传
                     6. 调用 h3_coding_hub_tool_file_upload 获取上传端点
                     7. 用 curl 上传新版本文件
                     8. 调用 h3_coding_hub_tool_get 确认更新成功

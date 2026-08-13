@@ -428,7 +428,11 @@ public class McpSdkServerConfig {
                 使用步骤：
                 1. 先调用 h3_coding_hub_tool_create 创建工具，获取 toolId
                 2. 使用本工具获取上传接口信息
-                3. 客户端通过 HTTP Multipart POST 上传文件到对应 toolId，多文件建议先压缩再上传
+                3. 客户端通过 HTTP Multipart POST 上传文件到对应 toolId
+                
+                重要规则：
+                - 如果工具/Skill 包含多个文件（例如 SKILL.md + references/ + scripts/），必须先压缩整个目录为 zip 包再上传，禁止直接逐个上传多个文件
+                - 只有工具仅包含单个文件（如只有 SKILL.md）时，才可以直接上传该文件
                 """,
                 """
                 {

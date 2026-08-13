@@ -8,7 +8,7 @@
 4. **chub CLI 自动处理 token**: Agent 不要手动登录或拼接 `Authorization` 头
 5. **文件上传端点无需 JWT**: `POST /api/v1/tools/{toolId}/files` 已 permitAll
 6. **modify 的 partial update**: 只更新传入的字段；version 不传自动递增
-7. **skill 多文件才需压缩**: 只有 SKILL.md 时直接上传原文
+7. **skill 多文件必须压缩**: 若 skill 目录含多个文件（SKILL.md + references/scripts 等），必须先整体压缩为 zip（保留目录结构）再上传，禁止逐个上传多个文件；只有目录中仅含一个 SKILL.md 时才可直接上传
 8. **知识库文档上传也走 REST**: `h3_coding_hub_kb_upload_document` 只返回端点信息
 9. **上传后异步处理**: 文档经历 UPLOADING → CONVERTING → CHUNKING → EMBEDDING → READY，必须等全部 READY 后再检索
 10. **带图片文档必须预处理**: 含截图/图表的 PDF/Word/PPT 需先用 markitdown-mcp 预处理

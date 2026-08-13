@@ -245,7 +245,7 @@ $CHUB tool-download <toolId> <fileId> /path/to/save.ext
      -F "files=@/path/to/file.zip" -F "readme=工具简介"
    ```
 7. 上传限制：单文件 50MB，总计 200MB
-8. skill 单文件（仅 SKILL.md）直接上传；多文件先 zip 保留目录结构
+8. **上传前必须检查文件数量**: 若 skill 目录包含多个文件（不止 SKILL.md，如 references/、scripts/ 等），必须先压缩为 zip 包（保留目录结构）再上传；只有目录中仅有一个 SKILL.md 时才可直接上传。严禁将多个文件逐个直接上传
 
 #### HTTP 通道（chub CLI）
 ```bash
