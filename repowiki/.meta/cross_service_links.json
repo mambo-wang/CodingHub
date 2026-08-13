@@ -1,0 +1,28 @@
+[
+  {
+    "route_key": "__route__GET__/api/v1/chat/messages",
+    "protocol": "http",
+    "method": "GET",
+    "path": "/api/v1/chat/messages",
+    "client_repo": "frontend",
+    "client_component_id": "frontend\\src\\stores\\chat.ts::loadHistory",
+    "client_function": "loadHistory",
+    "server_repo": "backend",
+    "server_component_id": "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\ChatController.java::ChatController.getHistory",
+    "server_function": "ChatController.getHistory",
+    "confidence": 1.0
+  },
+  {
+    "route_key": "__route__DELETE__/api/v1/chat/messages/{}",
+    "protocol": "http",
+    "method": "DELETE",
+    "path": "/api/v1/chat/messages/{}",
+    "client_repo": "frontend",
+    "client_component_id": "frontend\\src\\stores\\chat.ts::deleteMessage",
+    "client_function": "deleteMessage",
+    "server_repo": "backend",
+    "server_component_id": "backend\\src\\main\\java\\com\\iaihub\\toolbox\\controller\\ChatController.java::ChatController.deleteMessage",
+    "server_function": "ChatController.deleteMessage",
+    "confidence": 1.0
+  }
+]

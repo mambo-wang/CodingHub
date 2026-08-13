@@ -1,0 +1,110 @@
+{
+  "codinghub": {
+    "name": "CodingHub",
+    "doc_path": "codinghub.md",
+    "path": "d:/repos/CodingHub",
+    "description": "全栈 AI 工具导航平台",
+    "children": {
+      "backend": {
+        "name": "后端服务",
+        "doc_path": "backend.md",
+        "path": "d:/repos/CodingHub/backend",
+        "description": "Spring Boot 后端",
+        "children": {
+          "backend-core": {
+            "name": "核心模块",
+            "doc_path": "backend-core.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "认证工具CRUD互动"
+          },
+          "backend-forum": {
+            "name": "论坛模块",
+            "doc_path": "backend-forum.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "论坛"
+          },
+          "backend-video": {
+            "name": "微课模块",
+            "doc_path": "backend-video.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "视频"
+          },
+          "backend-kb": {
+            "name": "知识库模块",
+            "doc_path": "backend-kb.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "RAG知识库"
+          },
+          "backend-feedback": {
+            "name": "反馈与通知模块",
+            "doc_path": "backend-feedback.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "反馈通知"
+          },
+          "backend-tag": {
+            "name": "标签模块",
+            "doc_path": "backend-tag.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "标签"
+          },
+          "backend-overview": {
+            "name": "概览与统计模块",
+            "doc_path": "backend-overview.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "统计管理"
+          },
+          "backend-mcp": {
+            "name": "MCP模块",
+            "doc_path": "backend-mcp.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "MCP"
+          },
+          "backend-infra": {
+            "name": "基础设施层",
+            "doc_path": "backend-infra.md",
+            "path": "d:/repos/CodingHub/backend",
+            "description": "配置安全"
+          }
+        }
+      },
+      "frontend": {
+        "name": "前端应用",
+        "doc_path": "frontend.md",
+        "path": "d:/repos/CodingHub/frontend",
+        "description": "Vue3 前端",
+        "children": {
+          "frontend-pages": {
+            "name": "页面与路由",
+            "doc_path": "frontend-pages.md",
+            "path": "d:/repos/CodingHub/frontend",
+            "description": "页面"
+          },
+          "frontend-components": {
+            "name": "业务组件",
+            "doc_path": "frontend-components.md",
+            "path": "d:/repos/CodingHub/frontend",
+            "description": "组件"
+          },
+          "frontend-services": {
+            "name": "服务层",
+            "doc_path": "frontend-services.md",
+            "path": "d:/repos/CodingHub/frontend",
+            "description": "服务"
+          },
+          "frontend-stores": {
+            "name": "状态与类型",
+            "doc_path": "frontend-stores.md",
+            "path": "d:/repos/CodingHub/frontend",
+            "description": "状态"
+          }
+        }
+      },
+      "rag": {
+        "name": "RAG服务",
+        "doc_path": "rag.md",
+        "path": "d:/repos/CodingHub/rag",
+        "description": "Python RAG"
+      }
+    }
+  }
+}

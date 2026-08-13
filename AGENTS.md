@@ -136,7 +136,7 @@ Single-context layout: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `
 
 ## CodeWiki LLM Wiki
 
-本项目已使用 [CodeWiki](https://github.com/mambo-wang/CodeWiki-CN) 生成 LLM Wiki 文档，位于 `repowiki/` 目录。
+本项目已使用 [CodeWiki](https://github.com/mambo-wang/CodeWiki-Plus) 生成 LLM Wiki 文档，位于 `repowiki/` 目录。
 
 **入口文件：**
 

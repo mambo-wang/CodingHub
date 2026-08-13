@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "ee436cf7059b2930ab3d1b1162b4aa58df2bbfa0",
-    "indexed_at": "2026-07-31T03:20:00Z",
-    "project": "Users-kirito-repos-CodingHub",
-    "nodes": 24250,
-    "edges": 49821,
-    "original_size": 49872896,
-    "compressed_size": 8271948,
+    "commit": "1f48b075cdff5d05734e5ece6c55e1b3e49c308b",
+    "indexed_at": "2026-08-13T10:30:33Z",
+    "project": "D-repos-CodingHub",
+    "nodes": 18194,
+    "edges": 35694,
+    "original_size": 29818880,
+    "compressed_size": 4918007,
     "compression_level": 3
 }

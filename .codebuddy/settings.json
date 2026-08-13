@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      { "matcher": "other", "hooks": [ { "type": "command", "command": "python \"d:/repos/CodingHub/.codebuddy/hooks/capture_session_end.py\"", "timeout": 30 } ] }
+    ]
+  }
+}

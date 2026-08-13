@@ -1,0 +1,37 @@
+# Ontology — project-level term normalization for search
+#
+# Define canonical terms and their aliases. When a user (or Agent) searches
+# for any alias, the search engine automatically expands the query to include
+# all synonyms in the group, improving recall for vocabulary mismatch.
+#
+# CodingHub 项目术语表：覆盖中英文别名，提升 query_wiki 检索召回率。
+
+terms:
+  authentication:
+    aliases: [认证, 登录, JWT, auth, token, 鉴权, refresh token]
+  authorization:
+    aliases: [权限, 授权, RBAC, USER, ADMIN, SUPER_ADMIN, permission]
+  tool:
+    aliases: [工具, AI工具, tool, 工具广场, ai-tool]
+  forum:
+    aliases: [论坛, 帖子, post, 评论, comment, 社区]
+  video:
+    aliases: [微课, 视频, video, 弹幕, danmaku]
+  knowledge_base:
+    aliases: [知识库, RAG, kb, 语义搜索, knowledge, 文档管理]
+  mcp:
+    aliases: [MCP服务, Model Context Protocol, Streamable HTTP, SSE, mcp tools]
+  tag:
+    aliases: [标签, tag, TOOL标签, FORUM标签, VIDEO标签]
+  notification:
+    aliases: [通知, 推送, 未读消息, notification]
+  feedback:
+    aliases: [留言, 反馈, 留言板, feedback]
+  interaction:
+    aliases: [互动, 点赞, 收藏, like, favorite]
+  soft_delete:
+    aliases: [软删除, status DELETED, 逻辑删除]
+  database:
+    aliases: [数据库, MySQL, PostgreSQL, ai_tool_square, Flyway, Hibernate]
+  overview:
+    aliases: [概览, 统计, 排行, overview, dashboard]
