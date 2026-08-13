@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia';
 import forumService from '@/services/forum';
-import type { ForumPost, ForumCategory, ForumTag } from '@/types/forum';
+import { tagApi } from '@/services/api';
+import type { Tag } from '@/types';
+import type { ForumPost, ForumCategory } from '@/types/forum';
 
 export const useForumStore = defineStore('forum', {
   state: () => ({
     posts: [] as ForumPost[],
     currentPost: null as ForumPost | null,
     categories: [] as ForumCategory[],
-    tags: [] as ForumTag[],
+    tags: [] as Tag[],
     pagination: {
       page: 0,
       size: 10,
@@ -55,7 +57,7 @@ export const useForumStore = defineStore('forum', {
     },
 
     async fetchTags() {
-      this.tags = await forumService.getTags();
+      this.tags = await tagApi.getTags('FORUM');
     },
 
     async fetchMyPosts() {

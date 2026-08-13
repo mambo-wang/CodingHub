@@ -48,7 +48,13 @@
       <h3 class="post-title">{{ post.title }}</h3>
       <p v-if="post.content" class="post-preview">{{ contentPreview }}</p>
       <div v-if="post.tags && post.tags.length > 0" class="post-tags">
-        <TagBadge v-for="tag in post.tags.slice(0, 3)" :key="tag.id" :tag="tag" />
+        <TagBadge
+          v-for="tag in post.tags.slice(0, 3)"
+          :key="tag.id"
+          :tag="tag"
+          clickable
+          @click="$emit('tag-click', $event.id)"
+        />
         <span v-if="post.tags.length > 3" class="tags-more">+{{ post.tags.length - 3 }}</span>
       </div>
       <div class="card-meta">
@@ -107,6 +113,7 @@ const emit = defineEmits<{
   (e: 'delete', postId: number): void;
   (e: 'edit', postId: number): void;
   (e: 'pin-changed'): void;
+  (e: 'tag-click', tagId: number): void;
 }>();
 const router = useRouter();
 const authStore = useAuthStore();

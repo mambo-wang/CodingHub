@@ -29,12 +29,25 @@ public class ForumPostService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
 
-    public Page<ForumPostDTO> getPostList(Long categoryId, String keyword, String sortBy, Pageable pageable) {
+    public Page<ForumPostDTO> getPostList(Long categoryId, Long tagId, String keyword, String sortBy, Pageable pageable) {
         Page<ForumPost> posts;
         ForumPostVisibility visibility = ForumPostVisibility.PUBLIC;
 
-        if ("latest".equalsIgnoreCase(sortBy)) {
-            if (keyword != null && !keyword.isBlank()) {
+        boolean latest = "latest".equalsIgnoreCase(sortBy);
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+
+        if (tagId != null) {
+            if (latest) {
+                posts = hasKeyword
+                    ? postRepository.searchByTagIdAndTitle(tagId, keyword, ForumPostStatus.NORMAL, visibility, pageable)
+                    : postRepository.findByTagIdAndStatusAndVisibilityOrderByCreatedAtDesc(tagId, ForumPostStatus.NORMAL, visibility, pageable);
+            } else {
+                posts = hasKeyword
+                    ? postRepository.searchByTagIdAndTitleOrderByHot(tagId, keyword, ForumPostStatus.NORMAL, visibility, pageable)
+                    : postRepository.findByTagIdAndStatusAndVisibilityOrderByHot(tagId, ForumPostStatus.NORMAL, visibility, pageable);
+            }
+        } else if (latest) {
+            if (hasKeyword) {
                 posts = postRepository.searchByTitle(keyword, ForumPostStatus.NORMAL, visibility, pageable);
             } else if (categoryId != null) {
                 posts = postRepository.findByCategoryIdAndStatusAndVisibility(categoryId, ForumPostStatus.NORMAL, visibility, pageable);
@@ -42,7 +55,7 @@ public class ForumPostService {
                 posts = postRepository.findByStatusAndVisibilityOrderByCreatedAtDesc(ForumPostStatus.NORMAL, visibility, pageable);
             }
         } else {
-            if (keyword != null && !keyword.isBlank()) {
+            if (hasKeyword) {
                 posts = postRepository.searchByTitleOrderByHot(keyword, ForumPostStatus.NORMAL, visibility, pageable);
             } else if (categoryId != null) {
                 posts = postRepository.findByCategoryIdAndStatusAndVisibilityOrderByHot(categoryId, ForumPostStatus.NORMAL, visibility, pageable);

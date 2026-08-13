@@ -35,7 +35,7 @@ public class ForumPostController {
             @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<ForumPostDTO> posts = postService.getPostList(category, keyword, sortBy, pageable);
+        Page<ForumPostDTO> posts = postService.getPostList(category, tag, keyword, sortBy, pageable);
 
         return ResponseEntity.ok(posts);
     }

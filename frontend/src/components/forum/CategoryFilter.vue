@@ -58,20 +58,20 @@ const select = (categoryId: number | null) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  border: 1.5px solid #E5E7EB;
+  padding: 9px 16px;
+  border: 1px solid var(--border-color);
   border-radius: 20px;
-  background: white;
-  color: #6B7280;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .filter-btn:hover {
-  border-color: var(--accent-1);
-  color: var(--accent-1);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: var(--text-primary);
   background: rgba(139, 92, 246, 0.1);
 }
 

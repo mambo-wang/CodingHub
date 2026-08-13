@@ -31,6 +31,36 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Long> {
                                    @Param("visibility") ForumPostVisibility visibility,
                                    Pageable pageable);
 
+    @Query("SELECT p FROM ForumPost p WHERE p.id IN (SELECT pt.postId FROM ForumPostTag pt WHERE pt.tagId = :tagId) AND p.status = :status AND p.visibility = :visibility ORDER BY p.createdAt DESC")
+    Page<ForumPost> findByTagIdAndStatusAndVisibilityOrderByCreatedAtDesc(
+        @Param("tagId") Long tagId,
+        @Param("status") ForumPostStatus status,
+        @Param("visibility") ForumPostVisibility visibility,
+        Pageable pageable);
+
+    @Query("SELECT p FROM ForumPost p WHERE p.id IN (SELECT pt.postId FROM ForumPostTag pt WHERE pt.tagId = :tagId) AND p.status = :status AND p.visibility = :visibility ORDER BY p.pinned DESC, p.score DESC")
+    Page<ForumPost> findByTagIdAndStatusAndVisibilityOrderByHot(
+        @Param("tagId") Long tagId,
+        @Param("status") ForumPostStatus status,
+        @Param("visibility") ForumPostVisibility visibility,
+        Pageable pageable);
+
+    @Query("SELECT p FROM ForumPost p WHERE p.id IN (SELECT pt.postId FROM ForumPostTag pt WHERE pt.tagId = :tagId) AND p.status = :status AND p.visibility = :visibility AND p.title LIKE %:keyword% ORDER BY p.createdAt DESC")
+    Page<ForumPost> searchByTagIdAndTitle(
+        @Param("tagId") Long tagId,
+        @Param("keyword") String keyword,
+        @Param("status") ForumPostStatus status,
+        @Param("visibility") ForumPostVisibility visibility,
+        Pageable pageable);
+
+    @Query("SELECT p FROM ForumPost p WHERE p.id IN (SELECT pt.postId FROM ForumPostTag pt WHERE pt.tagId = :tagId) AND p.status = :status AND p.visibility = :visibility AND p.title LIKE %:keyword% ORDER BY p.pinned DESC, p.score DESC")
+    Page<ForumPost> searchByTagIdAndTitleOrderByHot(
+        @Param("tagId") Long tagId,
+        @Param("keyword") String keyword,
+        @Param("status") ForumPostStatus status,
+        @Param("visibility") ForumPostVisibility visibility,
+        Pageable pageable);
+
     @Query("SELECT p FROM ForumPost p WHERE p.status = :status AND p.visibility = :visibility ORDER BY p.pinned DESC, p.score DESC")
     Page<ForumPost> findByStatusAndVisibilityOrderByHot(
         @Param("status") ForumPostStatus status,
