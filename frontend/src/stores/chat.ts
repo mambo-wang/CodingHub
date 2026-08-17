@@ -24,6 +24,8 @@ export const useChatStore = defineStore('chat', () => {
   const typingUsers = ref<{ userId: number | null; displayName: string | null }[]>([])
   const connected = ref(false)
   const loading = ref(false)
+  const drawerOpen = ref(false)
+  const unreadCount = ref(0)
 
   let client: Client | null = null
   let typingTimer: number | null = null
@@ -35,6 +37,20 @@ export const useChatStore = defineStore('chat', () => {
       return msg.userId === auth.user.id
     }
     return false
+  }
+
+  function openDrawer() {
+    drawerOpen.value = true
+    unreadCount.value = 0
+  }
+
+  function closeDrawer() {
+    drawerOpen.value = false
+  }
+
+  function toggleDrawer() {
+    if (drawerOpen.value) closeDrawer()
+    else openDrawer()
   }
 
   function onConnect() {
@@ -49,7 +65,15 @@ export const useChatStore = defineStore('chat', () => {
       } else if (data.type === 'ERROR') {
         error.value = (data as { message: string }).message
       } else if ((data as ChatMessage).id != null && !('type' in data)) {
-        messages.value.push(data as ChatMessage)
+        const msg = data as ChatMessage
+        // 按 id 去重：防止多连接/重复订阅导致同一条消息重复显示
+        const existing = messages.value.find((m) => m.id === msg.id)
+        if (existing) {
+          Object.assign(existing, msg)
+        } else {
+          messages.value.push(msg)
+          if (!drawerOpen.value) unreadCount.value += 1
+        }
       }
     })
 
@@ -103,6 +127,14 @@ export const useChatStore = defineStore('chat', () => {
     const host = `${location.hostname}:${location.port}`
     const base = `${protocol}://${host}/ws`
     const url = token ? `${base}?token=${encodeURIComponent(token)}` : base
+
+    // 幂等：已有活动连接直接复用，避免重复建连导致重复订阅、消息重复显示
+    if (client) {
+      if (client.active) return
+      client.activate()
+      return
+    }
+
     client = new Client({
       brokerURL: url,
       reconnectDelay: 5000,
@@ -113,6 +145,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function disconnect() {
     client?.deactivate()
+    client = null
     connected.value = false
   }
 
@@ -203,6 +236,11 @@ export const useChatStore = defineStore('chat', () => {
     deleteMessage,
     clearError,
     isSelf,
+    drawerOpen,
+    unreadCount,
+    openDrawer,
+    closeDrawer,
+    toggleDrawer,
     ROOM,
   }
 })
