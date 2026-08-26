@@ -48,4 +48,42 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     @Transactional
     @Query("UPDATE Video v SET v.pinned = false WHERE v.id = :id")
     int unpinById(@Param("id") Long id);
+
+    // ============ 计数原子更新（不触发 @PreUpdate，避免 updatedAt 被计数操作刷新） ============
+    // 热度权重：score = view×1 + like×3 + comment×5
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Video v SET v.viewCount = COALESCE(v.viewCount, 0) + 1, " +
+           "v.score = COALESCE(v.score, 0) + 1 " +
+           "WHERE v.id = :id AND v.status = 'NORMAL'")
+    int incrementViewCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Video v SET v.likeCount = COALESCE(v.likeCount, 0) + 1, " +
+           "v.score = COALESCE(v.score, 0) + 3 " +
+           "WHERE v.id = :id AND v.status = 'NORMAL'")
+    int incrementLikeCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Video v SET v.likeCount = CASE WHEN COALESCE(v.likeCount, 0) > 0 THEN v.likeCount - 1 ELSE 0 END, " +
+           "v.score = CASE WHEN COALESCE(v.score, 0) >= 3 THEN v.score - 3 ELSE v.score END " +
+           "WHERE v.id = :id AND v.status = 'NORMAL'")
+    int decrementLikeCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Video v SET v.commentCount = COALESCE(v.commentCount, 0) + 1, " +
+           "v.score = COALESCE(v.score, 0) + 5 " +
+           "WHERE v.id = :id AND v.status = 'NORMAL'")
+    int incrementCommentCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Video v SET v.commentCount = CASE WHEN COALESCE(v.commentCount, 0) > 0 THEN v.commentCount - 1 ELSE 0 END, " +
+           "v.score = CASE WHEN COALESCE(v.score, 0) >= 5 THEN v.score - 5 ELSE v.score END " +
+           "WHERE v.id = :id AND v.status = 'NORMAL'")
+    int decrementCommentCount(@Param("id") Long id);
 }

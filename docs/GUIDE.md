@@ -60,7 +60,7 @@ CodingHub 是一个面向企业内网的 **AI 工具发现与体验分享平台*
 | Spring Boot | 3.2.5 | 应用框架，自动配置 + Actuator 监控 |
 | Spring Security | - | JWT 认证 + 三级角色权限 (USER/ADMIN/SUPER_ADMIN) |
 | Spring Data JPA | - | ORM 数据访问，仓库模式 |
-| MCP SDK | 2.0.0 | Model Context Protocol，SSE + Streamable HTTP 双传输 |
+| MCP SDK | 2.0.0 | Model Context Protocol，Streamable HTTP 传输 |
 | Flyway | 9 | 数据库版本迁移 (V1~V9) |
 | MySQL | 8.x | InnoDB 存储引擎 + 全文索引 |
 | Gradle | 8.5 | 构建自动化 |
@@ -105,7 +105,7 @@ CodingHub 是一个面向企业内网的 **AI 工具发现与体验分享平台*
        v
     Nginx (反向代理)
        |
-       | /api/ /mcp/ /sse/ -> :8082
+       | /api/ /mcp/ -> :8082
        | /rag/ -> :8000
        | 静态资源 -> dist/
        v
@@ -129,7 +129,7 @@ CodingHub 是一个面向企业内网的 **AI 工具发现与体验分享平台*
 
 ```
 L4 -- Controller / MCP  <-- 22 Controllers + 4 MCP 模块
-      REST 端点 + MCP 18 工具注册 + SSE/Streamable HTTP
+      REST 端点 + MCP 18 工具注册 + Streamable HTTP
        ^
 L3    Service            <-- 22 业务服务
       ToolService / ForumPostService / VideoService
@@ -337,12 +337,13 @@ L0 -- Types & Composables (9)
 
 MCP (Model Context Protocol) 是 CodingHub 的核心差异化特性，让 AI 助手可以直接操作平台。
 
-### 5.1 双传输协议
+### 5.1 传输协议
+
+MCP Server 通过 Streamable HTTP 传输协议暴露，单端点、会话制 (MCP 2025-03-26)：
 
 | 协议 | 端点 | 说明 |
 |------|------|------|
 | Streamable HTTP | `/mcp` (POST) | 单端点、会话制 (MCP 2025-03-26) |
-| SSE | `/sse` (GET) + `/sse/message` (POST) | 兼容旧客户端 |
 
 ### 5.2 18 个 MCP 工具
 
@@ -369,8 +370,8 @@ MCP (Model Context Protocol) 是 CodingHub 的核心差异化特性，让 AI 助
 {
   "mcpServers": {
     "codinghub": {
-      "type": "sse",
-      "url": "http://your-codinghub-host/mcp/sse"
+      "type": "streamableHttp",
+      "url": "http://your-codinghub-host/mcp"
     }
   }
 }
@@ -546,7 +547,7 @@ make lint
 | `/api/v1/feedback` | 留言反馈 |
 | `/api/v1/notifications` | 通知 (未读/已读) |
 | `/api/v1/tags` | 统一标签 (列表/热门) |
-| `/mcp/sse` | MCP (18 tools, SSE) |
+| `/mcp` | MCP (18 tools, Streamable HTTP) |
 
 ---
 

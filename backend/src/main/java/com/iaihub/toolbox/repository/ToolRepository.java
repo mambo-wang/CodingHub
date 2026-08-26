@@ -119,4 +119,63 @@ public interface ToolRepository extends JpaRepository<Tool, Long> {
     @Transactional
     @Query("UPDATE Tool t SET t.pinned = false WHERE t.id = :id")
     int unpinById(@Param("id") Long id);
+
+    // ============ 计数原子更新（不触发 @PreUpdate，避免 updatedAt 被计数操作刷新） ============
+    // 热度权重：score = view×1 + download×2 + like×3 + favorite×4 + comment×5
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.viewCount = COALESCE(t.viewCount, 0) + 1, " +
+           "t.score = COALESCE(t.score, 0) + 1 " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int incrementViewCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.likeCount = COALESCE(t.likeCount, 0) + 1, " +
+           "t.score = COALESCE(t.score, 0) + 3 " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int incrementLikeCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.likeCount = CASE WHEN COALESCE(t.likeCount, 0) > 0 THEN t.likeCount - 1 ELSE 0 END, " +
+           "t.score = CASE WHEN COALESCE(t.score, 0) >= 3 THEN t.score - 3 ELSE t.score END " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int decrementLikeCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.commentCount = COALESCE(t.commentCount, 0) + 1, " +
+           "t.score = COALESCE(t.score, 0) + 5 " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int incrementCommentCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.commentCount = CASE WHEN COALESCE(t.commentCount, 0) > 0 THEN t.commentCount - 1 ELSE 0 END, " +
+           "t.score = CASE WHEN COALESCE(t.score, 0) >= 5 THEN t.score - 5 ELSE t.score END " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int decrementCommentCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.downloadCount = COALESCE(t.downloadCount, 0) + 1, " +
+           "t.score = COALESCE(t.score, 0) + 2 " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int incrementDownloadCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.favoriteCount = COALESCE(t.favoriteCount, 0) + 1, " +
+           "t.score = COALESCE(t.score, 0) + 4 " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int incrementFavoriteCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Tool t SET t.favoriteCount = CASE WHEN COALESCE(t.favoriteCount, 0) > 0 THEN t.favoriteCount - 1 ELSE 0 END, " +
+           "t.score = CASE WHEN COALESCE(t.score, 0) >= 4 THEN t.score - 4 ELSE t.score END " +
+           "WHERE t.id = :id AND t.status = 'NORMAL'")
+    int decrementFavoriteCount(@Param("id") Long id);
 }

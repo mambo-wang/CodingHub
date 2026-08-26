@@ -95,12 +95,11 @@ public class ToolService {
 
     @Transactional
     public ToolDetailDTO getToolById(Long id) {
-        Tool tool = toolRepository.findByIdAndStatusNormal(id)
-                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
+        // 浏览量原子 +1（不触发 @PreUpdate，避免 updatedAt 被刷新为当前时间）
+        toolRepository.incrementViewCount(id);
 
-        // 浏览量 +1（与论坛帖子、视频详情页保持一致）
-        tool.incrementViewCount();
-        toolRepository.save(tool);
+        Tool tool = toolRepository.findByIdAndStatusNormalWithRelations(id)
+                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
 
         return toDetailDTO(tool);
     }
@@ -244,11 +243,10 @@ public class ToolService {
 
     @Transactional
     public void incrementViewCount(Long toolId) {
-        Tool tool = toolRepository.findByIdAndStatusNormal(toolId)
-                .orElseThrow(() -> new ResourceNotFoundException("工具不存在或已删除"));
-
-        tool.incrementViewCount();
-        toolRepository.save(tool);
+        int updated = toolRepository.incrementViewCount(toolId);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("工具不存在或已删除");
+        }
     }
 
     @Transactional(readOnly = true)

@@ -90,7 +90,7 @@ const formattedFileSize = (bytes: number): string => {
 
 // MCP config
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpTransportType = ref<'streamableHttp' | 'sse'>('streamableHttp')
+const mcpTransportType = ref('streamableHttp')
 const mcpConfigs = {
   streamableHttp: {
     mcpServers: {
@@ -98,16 +98,6 @@ const mcpConfigs = {
         type: "streamableHttp",
         url: `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
         description: "CodingHub MCP Server (Streamable HTTP)",
-        disabled: false
-      }
-    }
-  },
-  sse: {
-    mcpServers: {
-      "CodingHub-mcp": {
-        type: "sse",
-        url: `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-        description: "CodingHub MCP Server (SSE)",
         disabled: false
       }
     }
@@ -720,9 +710,6 @@ onUnmounted(() => {
             <div class="mcp-transport-tabs">
               <button class="mcp-transport-tab" :class="{ active: mcpTransportType === 'streamableHttp' }" @click="mcpTransportType = 'streamableHttp'">
                 Streamable HTTP
-              </button>
-              <button class="mcp-transport-tab" :class="{ active: mcpTransportType === 'sse' }" @click="mcpTransportType = 'sse'">
-                SSE（兼容旧客户端）
               </button>
             </div>
             <p class="mcp-modal-desc">将以下配置添加到 MCP 客户端的配置文件中：</p>

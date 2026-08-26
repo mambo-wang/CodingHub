@@ -180,11 +180,8 @@ public class ToolFileService {
         // Increment download count atomically for stats aggregation
         toolFileRepository.incrementDownloadCount(toolFile.getId());
 
-        // Update tool-level denormalized counter and hot score
-        toolRepository.findByIdAndStatusNormal(toolId).ifPresent(tool -> {
-            tool.incrementDownloadCount();
-            toolRepository.save(tool);
-        });
+        // Update tool-level denormalized counter and hot score (atomic, avoids updatedAt refresh)
+        toolRepository.incrementDownloadCount(toolId);
 
         return toolFile;
     }

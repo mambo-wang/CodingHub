@@ -104,11 +104,14 @@ public class ForumPostService {
             }
         }
 
-        post.setViewCount(post.getViewCount() + 1);
-        post.updateScore();
-        postRepository.save(post);
+        // 浏览量原子 +1（不触发 @PreUpdate，避免 updatedAt 被刷新为当前时间）
+        postRepository.incrementViewCount(id);
 
-        return toDTO(post);
+        // 重新读取，返回最新浏览量
+        ForumPost fresh = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("帖子不存在: " + id));
+
+        return toDTO(fresh);
     }
 
     @Transactional

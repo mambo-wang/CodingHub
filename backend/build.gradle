@@ -57,6 +57,11 @@ dependencies {
     // JSON logging
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
+    // JGit — 内置 git 服务器（Smart HTTP），用于 CodeBuddy URL 市场插件分发
+    // 7.x 起迁移到 jakarta.servlet，匹配 Spring Boot 3.2
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit.http.server:7.3.0.202506031305-r'
+
     // Lombok (optional but useful)
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

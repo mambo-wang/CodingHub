@@ -1,6 +1,7 @@
 package com.iaihub.toolbox.service;
 
 import com.iaihub.toolbox.dto.*;
+import com.iaihub.toolbox.dto.plugin.PluginSummaryDTO;
 import com.iaihub.toolbox.dto.video.VideoListItem;
 import com.iaihub.toolbox.exception.BusinessException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
@@ -39,6 +41,7 @@ public class UnifiedFavoriteService {
     private final ToolRepository toolRepository;
     private final ForumPostRepository forumPostRepository;
     private final VideoRepository videoRepository;
+    private final PluginRepository pluginRepository;
     private final UserRepository userRepository;
 
     /**
@@ -70,16 +73,13 @@ public class UnifiedFavoriteService {
             favorited = true;
         }
 
-        // Update tool-level denormalized counter and hot score
+        // Update tool-level denormalized counter and hot score (atomic, avoids updatedAt refresh)
         if (targetType == TargetType.TOOL) {
-            toolRepository.findByIdAndStatusNormal(targetId).ifPresent(tool -> {
-                if (favorited) {
-                    tool.incrementFavoriteCount();
-                } else {
-                    tool.decrementFavoriteCount();
-                }
-                toolRepository.save(tool);
-            });
+            if (favorited) {
+                toolRepository.incrementFavoriteCount(targetId);
+            } else {
+                toolRepository.decrementFavoriteCount(targetId);
+            }
         }
 
         return InteractionResponse.favoriteToggle(favorited);
@@ -103,6 +103,7 @@ public class UnifiedFavoriteService {
             case TOOL -> buildToolFavorites(favoritePage, page, size);
             case FORUM_POST -> buildForumPostFavorites(favoritePage, page, size);
             case VIDEO -> buildVideoFavorites(favoritePage, page, size);
+            case PLUGIN -> buildPluginFavorites(favoritePage, page, size);
         };
     }
 
@@ -207,6 +208,40 @@ public class UnifiedFavoriteService {
                 .build();
     }
 
+    private PageResponse<PluginSummaryDTO> buildPluginFavorites(Page<UnifiedFavorite> favoritePage, int page, int size) {
+        List<PluginSummaryDTO> items = new ArrayList<>();
+        for (UnifiedFavorite fav : favoritePage.getContent()) {
+            Optional<Plugin> pluginOpt = pluginRepository.findByIdAndStatusNormal(fav.getTargetId());
+            if (pluginOpt.isPresent()) {
+                Plugin plugin = pluginOpt.get();
+                User author = plugin.getAuthor();
+                items.add(PluginSummaryDTO.builder()
+                        .id(plugin.getId())
+                        .name(plugin.getName())
+                        .description(plugin.getDescription())
+                        .version(plugin.getVersion())
+                        .logoUrl(plugin.getLogoUrl())
+                        .source(plugin.getSource())
+                        .likeCount(plugin.getLikeCount())
+                        .commentCount(plugin.getCommentCount())
+                        .viewCount(plugin.getViewCount())
+                        .score(plugin.getScore())
+                        .authorId(author != null ? author.getId() : null)
+                        .authorUsername(author != null ? author.getUsername() : "Unknown")
+                        .authorNickname(author != null ? author.getNickname() : null)
+                        .createdAt(plugin.getCreatedAt())
+                        .build());
+            }
+        }
+        return PageResponse.<PluginSummaryDTO>builder()
+                .content(items)
+                .totalElements(favoritePage.getTotalElements())
+                .totalPages(favoritePage.getTotalPages())
+                .page(page)
+                .size(size)
+                .build();
+    }
+
     private void validateTargetExists(TargetType targetType, Long targetId) {
         switch (targetType) {
             case TOOL -> toolRepository.findByIdAndStatusNormal(targetId)
@@ -216,6 +251,8 @@ public class UnifiedFavoriteService {
                     .orElseThrow(() -> new ResourceNotFoundException("帖子不存在或已删除"));
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .orElseThrow(() -> new ResourceNotFoundException("插件不存在或已删除"));
         }
     }
 

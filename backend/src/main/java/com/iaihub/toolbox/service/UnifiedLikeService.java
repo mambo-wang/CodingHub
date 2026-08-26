@@ -3,9 +3,11 @@ package com.iaihub.toolbox.service;
 import com.iaihub.toolbox.dto.InteractionResponse;
 import com.iaihub.toolbox.dto.PageResponse;
 import com.iaihub.toolbox.dto.ToolSummaryDTO;
+import com.iaihub.toolbox.dto.plugin.PluginSummaryDTO;
 import com.iaihub.toolbox.dto.video.VideoListItem;
 import com.iaihub.toolbox.exception.BusinessException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
+import com.iaihub.toolbox.model.Plugin;
 import com.iaihub.toolbox.model.TargetType;
 import com.iaihub.toolbox.model.UnifiedLike;
 import com.iaihub.toolbox.model.Tool;
@@ -14,6 +16,7 @@ import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.UnifiedLikeRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
@@ -42,6 +45,7 @@ public class UnifiedLikeService {
     private final ToolRepository toolRepository;
     private final ForumPostRepository forumPostRepository;
     private final VideoRepository videoRepository;
+    private final PluginRepository pluginRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -148,6 +152,7 @@ public class UnifiedLikeService {
             case TOOL -> buildToolLikes(likePage, page, size);
             case FORUM_POST -> buildForumPostLikes(likePage, page, size);
             case VIDEO -> buildVideoLikes(likePage, page, size);
+            case PLUGIN -> buildPluginLikes(likePage, page, size);
         };
     }
 
@@ -236,6 +241,40 @@ public class UnifiedLikeService {
                 .build();
     }
 
+    private PageResponse<PluginSummaryDTO> buildPluginLikes(Page<UnifiedLike> likePage, int page, int size) {
+        List<PluginSummaryDTO> items = new ArrayList<>();
+        for (UnifiedLike like : likePage.getContent()) {
+            Optional<Plugin> pluginOpt = pluginRepository.findByIdAndStatusNormal(like.getTargetId());
+            if (pluginOpt.isPresent()) {
+                Plugin plugin = pluginOpt.get();
+                User author = plugin.getAuthor();
+                items.add(PluginSummaryDTO.builder()
+                        .id(plugin.getId())
+                        .name(plugin.getName())
+                        .description(plugin.getDescription())
+                        .version(plugin.getVersion())
+                        .logoUrl(plugin.getLogoUrl())
+                        .source(plugin.getSource())
+                        .likeCount(plugin.getLikeCount())
+                        .commentCount(plugin.getCommentCount())
+                        .viewCount(plugin.getViewCount())
+                        .score(plugin.getScore())
+                        .authorId(author != null ? author.getId() : null)
+                        .authorUsername(author != null ? author.getUsername() : "Unknown")
+                        .authorNickname(author != null ? author.getNickname() : null)
+                        .createdAt(plugin.getCreatedAt())
+                        .build());
+            }
+        }
+        return PageResponse.<PluginSummaryDTO>builder()
+                .content(items)
+                .totalElements(likePage.getTotalElements())
+                .totalPages(likePage.getTotalPages())
+                .page(page)
+                .size(size)
+                .build();
+    }
+
     private Long resolveTargetOwnerId(TargetType targetType, Long targetId) {
         return switch (targetType) {
             case TOOL -> toolRepository.findByIdAndStatusNormal(targetId)
@@ -244,6 +283,8 @@ public class UnifiedLikeService {
                     .map(ForumPost::getAuthorId).orElse(null);
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .map(Video::getUploaderId).orElse(null);
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .map(p -> p.getAuthor() != null ? p.getAuthor().getId() : null).orElse(null);
         };
     }
 
@@ -256,41 +297,52 @@ public class UnifiedLikeService {
                     .orElseThrow(() -> new ResourceNotFoundException("帖子不存在或已删除"));
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .orElseThrow(() -> new ResourceNotFoundException("插件不存在或已删除"));
         }
     }
 
     private int updateLikeCount(TargetType targetType, Long targetId, boolean liked) {
         switch (targetType) {
             case TOOL -> {
-                Tool tool = toolRepository.findByIdAndStatusNormal(targetId).orElseThrow();
                 if (liked) {
-                    tool.incrementLikeCount();
+                    toolRepository.incrementLikeCount(targetId);
                 } else {
-                    tool.decrementLikeCount();
+                    toolRepository.decrementLikeCount(targetId);
                 }
-                toolRepository.save(tool);
-                return tool.getLikeCount();
+                return toolRepository.findByIdAndStatusNormal(targetId)
+                        .map(Tool::getLikeCount)
+                        .orElse(0);
             }
             case FORUM_POST -> {
-                ForumPost post = forumPostRepository.findById(targetId).orElseThrow();
                 if (liked) {
-                    post.setLikeCount(post.getLikeCount() + 1);
+                    forumPostRepository.incrementLikeCount(targetId);
                 } else {
-                    post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
+                    forumPostRepository.decrementLikeCount(targetId);
                 }
-                post.updateScore();
-                forumPostRepository.save(post);
-                return post.getLikeCount();
+                return forumPostRepository.findById(targetId)
+                        .map(ForumPost::getLikeCount)
+                        .orElse(0);
             }
             case VIDEO -> {
-                Video video = videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL).orElseThrow();
                 if (liked) {
-                    video.incrementLikeCount();
+                    videoRepository.incrementLikeCount(targetId);
                 } else {
-                    video.decrementLikeCount();
+                    videoRepository.decrementLikeCount(targetId);
                 }
-                videoRepository.save(video);
-                return video.getLikeCount();
+                return videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
+                        .map(Video::getLikeCount)
+                        .orElse(0);
+            }
+            case PLUGIN -> {
+                if (liked) {
+                    pluginRepository.incrementLikeCount(targetId);
+                } else {
+                    pluginRepository.decrementLikeCount(targetId);
+                }
+                return pluginRepository.findByIdAndStatusNormal(targetId)
+                        .map(Plugin::getLikeCount)
+                        .orElse(0);
             }
             default -> { return 0; }
         }
@@ -304,6 +356,8 @@ public class UnifiedLikeService {
                     .map(ForumPost::getLikeCount).orElse(0);
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .map(Video::getLikeCount).orElse(0);
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .map(Plugin::getLikeCount).orElse(0);
         };
     }
 

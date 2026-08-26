@@ -1,0 +1,8 @@
+{
+  "theme": "default",
+  "review": {
+    "maxFindings": 50,
+    "parallelAgents": true,
+    "baseline": "fowler"
+  }
+}

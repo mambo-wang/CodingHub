@@ -8,7 +8,6 @@ import io.modelcontextprotocol.server.McpServer;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.McpSyncServerExchange;
-import io.modelcontextprotocol.server.transport.HttpServletSseServerTransportProvider;
 import io.modelcontextprotocol.server.transport.HttpServletStreamableServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.slf4j.Logger;
@@ -23,14 +22,9 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
- * MCP Server 配置类 - 使用原生 Java MCP SDK 2.0.0，同时支持两种传输协议：
+ * MCP Server 配置类 - 使用原生 Java MCP SDK 2.0.0，通过 Streamable HTTP 传输协议暴露 MCP 能力。
  *
- * <ul>
- *   <li><b>Streamable HTTP</b>（/mcp）— MCP 协议 2025-03-26，单一端点同时处理 POST 和 GET</li>
- *   <li><b>SSE</b>（/sse + /mcp/message）— 旧版传输，兼容不支持 streamable-http 的客户端</li>
- * </ul>
- *
- * <p>两个 McpServer 实例各自注册相同的 20 个工具，客户端通过任一传输协议均可调用。
+ * <p>单一 McpServer 实例注册全部 20 个工具，客户端通过 /mcp 端点（POST/GET）即可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -93,23 +87,6 @@ public class McpSdkServerConfig {
         return new ServletRegistrationBean<>(transportProvider, "/mcp", "/mcp/*");
     }
 
-    // ── SSE 传输（兼容旧客户端）──────────────────────────────────
-
-    @Bean
-    public HttpServletSseServerTransportProvider sseTransportProvider(McpJsonMapper mcpJsonMapper) {
-        return HttpServletSseServerTransportProvider.builder()
-                .jsonMapper(mcpJsonMapper)
-                .messageEndpoint("/sse/message")
-                .sseEndpoint("/sse")
-                .build();
-    }
-
-    @Bean
-    public ServletRegistrationBean<HttpServletSseServerTransportProvider> sseServletBean(
-            HttpServletSseServerTransportProvider transportProvider) {
-        return new ServletRegistrationBean<>(transportProvider, "/sse", "/sse/message");
-    }
-
     // ── McpServer 实例 ────────────────────────────────────────────
 
     /**
@@ -139,36 +116,10 @@ public class McpSdkServerConfig {
         return server;
     }
 
-    /**
-     * SSE McpServer（兼容旧客户端）。
-     */
-    @Bean(destroyMethod = "close")
-    public McpSyncServer sseMcpServer(HttpServletSseServerTransportProvider transportProvider,
-                                      IaihubToolHandler toolHandler,
-                                      McpResourceHandler resourceHandler,
-                                      McpPromptProvider promptProvider) {
-        McpSyncServer server = McpServer.sync(transportProvider)
-                .serverInfo("H3CodingHub-MCP-Server", "2.0.0")
-                .instructions(SERVER_INSTRUCTIONS)
-                .capabilities(McpSchema.ServerCapabilities.builder()
-                        .tools(true)
-                        .resources(true, true)
-                        .prompts(true)
-                        .logging()
-                        .build())
-                .build();
-
-        registerAllTools(server, toolHandler);
-        registerAllResources(server, resourceHandler);
-        registerAllPrompts(server, promptProvider);
-        logger.info("MCP Server (SSE, /sse) initialized with 20 tools, 3 resources, 6 prompts");
-        return server;
-    }
-
     // ── 工具注册 ──────────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册相同的 20 个工具。
+     * 在 MCP Server 上注册全部 20 个工具。
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
@@ -917,7 +868,7 @@ public class McpSdkServerConfig {
     // ── 资源注册 ──────────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册 MCP Resource：
+     * 在 MCP Server 上注册 MCP Resource：
      * <ul>
      *   <li>{@code codinghub://tools/catalog} — 工具广场全量目录</li>
      *   <li>{@code codinghub://tools/recent} — 最近更新的工具</li>
@@ -960,7 +911,7 @@ public class McpSdkServerConfig {
     // ── Prompt 注册 ───────────────────────────────────────────────
 
     /**
-     * 在所有 McpServer 实例上注册 6 个工作流 Prompt 模板。
+     * 在 MCP Server 上注册 6 个工作流 Prompt 模板。
      */
     private void registerAllPrompts(McpSyncServer server, McpPromptProvider promptProvider) {
         for (McpServerFeatures.SyncPromptSpecification spec : promptProvider.buildAll()) {

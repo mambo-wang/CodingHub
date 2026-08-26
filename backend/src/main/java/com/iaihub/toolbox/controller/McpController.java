@@ -10,10 +10,8 @@ import java.util.Map;
 /**
  * MCP HTTP 端点
  *
- * <p>使用原生 MCP SDK HttpServletSseServerTransportProvider 处理协议交互，
- * 此端点由 ServletRegistrationBean 注册到 /sse 和 /mcp/message。
- *
- * <p>重要：这里的 /sse 端点仅用于健康检查，实际 SSE 连接由 TransportProvider 处理
+ * <p>提供 /mcp/health 健康检查端点。实际 MCP 协议交互（Streamable HTTP）
+ * 由 McpSdkServerConfig 中注册的 HttpServletStreamableServerTransportProvider 处理。
  */
 @RestController
 @RequestMapping("/mcp")

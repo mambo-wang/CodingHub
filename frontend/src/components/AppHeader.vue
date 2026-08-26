@@ -51,6 +51,7 @@ const goToLogin = () => router.push('/login')
 const goToRegister = () => router.push('/register')
 const goToProfile = () => { router.push('/me/profile'); closeMenu() }
 const goToForum = () => router.push('/forum')
+const goToPlugins = () => router.push('/plugins')
 const goToOverview = () => router.push('/overview')
 const goHome = () => router.push('/')
 const toggleTheme = () => themeStore.toggleTheme()
@@ -77,6 +78,7 @@ const goToCategories = () => router.push('/admin/categories')
       <!-- Nav Links -->
       <nav class="nav-links">
         <button class="nav-btn" @click="goHome">工具广场</button>
+        <button class="nav-btn" @click="goToPlugins">插件市场</button>
         <button class="nav-btn" @click="goToForum">论坛</button>
         <button class="nav-btn" @click="goToVideos">微课</button>
         <button class="nav-btn" @click="goToKnowledge">知识库</button>

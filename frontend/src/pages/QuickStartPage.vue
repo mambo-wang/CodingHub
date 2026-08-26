@@ -46,7 +46,7 @@ const copyUnifiedTip = async (index: number) => {
 
 // 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpTransportType = ref<'streamableHttp' | 'sse'>('streamableHttp')
+const mcpTransportType = ref('streamableHttp')
 const mcpConfigs = {
   streamableHttp: {
     "mcpServers": {
@@ -54,16 +54,6 @@ const mcpConfigs = {
         "type": "streamableHttp",
         "url": `http://${window.location.hostname}:${mcpBackendPort}/mcp`,
         "description": "CodingHub MCP Server (Streamable HTTP)",
-        "disabled": false
-      }
-    }
-  },
-  sse: {
-    "mcpServers": {
-      "CodingHub-mcp": {
-        "type": "sse",
-        "url": `http://${window.location.hostname}:${mcpBackendPort}/sse`,
-        "description": "CodingHub MCP Server (SSE)",
         "disabled": false
       }
     }
@@ -139,9 +129,6 @@ const mcpTools = [
           <div class="transport-tabs">
             <button class="transport-tab" :class="{ active: mcpTransportType === 'streamableHttp' }" @click="mcpTransportType = 'streamableHttp'">
               Streamable HTTP
-            </button>
-            <button class="transport-tab" :class="{ active: mcpTransportType === 'sse' }" @click="mcpTransportType = 'sse'">
-              SSE（兼容旧客户端）
             </button>
           </div>
           <pre class="config-code">{{ mcpConfigJson }}</pre>

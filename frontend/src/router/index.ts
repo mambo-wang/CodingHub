@@ -20,6 +20,22 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/plugins',
+    name: 'PluginMarket',
+    component: () => import('@/pages/plugin/PluginMarketPage.vue')
+  },
+  {
+    path: '/plugins/upload',
+    name: 'PluginUpload',
+    component: () => import('@/pages/plugin/PluginUploadPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/plugins/:id',
+    name: 'PluginDetail',
+    component: () => import('@/pages/plugin/PluginDetailPage.vue')
+  },
+  {
     path: '/me/profile',
     name: 'Profile',
     component: () => import('@/pages/ProfilePage.vue'),

@@ -12,9 +12,10 @@ public enum TargetType {
 
     TOOL,
     FORUM_POST,
-    VIDEO;
+    VIDEO,
+    PLUGIN;
 
-    private static final Set<String> VALID_VALUES = Set.of("TOOL", "FORUM_POST", "VIDEO");
+    private static final Set<String> VALID_VALUES = Set.of("TOOL", "FORUM_POST", "VIDEO", "PLUGIN");
 
     /**
      * Validate and parse a string into TargetType.
@@ -25,7 +26,7 @@ public enum TargetType {
      */
     public static TargetType fromString(String value) {
         if (value == null || !VALID_VALUES.contains(value.toUpperCase())) {
-            throw new BusinessException(400, "Invalid targetType: " + value + ". Must be one of: TOOL, FORUM_POST, VIDEO");
+            throw new BusinessException(400, "Invalid targetType: " + value + ". Must be one of: TOOL, FORUM_POST, VIDEO, PLUGIN");
         }
         return TargetType.valueOf(value.toUpperCase());
     }

@@ -17,7 +17,7 @@ function escJson(s){ return esc(s).replace(/"/g,'&quot;'); }
 let md = `# CodingHub MCP 功能测试报告（测试版）
 
 > 生成时间：${now}（Asia/Shanghai）　|　测试对象：H3CodingHub-MCP-Server v${data.server.version}
-> 传输协议：Streamable HTTP \`/mcp\`（兼容 SSE \`/sse\`）　|　测试账号：\`wangbao\`（密码经离线 bcrypt 校验）
+> 传输协议：Streamable HTTP \`/mcp\`　|　测试账号：\`wangbao\`（密码经离线 bcrypt 校验）
 
 ## 1. 结论摘要
 
@@ -38,7 +38,7 @@ let md = `# CodingHub MCP 功能测试报告（测试版）
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| 后端 (Spring Boot) | ✅ 运行中 | \`localhost:8082\`，MCP 端点 \`/mcp\` 与 \`/sse\` 均可用 |
+| 后端 (Spring Boot) | ✅ 运行中 | \`localhost:8082\`，MCP 端点 \`/mcp\` 可用 |
 | MySQL 8 | ✅ 运行中 | \`localhost:3306/ai_tool_square\`，数据可用（工具 5 / 帖子 2 / 知识库 0） |
 | RAG 服务 | ❌ 不可达 | \`172.53.3.98:8000\` 在本测试网络超时；影响 KB 语义检索与文档状态查询 |
 | 测试账号 | ✅ 有效 | \`wangbao / 123456\`（写操作鉴权通过） |

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
-import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2, Save, Lock, User as UserIcon, MessageCircle, Bookmark, Heart, Inbox, Wrench, FileText, Video, ChevronRight } from '@lucide/vue'
+import { Upload, Trash2, Loader2, ArrowLeft, CheckCircle2, Save, Lock, User as UserIcon, MessageCircle, Bookmark, Heart, Inbox, Wrench, FileText, Video, ChevronRight, Blocks } from '@lucide/vue'
 import { interactionApi } from '@/services/interaction'
 import type { TargetType, MyCommentItem } from '@/services/interaction'
 
@@ -214,12 +214,14 @@ const TAB_LABELS: Record<InteractionTab, string> = {
 const TYPE_LABELS: Record<TargetType, string> = {
   TOOL: '工具',
   FORUM_POST: '帖子',
-  VIDEO: '微课'
+  VIDEO: '微课',
+  PLUGIN: '插件'
 }
 const TYPE_ICONS: Record<TargetType, Component> = {
   TOOL: Wrench,
   FORUM_POST: FileText,
-  VIDEO: Video
+  VIDEO: Video,
+  PLUGIN: Blocks
 }
 
 const comments = ref<MyCommentItem[]>([])
@@ -297,7 +299,8 @@ function openDetail(targetType: TargetType, targetId: number) {
   const routes: Record<TargetType, string> = {
     TOOL: `/tools/${targetId}`,
     FORUM_POST: `/forum/posts/${targetId}`,
-    VIDEO: `/videos/${targetId}`
+    VIDEO: `/videos/${targetId}`,
+    PLUGIN: `/plugins/${targetId}`
   }
   router.push(routes[targetType])
 }

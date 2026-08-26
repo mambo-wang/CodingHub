@@ -50,8 +50,7 @@ public class SecurityConfig {
                 // Avatar static resources & public user profile (no auth needed)
                 .requestMatchers(HttpMethod.GET, "/api/v1/static/avatars/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/users/{id}").permitAll()
-                // MCP endpoints (streamable-http + SSE, 无认证)
-                .requestMatchers("/sse/**").permitAll()
+                // MCP endpoints (streamable-http, 无认证)
                 .requestMatchers("/mcp/**").permitAll()
                 // Video public endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/videos").permitAll()
@@ -64,6 +63,13 @@ public class SecurityConfig {
                 // Tag public endpoints
                 .requestMatchers(HttpMethod.GET, "/api/v1/tags").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/tags/hot").permitAll()
+                // Plugin marketplace - public read endpoints
+                .requestMatchers(HttpMethod.GET, "/api/v1/plugins").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/plugins/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/plugins/{id}/download").permitAll()
+                .requestMatchers("/api/v1/plugin-market/**").permitAll()
+                // Built-in git server (Smart HTTP) — 匿名 git clone / fetch
+                .requestMatchers("/git/**").permitAll()
                 // Unified interactions - likes and comments (public, supports anonymous)
                 .requestMatchers(HttpMethod.GET, "/api/v1/interactions/likes/status").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/interactions/likes").permitAll()
@@ -103,6 +109,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/knowledge/**").authenticated()
                 .requestMatchers("/api/v1/videos/**").authenticated()
                 .requestMatchers("/api/v1/tools/**").authenticated()
+                .requestMatchers("/api/v1/plugins/**").authenticated()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().permitAll()
             )

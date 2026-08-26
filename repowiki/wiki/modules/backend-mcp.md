@@ -1,6 +1,6 @@
 ---
 title: MCP模块 (backend-mcp)
-summary: MCP SDK 集成，通过 Streamable HTTP/SSE 暴露 18 个工具，桥接 CodingHub 全部领域能力
+summary: MCP SDK 集成，通过 Streamable HTTP 暴露 18 个工具，桥接 CodingHub 全部领域能力
 tags: [backend, mcp, tool-protocol, integration]
 created: 2026-08-08
 type: Module
@@ -10,7 +10,7 @@ stale_after: 2026-11-06
 
 # MCP模块 (backend-mcp)
 
-MCP 模块将 CodingHub 的后端能力以 [Model Context Protocol](https://modelcontextprotocol.io) 暴露给 AI 客户端。`McpController` 提供 `/mcp/health` 健康检查并承载 `McpSyncServer` 的 HTTP/SSE 传输；`IaihubToolHandler` 实现约 18 个工具，覆盖工具/帖子/知识库的搜索与 CRUD、文件上传下载、知识库语义检索与配置。
+MCP 模块将 CodingHub 的后端能力以 [Model Context Protocol](https://modelcontextprotocol.io) 暴露给 AI 客户端。`McpController` 提供 `/mcp/health` 健康检查并承载 `McpSyncServer` 的 Streamable HTTP 传输；`IaihubToolHandler` 实现约 18 个工具，覆盖工具/帖子/知识库的搜索与 CRUD、文件上传下载、知识库语义检索与配置。
 
 ## 组件清单
 
@@ -18,7 +18,6 @@ MCP 模块将 CodingHub 的后端能力以 [Model Context Protocol](https://mode
 |----|------|------|
 | Controller | `McpController` | `/mcp` 端点 + 健康检查 |
 | Handler | `IaihubToolHandler` | 18 个工具实现 |
-| Manager | `McpConnectionManager` | 连接与会话管理 |
 | Config | `McpSdkServerConfig` | MCP SDK 服务端装配 |
 | Support | `McpNotificationService` / `McpPromptProvider` / `McpResourceHandler` | 通知/提示/资源 |
 
@@ -26,7 +25,7 @@ MCP 模块将 CodingHub 的后端能力以 [Model Context Protocol](https://mode
 
 ```mermaid
 graph TD
-    Client[AI Client] -->|HTTP/SSE| McpController[McpController]
+    Client[AI Client] -->|Streamable HTTP| McpController[McpController]
     McpController --> McpServer[McpSyncServer]
     McpServer --> Handler[IaihubToolHandler]
     Handler --> Search[McpSearchService]
@@ -37,7 +36,6 @@ graph TD
     Handler --> User[UserService]
     Handler --> Tag[TagService]
     Handler --> Notify[McpNotificationService]
-    McpServer --> ConnMgr[McpConnectionManager]
 ```
 
 ## 关键设计
@@ -64,7 +62,7 @@ MCP 不支持二进制传输，因此 `kb_upload_document` 仅返回 RAG 服务�
 
 - 桥接 [核心模块](backend-core.md) / [论坛模块](backend-forum.md) / [知识库模块](backend-kb.md) / [标签模块](backend-tag.md)
 - 事件广播依赖 `McpNotificationService`（被核心模块 `ToolService` 在创建/更新时调用）
-- 端点公开无认证（`SecurityConfig` 中 `/mcp/**` 与 `/sse/**` permitAll）
+- 端点公开无认证（`SecurityConfig` 中 `/mcp/**` permitAll）
 
 ## 约束
 

@@ -20,7 +20,7 @@ terms:
   knowledge_base:
     aliases: [知识库, RAG, kb, 语义搜索, knowledge, 文档管理]
   mcp:
-    aliases: [MCP服务, Model Context Protocol, Streamable HTTP, SSE, mcp tools]
+    aliases: [MCP服务, Model Context Protocol, Streamable HTTP, mcp tools]
   tag:
     aliases: [标签, tag, TOOL标签, FORUM标签, VIDEO标签]
   notification:

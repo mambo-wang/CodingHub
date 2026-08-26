@@ -1,6 +1,6 @@
 import api from './api'
 
-export type TargetType = 'TOOL' | 'FORUM_POST' | 'VIDEO'
+export type TargetType = 'TOOL' | 'FORUM_POST' | 'VIDEO' | 'PLUGIN'
 
 export interface InteractionRequest {
   targetType: TargetType

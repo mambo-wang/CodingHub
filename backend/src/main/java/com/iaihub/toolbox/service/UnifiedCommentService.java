@@ -10,6 +10,7 @@ import com.iaihub.toolbox.model.forum.ForumPost;
 import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.UnifiedCommentRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
@@ -41,6 +42,7 @@ public class UnifiedCommentService {
     private final ToolRepository toolRepository;
     private final ForumPostRepository forumPostRepository;
     private final VideoRepository videoRepository;
+    private final PluginRepository pluginRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
@@ -199,6 +201,8 @@ public class UnifiedCommentService {
                     .map(ForumPost::getTitle).orElse(null);
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .map(Video::getTitle).orElse(null);
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .map(Plugin::getName).orElse(null);
         };
     }
 
@@ -255,6 +259,9 @@ public class UnifiedCommentService {
                     .map(ForumPost::getAuthorId).orElse(null);
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .map(Video::getUploaderId).orElse(null);
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .map(p -> p.getAuthor() != null ? p.getAuthor().getId() : null)
+                    .orElse(null);
         };
     }
 
@@ -267,55 +274,26 @@ public class UnifiedCommentService {
                     .orElseThrow(() -> new ResourceNotFoundException("帖子不存在或已删除"));
             case VIDEO -> videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL)
                     .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
+            case PLUGIN -> pluginRepository.findByIdAndStatusNormal(targetId)
+                    .orElseThrow(() -> new ResourceNotFoundException("插件不存在或已删除"));
         }
     }
 
     private void incrementCommentCount(TargetType targetType, Long targetId) {
         switch (targetType) {
-            case TOOL -> {
-                Tool tool = toolRepository.findByIdAndStatusNormal(targetId).orElseThrow();
-                tool.incrementCommentCount();
-                toolRepository.save(tool);
-            }
-            case FORUM_POST -> {
-                ForumPost post = forumPostRepository.findById(targetId).orElseThrow();
-                post.setCommentCount(post.getCommentCount() + 1);
-                post.updateScore();
-                forumPostRepository.save(post);
-            }
-            case VIDEO -> {
-                Video video = videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL).orElseThrow();
-                video.incrementCommentCount();
-                videoRepository.save(video);
-            }
+            case TOOL -> toolRepository.incrementCommentCount(targetId);
+            case FORUM_POST -> forumPostRepository.incrementCommentCount(targetId);
+            case VIDEO -> videoRepository.incrementCommentCount(targetId);
+            case PLUGIN -> pluginRepository.incrementCommentCount(targetId);
         }
     }
 
     private void decrementCommentCount(TargetType targetType, Long targetId) {
         switch (targetType) {
-            case TOOL -> {
-                Tool tool = toolRepository.findByIdAndStatusNormal(targetId).orElse(null);
-                if (tool != null) {
-                    tool.setCommentCount(Math.max(0, tool.getCommentCount() - 1));
-                    tool.updateScore();
-                    toolRepository.save(tool);
-                }
-            }
-            case FORUM_POST -> {
-                ForumPost post = forumPostRepository.findById(targetId).orElse(null);
-                if (post != null) {
-                    post.setCommentCount(Math.max(0, post.getCommentCount() - 1));
-                    post.updateScore();
-                    forumPostRepository.save(post);
-                }
-            }
-            case VIDEO -> {
-                Video video = videoRepository.findByIdAndStatus(targetId, VideoStatus.NORMAL).orElse(null);
-                if (video != null) {
-                    video.setCommentCount(Math.max(0, video.getCommentCount() - 1));
-                    videoRepository.save(video);
-                }
-            }
+            case TOOL -> toolRepository.decrementCommentCount(targetId);
+            case FORUM_POST -> forumPostRepository.decrementCommentCount(targetId);
+            case VIDEO -> videoRepository.decrementCommentCount(targetId);
+            case PLUGIN -> pluginRepository.decrementCommentCount(targetId);
         }
     }
 

@@ -136,7 +136,7 @@
     "密码使用 BCrypt 加密存储",
     "文件上传存储在 AIHUB_FILE_BASE_DIR 指定的本地目录",
     "所有用户输入通过 XssSanitizer.sanitize() 过滤",
-    "MCP: 18 tools via Streamable HTTP/SSE (核心CRUD + 知识库 + 标签)",
+    "MCP: 18 tools via Streamable HTTP (核心CRUD + 知识库 + 标签)",
     "Flyway 迁移文件: backend/src/main/resources/db/migration/ (V1~V9)",
     "新增模块: feedback, kb(知识库), notification(通知), tag(统一标签)"
   ]

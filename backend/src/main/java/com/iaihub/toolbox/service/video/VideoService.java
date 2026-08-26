@@ -167,12 +167,11 @@ public class VideoService {
      */
     @Transactional
     public VideoResponse getVideoDetail(Long id, Long currentUserId) {
+        // 观看次数原子 +1（不触发 @PreUpdate，避免 updatedAt 被刷新为当前时间）
+        videoRepository.incrementViewCount(id);
+
         Video video = videoRepository.findByIdAndStatus(id, VideoStatus.NORMAL)
                 .orElseThrow(() -> new ResourceNotFoundException("视频不存在或已删除"));
-
-        // 增加观看次数
-        video.incrementViewCount();
-        videoRepository.save(video);
 
         // 检查用户点赞和收藏状态
         boolean userLiked = false;
