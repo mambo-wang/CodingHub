@@ -85,13 +85,23 @@ export const useChatStore = defineStore('chat', () => {
     client?.subscribe('/topic/chat.reactions.global', (msg) => {
       const data = JSON.parse(msg.body) as ReactionUpdateEvent
       const target = messages.value.find((m) => m.id === data.messageId)
-      if (target) target.reactions = data.reactions
+      if (target) {
+        target.reactions = data.reactions
+        // 防漂移：广播只带全房间计数，本地 myReactions 与计数矛盾时（如服务端校验失败）以计数为准清理
+        if (target.myReactions) {
+          target.myReactions = target.myReactions.filter((e) => (data.reactions?.[e] ?? 0) > 0)
+        }
+      }
     })
 
     client?.subscribe('/topic/chat.edit.global', (msg) => {
       const data = JSON.parse(msg.body) as ChatMessage
       const idx = messages.value.findIndex((m) => m.id === data.id)
-      if (idx !== -1) messages.value[idx] = { ...messages.value[idx], ...data }
+      if (idx !== -1) {
+        // 编辑广播不带个人视角：保留本地的 reactions/myReactions，仅更新内容相关字段
+        const { reactions: _r, myReactions: _m, ...rest } = data
+        messages.value[idx] = { ...messages.value[idx], ...rest }
+      }
     })
 
     client?.subscribe('/topic/chat.recall.global', (msg) => {
@@ -156,6 +166,15 @@ export const useChatStore = defineStore('chat', () => {
 
   function react(messageId: number, emoji: string) {
     if (!client?.connected) return
+    // 乐观更新本地 myReactions：reaction 广播只带全房间计数（不含个人视角），
+    // 不本地 toggle 会导致徽章无高亮、二次点击被误判为取消
+    const target = messages.value.find((m) => m.id === messageId)
+    if (target) {
+      const mine = new Set(target.myReactions || [])
+      if (mine.has(emoji)) mine.delete(emoji)
+      else mine.add(emoji)
+      target.myReactions = Array.from(mine)
+    }
     const payload: ReactionActionPayload = { messageId, emoji }
     client.publish({ destination: '/app/chat.react', body: JSON.stringify(payload) })
   }

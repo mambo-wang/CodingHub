@@ -113,9 +113,10 @@ public class ChatService {
         chatMessageRepository.save(message);
         lastSendAt.put(rateLimitKey, now);
 
+        // 广播给全房间：myReactions 是个人视角字段，不能携带发送者的视角（新消息无 reaction，传空）
         ChatMessageDTO dto = toDTO(message, isGuest,
                 reactionCounts(message.getId()),
-                myReactions(message.getId(), ownerKeyOf(principal)),
+                List.of(),
                 replyDisplayName(message.getReplyTo()),
                 replyPreview(message.getReplyTo()));
         messagingTemplate.convertAndSend("/topic/chat." + roomId, dto);
@@ -234,9 +235,10 @@ public class ChatService {
         msg.setEdited(true);
         chatMessageRepository.save(msg);
 
+        // 广播给全房间：不携带编辑者的 myReactions 个人视角，观看者的高亮由各端本地维护
         ChatMessageDTO dto = toDTO(msg, false,
                 reactionCounts(id),
-                myReactions(id, ownerKeyOf(principal)),
+                List.of(),
                 replyDisplayName(msg.getReplyTo()),
                 replyPreview(msg.getReplyTo()));
         messagingTemplate.convertAndSend("/topic/chat.edit." + msg.getRoomId(), dto);

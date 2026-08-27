@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useAuthStore } from '@/stores/auth'
 import { Send, Users, Wifi, WifiOff, Trash2, X, Reply, Smile, Pencil, Undo2 } from '@lucide/vue'
@@ -21,6 +21,23 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const replyTarget = ref<ChatMessage | null>(null)
 const editingId = ref<number | null>(null)
 const editContent = ref('')
+const pickerFor = ref<number | null>(null)
+
+// 与 MessageReactions.vue 的 EMOJIS 保持一致
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '🎉', '🚀', '👀', '🙏', '🔥']
+
+function togglePicker(msgId: number) {
+  pickerFor.value = pickerFor.value === msgId ? null : msgId
+}
+
+function pickEmoji(msg: ChatMessage, emoji: string) {
+  chatStore.react(msg.id, emoji)
+  pickerFor.value = null
+}
+
+function onDocClick() {
+  pickerFor.value = null
+}
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isAdmin = computed(() => authStore.isAdmin || authStore.isSuperAdmin)
@@ -59,6 +76,11 @@ onMounted(() => {
   if (!isLoggedIn.value && !guestNick.value) {
     showNickModal.value = true
   }
+  document.addEventListener('click', onDocClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
 })
 
 function isSelf(msg: ChatMessage): boolean {
@@ -301,18 +323,31 @@ function dismissError() {
             />
           </template>
 
-          <div class="message-actions" v-if="!isDeleted(msg)">
+          <div class="message-actions" v-if="!isDeleted(msg)" :class="{ open: pickerFor === msg.id }">
             <button class="action-btn" @click="startReply(msg)" :aria-label="'回复'" title="回复">
               <Reply :size="13" />
             </button>
-            <button
-              class="action-btn"
-              @click="chatStore.react(msg.id, '👍')"
-              :aria-label="'表情回应'"
-              title="表情回应"
-            >
-              <Smile :size="13" />
-            </button>
+            <div class="react-wrap">
+              <button
+                class="action-btn"
+                @click.stop="togglePicker(msg.id)"
+                :aria-label="'表情回应'"
+                title="表情回应"
+              >
+                <Smile :size="13" />
+              </button>
+              <div v-if="pickerFor === msg.id" class="emoji-popover" @click.stop role="group" aria-label="选择表情">
+                <button
+                  v-for="e in REACTION_EMOJIS"
+                  :key="e"
+                  class="emoji-opt"
+                  :title="e"
+                  @click="pickEmoji(msg, e)"
+                >
+                  {{ e }}
+                </button>
+              </div>
+            </div>
             <button
               v-if="canEditRecall(msg)"
               class="action-btn"
@@ -653,8 +688,43 @@ function dismissError() {
   transition: opacity 0.15s ease;
 }
 
-.message-bubble:hover .message-actions {
+.message-bubble:hover .message-actions,
+.message-actions.open {
   opacity: 1;
+}
+
+.react-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.emoji-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.emoji-opt {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  border-radius: 6px;
+  padding: 4px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.emoji-opt:hover {
+  background: var(--bg-glass);
 }
 
 .action-btn {
