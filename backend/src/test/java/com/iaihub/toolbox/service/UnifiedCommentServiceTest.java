@@ -11,6 +11,7 @@ import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UnifiedCommentRepository;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
@@ -49,6 +50,9 @@ class UnifiedCommentServiceTest {
     private VideoRepository videoRepository;
 
     @Mock
+    private PluginRepository pluginRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -62,7 +66,7 @@ class UnifiedCommentServiceTest {
     @BeforeEach
     void setUp() {
         commentService = new UnifiedCommentService(
-                commentRepository, toolRepository, forumPostRepository, videoRepository, userRepository, notificationService);
+                commentRepository, toolRepository, forumPostRepository, videoRepository, pluginRepository, userRepository, notificationService);
 
         testTool = Tool.builder()
                 .id(1L).name("Test Tool")

@@ -16,6 +16,7 @@ import com.iaihub.toolbox.service.UserService;
 import com.iaihub.toolbox.service.forum.ForumPostService;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
 import com.iaihub.toolbox.service.tag.TagService;
+import com.iaihub.toolbox.service.plugin.PluginService;
 import com.iaihub.toolbox.model.tag.TagType;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,7 @@ class IaihubToolHandlerMcpTest {
     @Mock private RagApiClient ragApiClient;
     @Mock private McpNotificationService mcpNotificationService;
     @Mock private TagService tagService;
+    @Mock private PluginService pluginService;
 
     private IaihubToolHandler handler;
     private ObjectMapper objectMapper;
@@ -55,7 +57,7 @@ class IaihubToolHandlerMcpTest {
         objectMapper = new ObjectMapper();
         handler = new IaihubToolHandler(searchService, toolService, toolFileService,
                 postService, userService, knowledgeBaseService, ragApiClient,
-                objectMapper, mcpNotificationService, tagService, "");
+                objectMapper, mcpNotificationService, tagService, pluginService, "");
 
         LoginResponse.UserDTO userDto = LoginResponse.UserDTO.builder()
                 .id(1L).username("testuser").role("USER").build();

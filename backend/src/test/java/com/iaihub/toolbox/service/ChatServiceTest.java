@@ -189,6 +189,9 @@ class ChatServiceTest {
 
     @Test
     void toggleReaction_addsWhenNotPresent() {
+        ChatMessage msg = ChatMessage.builder().id(5L).roomId("global").userId(2L)
+                .displayName("Other").content("hi").status("ACTIVE").build();
+        when(chatMessageRepository.findById(5L)).thenReturn(Optional.of(msg));
         when(chatReactionRepository.existsByMessageIdAndOwnerKeyAndEmoji(5L, "1", "👍")).thenReturn(false);
         when(chatReactionRepository.findByMessageId(5L)).thenReturn(List.of());
 
@@ -200,6 +203,9 @@ class ChatServiceTest {
 
     @Test
     void toggleReaction_removesWhenPresent() {
+        ChatMessage msg = ChatMessage.builder().id(5L).roomId("global").userId(2L)
+                .displayName("Other").content("hi").status("ACTIVE").build();
+        when(chatMessageRepository.findById(5L)).thenReturn(Optional.of(msg));
         when(chatReactionRepository.existsByMessageIdAndOwnerKeyAndEmoji(5L, "1", "👍")).thenReturn(true);
 
         chatService.toggleReaction(loggedInPrincipal, new ReactionActionPayload(5L, "👍"));
@@ -210,7 +216,6 @@ class ChatServiceTest {
 
     @Test
     void toggleReaction_rejectsWhenMessageMissing() {
-        when(chatReactionRepository.existsByMessageIdAndOwnerKeyAndEmoji(6L, "1", "👍")).thenReturn(false);
         when(chatMessageRepository.findById(6L)).thenReturn(Optional.empty());
 
         chatService.toggleReaction(loggedInPrincipal, new ReactionActionPayload(6L, "👍"));
@@ -226,7 +231,6 @@ class ChatServiceTest {
         when(chatMessageRepository.findById(7L)).thenReturn(Optional.of(msg));
         when(chatMessageRepository.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
         when(chatReactionRepository.findByMessageId(7L)).thenReturn(List.of());
-        when(chatReactionRepository.findByMessageIdAndOwnerKey(7L, "1")).thenReturn(List.of());
 
         chatService.editMessage(loggedInPrincipal, new EditPayload(7L, "new content"));
 

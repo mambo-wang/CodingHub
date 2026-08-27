@@ -13,6 +13,7 @@ import com.iaihub.toolbox.model.forum.ForumPostStatus;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UnifiedLikeRepository;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
@@ -53,6 +54,9 @@ class UnifiedLikeServiceTest {
     private VideoRepository videoRepository;
 
     @Mock
+    private PluginRepository pluginRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -67,7 +71,7 @@ class UnifiedLikeServiceTest {
 
     @BeforeEach
     void setUp() {
-        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository, userRepository, notificationService);
+        likeService = new UnifiedLikeService(likeRepository, toolRepository, forumPostRepository, videoRepository, pluginRepository, userRepository, notificationService);
 
         testTool = Tool.builder()
                 .id(1L)

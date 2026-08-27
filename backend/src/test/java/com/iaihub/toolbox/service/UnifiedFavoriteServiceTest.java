@@ -8,6 +8,7 @@ import com.iaihub.toolbox.model.*;
 import com.iaihub.toolbox.model.video.Video;
 import com.iaihub.toolbox.model.video.VideoStatus;
 import com.iaihub.toolbox.repository.UnifiedFavoriteRepository;
+import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.ToolRepository;
 import com.iaihub.toolbox.repository.UserRepository;
 import com.iaihub.toolbox.repository.forum.ForumPostRepository;
@@ -46,6 +47,9 @@ class UnifiedFavoriteServiceTest {
     private VideoRepository videoRepository;
 
     @Mock
+    private PluginRepository pluginRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     private UnifiedFavoriteService favoriteService;
@@ -56,7 +60,7 @@ class UnifiedFavoriteServiceTest {
     @BeforeEach
     void setUp() {
         favoriteService = new UnifiedFavoriteService(
-                favoriteRepository, toolRepository, forumPostRepository, videoRepository, userRepository);
+                favoriteRepository, toolRepository, forumPostRepository, videoRepository, pluginRepository, userRepository);
 
         testUser = User.builder()
                 .id(100L).username("testuser").nickname("Test User")

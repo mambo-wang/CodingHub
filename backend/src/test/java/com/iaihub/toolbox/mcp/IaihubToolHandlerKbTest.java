@@ -18,6 +18,7 @@ import com.iaihub.toolbox.service.UserService;
 import com.iaihub.toolbox.service.forum.ForumPostService;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
 import com.iaihub.toolbox.service.tag.TagService;
+import com.iaihub.toolbox.service.plugin.PluginService;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,8 @@ class IaihubToolHandlerKbTest {
     private McpNotificationService mcpNotificationService;
     @Mock
     private TagService tagService;
+    @Mock
+    private PluginService pluginService;
 
     private IaihubToolHandler handler;
     private ObjectMapper objectMapper;
@@ -64,7 +67,7 @@ class IaihubToolHandlerKbTest {
         objectMapper = new ObjectMapper();
         handler = new IaihubToolHandler(searchService, toolService, toolFileService,
                 postService, userService, knowledgeBaseService, ragApiClient,
-                objectMapper, mcpNotificationService, tagService, "");
+                objectMapper, mcpNotificationService, tagService, pluginService, "");
     }
 
     // ── handleKbList ──────────────────────────────────────────
