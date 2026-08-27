@@ -1,14 +1,14 @@
 ---
 name: codinghub
-description: CodingHub 工具广场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP 优先，HTTP 直连自动降级（Python 或 Node.js CJS CLI 封装，跨平台）。
-version: 3.3.0
+description: CodingHub 工具广场与插件市场操作指南。当用户要求搜索/安装/发布/更新 CodingHub 工具或插件，制作插件包，发帖到论坛，管理知识库，或与 CodingHub 平台交互时使用。支持双通道：MCP 优先，HTTP 直连自动降级（Python 或 Node.js CJS CLI 封装，跨平台）。
+version: 3.4.0
 allowed-tools: 
 disable: false
 ---
 
 # CodingHub 操作指南
 
-通过 **MCP（优先）** 或 **HTTP 直连（降级）** 与 CodingHub 工具广场交互，支持工具发现、安装、发布、更新、论坛交流，以及知识库管理。
+通过 **MCP（优先）** 或 **HTTP 直连（降级）** 与 CodingHub 工具广场交互，支持工具发现、安装、发布、更新、**插件包制作与插件市场发布**、论坛交流，以及知识库管理。
 
 ## 通道选择（第一步，必读）
 
@@ -168,6 +168,14 @@ $CHUB ping
 | `kb-update <kbId>` | `--name N [--desc D]` |
 | `kb-delete <kbId>` | 删除知识库 |
 
+#### 插件 (plugins)
+| 子命令 | 典型参数 |
+|--------|----------|
+| `plugin-search` | `--query <kw> [--limit N]` |
+| `plugin-create` | `--name N --version V [--desc D] [--source S]` |
+| `plugin-file-upload <pluginId> <zipPath>` | 上传插件包 zip（完成发布） |
+| `plugin-update <pluginId> <zipPath>` | 覆盖更新插件（zip 内版本必须递增） |
+
 ### 退出码
 
 | 码 | 含义 |
@@ -181,7 +189,7 @@ Agent 应在 Bash 执行后检查 `$?`，非 0 时读取 stderr（`[chub]` 前�
 
 ## 核心工作流
 
-> **按需加载**: 工具参数与 HTTP API 完整对照表详见 `references/tool-reference.md`；知识库完整操作详见 `references/kb-management.md`；常见陷阱速查详见 `gotchas.md`；任务完成后按 `assets/template.md` 格式输出结果报告。执行具体操作前先 Read 对应文件。
+> **按需加载**: 工具参数与 HTTP API 完整对照表详见 `references/tool-reference.md`；知识库完整操作详见 `references/kb-management.md`；**插件包制作规范详见 `references/plugin-packaging.md`**；常见陷阱速查详见 `gotchas.md`；任务完成后按 `assets/template.md` 格式输出结果报告。执行具体操作前先 Read 对应文件。
 
 ### 1. 搜索与安装工具
 
@@ -311,6 +319,42 @@ $CHUB kb-search <kbId> "查询语句" --topK 5
 $CHUB kb-update <kbId> --name "新名字"
 $CHUB kb-delete <kbId>
 ```
+
+### 6. 插件市场（Plugin）
+
+**触发词**: "发布插件"、"上传插件包"、"制作插件包"、"更新插件"、"把 XX 打包成插件"
+
+> **插件 ≠ 工具**：工具广场发布的是单个 Skill/工具文件；插件是含 `commands/`、`skills/`、`agents/`、`hooks/` 等组件的**目录包**，通过 marketplace 供客户端安装。插件包制作规范详见 `references/plugin-packaging.md`（执行前必须 Read）。
+
+**插件包规范核心（详见 references/plugin-packaging.md）**：
+
+- **必须**含 `.codebuddy-plugin/plugin.json`（CodeBuddy 客户端的清单入口，缺它则命令/技能全部不注册；根目录 `plugin.json` 仅平台展示用，不能替代）
+- `name` 必填且 kebab-case（如 `openspec-pack`），`version` 必填语义化（如 `1.0.0`）
+- **严禁声明 `commands`/`skills` 字段** —— 平台自动扫描组件目录；命令文件平铺为 `commands/<命令名>.md`（如 `wbnb.md`），frontmatter 写 `name` 定义注册名，勿用点分文件名
+- 单 zip ≤ 50MB，解压后 ≤ 200MB
+
+#### MCP 通道
+1. `h3_coding_hub_plugin_search` 搜索，确认未重复发布
+2. `h3_coding_hub_plugin_create` 创建草稿（name/version/description/source/username/password）→ 记录 `pluginId`
+3. `h3_coding_hub_plugin_file_upload` 获取 REST 上传信息（uploadUrl、httpMethod、formFields）
+4. curl 执行 multipart POST：
+   ```bash
+   curl -X POST {uploadUrl} -F "file=@/path/to/<name>-<version>.zip"
+   ```
+5. `h3_coding_hub_plugin_search` 确认发布成功
+
+#### HTTP 通道（chub CLI）
+```bash
+$CHUB plugin-search --query "<插件名>"
+$CHUB plugin-create --name "my-plugin" --version "1.0.0" --desc "一句话介绍"
+$CHUB plugin-file-upload <pluginId> /path/to/my-plugin-1.0.0.zip
+```
+
+#### 更新已发布插件
+- 版本必须递增（`1.0.0` → `1.0.1`），版本不变会被拒绝
+- 修改本地 plugin.json 的 version 后重新打包 zip
+- MCP 通道：`h3_coding_hub_plugin_search` 找 id → `h3_coding_hub_plugin_file_upload` 获取端点 → curl `PUT {uploadUrl}`（或 PUT `{baseUrl}/api/v1/plugins/{pluginId}`，需认证 token）
+- HTTP 通道：`$CHUB plugin-update <pluginId> /path/to/<name>-<newver>.zip`
 
 ## 验证
 

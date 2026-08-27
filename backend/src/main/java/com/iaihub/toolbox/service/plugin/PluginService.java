@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.RepositoryCache;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -387,10 +388,12 @@ public class PluginService {
         for (Plugin plugin : plugins) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("name", plugin.getName());
-            // source 用 git 对象，指向内置 git 服务器，CodeBuddy 通过 git clone 安装
+            // source 用 git 对象，指向内置 git 服务器，CodeBuddy 通过 git clone 安装。
+            // 仓库目录名带版本号（<name>-<version>.git，见 initGitRepo），更新版本后 URL 随之变化，
+            // 客户端刷新市场时按新 URL 拉取最新内容
             String gitUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/git/{name}.git")
-                    .buildAndExpand(plugin.getName())
+                    .path("/git/{name}-{version}.git")
+                    .buildAndExpand(plugin.getName(), plugin.getVersion())
                     .toUriString();
             Map<String, Object> sourceObj = new LinkedHashMap<>();
             sourceObj.put("source", "url");
@@ -662,13 +665,20 @@ public class PluginService {
     /**
      * 将解压后的插件目录初始化为 bare git 仓库，供 CodeBuddy URL 市场 {@code git clone} 安装。
      *
-     * <p>仓库位于 {@code <base-dir>/git-repos/<name>.git}（与 {@link GitHttpConfig} 的根目录一致）。
-     * 覆盖式更新会删除旧仓库后重建，保证内容与最新 zip 一致。</p>
+     * <p>仓库位于 {@code <base-dir>/git-repos/<name>-<version>.git}（与 {@link GitHttpConfig} 的根目录一致）。
+     * 目录名携带版本号：更新版本时生成新路径的仓库，无需删除旧仓库，避免 Windows 上被
+     * git 服务（JGit RepositoryCache）缓存锁定的旧仓库无法删除、重建失败的问题。
+     * {@link #getMarketplace()} 中的 {@code source.url} 同步指向带版本的仓库路径。</p>
      */
     private void initGitRepo(Path tmpDir, String name, String version) throws IOException, GitAPIException {
         Path reposRoot = Paths.get(uploadConfig.getBaseDir(), "git-repos");
-        Path bareRepo = reposRoot.resolve(name + ".git");
-        deleteQuietly(bareRepo);
+        Files.createDirectories(reposRoot);
+        Path bareRepo = reposRoot.resolve(name + "-" + version + ".git");
+        // 同版本重传（非常规路径）时清理旧目录；不同版本之间互不冲突
+        if (Files.exists(bareRepo)) {
+            RepositoryCache.clear();
+            deleteQuietly(bareRepo);
+        }
 
         // 临时工作目录：tmpDir 已解压插件内容，直接作为 working tree 提交
         try (Git git = Git.init().setDirectory(tmpDir.toFile()).call()) {
@@ -681,12 +691,12 @@ public class PluginService {
         }
 
         // 从 working tree 克隆为 bare 仓库
-        try (Git git = Git.cloneRepository()
+        try (Git ignored = Git.cloneRepository()
                 .setURI(tmpDir.toUri().toString())
                 .setBare(true)
                 .setDirectory(bareRepo.toFile())
                 .call()) {
-            // 克隆完成即生成 bare 仓库，无需额外操作
+            // 克隆完成即生成 bare 仓库
         }
     }
 

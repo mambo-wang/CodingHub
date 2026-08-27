@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * MCP Prompt 模板提供者 — 将 QuickStart 页面的工作流提示词封装为标准 MCP Prompt
  *
- * <p>注册 6 个 prompt 模板，用户无需安装 CodingHub Skill 即可通过 MCP 客户端
+ * <p>注册 8 个 prompt 模板，用户无需安装 CodingHub Skill 即可通过 MCP 客户端
  * （CodeBuddy、QoderWork 等）直接使用这些预置工作流：
  *
  * <ol>
@@ -21,6 +21,8 @@ import java.util.Map;
  *   <li>{@code check-versions} — 检查工具版本更新</li>
  *   <li>{@code publish-tool} — 发布本地 Skill 到工具广场</li>
  *   <li>{@code update-tool} — 更新已发布的工具</li>
+ *   <li>{@code publish-plugin} — 制作并发布符合规范的插件包到插件市场</li>
+ *   <li>{@code update-plugin} — 更新已发布的插件</li>
  *   <li>{@code forum-post} — 发帖到论坛</li>
  * </ol>
  */
@@ -39,6 +41,8 @@ public class McpPromptProvider {
                 checkVersions(),
                 publishTool(),
                 updateTool(),
+                publishPlugin(),
+                updatePlugin(),
                 forumPost()
         );
     }
@@ -245,7 +249,143 @@ public class McpPromptProvider {
         });
     }
 
-    // ── 6. 论坛发帖 ──────────────────────────────────────────────
+    // ── 6. 发布插件 ───────────────────────────────────────────────
+
+    private McpServerFeatures.SyncPromptSpecification publishPlugin() {
+        McpSchema.Prompt prompt = McpSchema.Prompt.builder("publish-plugin")
+                .title("发布插件")
+                .description("将本地插件源码制作成符合 CodingHub 规范的插件包（zip），发布到插件市场")
+                .arguments(List.of(
+                        McpSchema.PromptArgument.builder("name")
+                                .description("插件名（kebab-case，如 openspec-pack）")
+                                .required(true)
+                                .build(),
+                        McpSchema.PromptArgument.builder("version")
+                                .description("版本号（如 1.0.0）")
+                                .required(true)
+                                .build(),
+                        McpSchema.PromptArgument.builder("description")
+                                .description("插件一句话描述（可选）")
+                                .required(false)
+                                .build(),
+                        McpSchema.PromptArgument.builder("source")
+                                .description("来源标识（可选，如 owner/repo 或 URL）")
+                                .required(false)
+                                .build(),
+                        McpSchema.PromptArgument.builder("dirPath")
+                                .description("本地插件源码目录（可选，用于检查规范后打包）")
+                                .required(false)
+                                .build()
+                ))
+                .build();
+
+        return new McpServerFeatures.SyncPromptSpecification(prompt, (exchange, req) -> {
+            Map<String, Object> args = req.arguments() != null ? req.arguments() : Map.of();
+            String name = str(args, "name");
+            String version = str(args, "version");
+            String dirPath = str(args, "dirPath");
+            String dirDesc = dirPath.isEmpty() ? "由用户指定的目录" : dirPath;
+
+            String text = """
+                    请帮我把插件「%s」（版本 %s）制作成符合 CodingHub 规范的插件包并发布到插件市场。
+
+                    【插件包制作规范 — 打包前必须逐条检查】
+                    1. zip 根目录必须包含 plugin.json（放在根目录或 .codebuddy-plugin/ 目录下均可）
+                    2. plugin.json 字段:
+                       - name (必填): 插件名，必须与本次发布的名称一致，kebab-case（小写字母/数字，用 - 分隔）
+                       - version (必填): 语义化版本号（如 1.0.0）
+                       - description (选填): 一句话描述
+                       - icon (选填): 图标
+                       - 严禁声明 commands / skills / agents / hooks 字段 —— 平台会自动扫描组件目录并生成摘要，
+                         显式声明路径与自动扫描规则不一致会导致组件加载失败（这是常见坑）
+                    3. 组件布局（平台自动扫描，无需声明）:
+                       - commands/<插件名>.<命令名>.md —— 命令文件必须平铺在 commands/ 目录，用点分命名
+                         （如 commands/openspec-pack.new.md），每个文件 frontmatter 含 name 和 description
+                       - skills/<技能名>/SKILL.md —— 技能放独立子目录
+                       - agents/、hooks/ 同理
+                    4. 大小限制: 单个 zip ≤ 50MB，解压后 ≤ 200MB
+                    5. 若提供源码目录 %s，请先检查目录结构是否符合上述规范，必要时调整后再打包
+
+                    【发布步骤】
+                    1. 调用 h3_coding_hub_plugin_search 搜索「%s」，确认没有重复发布
+                    2. 调用 h3_coding_hub_plugin_create 创建插件草稿:
+                       - name: %s
+                       - version: %s
+                       - description: 可选
+                       - source: 可选（留空或填 owner/repo / URL）
+                       - username/password: 从记忆中获取，或询问用户
+                       - 记录返回的 pluginId
+                    3. 调用 h3_coding_hub_plugin_file_upload 获取 REST 上传信息（uploadUrl、httpMethod、formFields、limits）
+                    4. 用 curl 按返回的 uploadUrl 执行 multipart 上传（zip 内的 name/version 必须与草稿一致）:
+                       curl -X POST {uploadUrl} -F "file=@/path/to/%s.zip"
+                    5. 上传成功后调用 h3_coding_hub_plugin_search 确认插件已发布且版本为 %s
+                    6. 展示发布结果（插件 ID、名称、版本，以及 marketplace 拉取地址）
+                    """.formatted(name, version, dirDesc, name, name, version, name, version);
+
+            return userPromptResult("发布插件 " + name + " v" + version + " 到 CodingHub", text);
+        });
+    }
+
+    // ── 7. 更新插件 ───────────────────────────────────────────────
+
+    private McpServerFeatures.SyncPromptSpecification updatePlugin() {
+        McpSchema.Prompt prompt = McpSchema.Prompt.builder("update-plugin")
+                .title("更新插件")
+                .description("将本地插件的新版本覆盖更新到 CodingHub 插件市场（版本必须递增）")
+                .arguments(List.of(
+                        McpSchema.PromptArgument.builder("name")
+                                .description("要更新的插件名（kebab-case，如 openspec-pack）")
+                                .required(true)
+                                .build(),
+                        McpSchema.PromptArgument.builder("version")
+                                .description("新版本号（如 1.0.1），留空则自动递增最后一段")
+                                .required(false)
+                                .build(),
+                        McpSchema.PromptArgument.builder("dirPath")
+                                .description("本地插件源码目录（可选，用于重新打包）")
+                                .required(false)
+                                .build()
+                ))
+                .build();
+
+        return new McpServerFeatures.SyncPromptSpecification(prompt, (exchange, req) -> {
+            Map<String, Object> args = req.arguments() != null ? req.arguments() : Map.of();
+            String name = str(args, "name");
+            String version = str(args, "version");
+            String versionDesc = version.isEmpty() ? "自动递增" : version;
+            String dirPath = str(args, "dirPath");
+            String dirDesc = dirPath.isEmpty() ? "由用户指定的目录" : dirPath;
+
+            String text = """
+                    请帮我把本地插件「%s」的新版本更新到 CodingHub 插件市场。新版本: %s。
+
+                    【更新前必读】
+                    - 更新接口要求版本必须变化，版本不变会被拒绝（如 1.0.0 → 1.0.1）
+                    - zip 内的 plugin.json 的 name 必须与已发布插件一致
+                    - 保持插件包规范: 根目录 plugin.json（不声明 commands/skills/agents/hooks 字段），
+                      命令文件平铺在 commands/<插件名>.<命令名>.md
+
+                    【更新步骤】
+                    1. 调用 h3_coding_hub_plugin_search 搜索「%s」，找到已发布的 pluginId 和当前版本
+                    2. 确定新版本号:
+                       - 已指定 %s 则直接使用
+                       - 未指定则自动递增最后一段（1.0.0 → 1.0.1；1.0.0-beta → 1.0.1-beta）
+                    3. 修改本地源码目录 %s 中 plugin.json 的 version 为新版本，检查组件目录结构后重新打包为 zip
+                    4. 用 curl 执行 HTTP PUT multipart 覆盖更新（需认证 token）:
+                       curl -X PUT {baseUrl}/api/v1/plugins/{pluginId} \\
+                         -H "Authorization: Bearer <token>" -F "file=@/path/to/%s.zip"
+                       - 也可先调用 h3_coding_hub_plugin_file_upload 获取上传信息，再按返回的
+                         uploadUrl 与 httpMethod 上传
+                    5. 更新后调用 h3_coding_hub_plugin_search 确认新版本已生效
+                    6. 提示: 插件市场（marketplace.json / marketplace.zip）会自动同步新版本，
+                       客户端重新拉取市场即会收到更新
+                    """.formatted(name, versionDesc, name, versionDesc, dirDesc, name);
+
+            return userPromptResult("更新插件 " + name + " 到 " + versionDesc, text);
+        });
+    }
+
+    // ── 8. 论坛发帖 ──────────────────────────────────────────────
 
     private McpServerFeatures.SyncPromptSpecification forumPost() {
         McpSchema.Prompt prompt = McpSchema.Prompt.builder("forum-post")

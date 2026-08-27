@@ -15,3 +15,8 @@
 11. **kb_search 默认值**: `rerank=true`, `expandContext=1`，一般无需修改
 12. **Python 的 requests 依赖**: `chub.py` 依赖 `requests` 库，初始化脚本的 `python -c "import requests"` 会自动检测；若缺失先 `pip install requests`。Node 版本无需额外安装
 13. **MCP 类型工具下载目录**: 安装 MCP 类型工具（如 dbhub mcp）时，压缩包必须下载到 `~/CodingHub/`，不要下载到临时目录或 skill 目录；下载前确保目录存在（`mkdir -p ~/CodingHub`）；报告中必须注明完整下载路径
+14. **插件禁止声明 commands/skills 字段**: 插件 `plugin.json` 里显式声明 `commands`/`skills` 会导致组件加载失败（声明路径与自动扫描的平铺布局不一致），永远不要写这两个字段
+15. **插件命令文件平铺命名 + frontmatter 写 `name`**: 命令注册名 = frontmatter `name`（无 `name` 时取文件名）。`commands/wbnb.md` + `name: "wbnb"` → `/wbnb` ✅；点分文件名 `commands/verify-ui-pack.wbnb.md` 且无 `name` 会注册成 `/verify-ui-pack.wbnb` ❌
+16. **插件上传 name/version 必须一致**: 上传 zip 内 `plugin.json` 的 name/version 必须与创建草稿时一致，否则被拒
+17. **插件更新版本必须递增**: `PUT /api/v1/plugins/{id}` 要求 version 变化（1.0.0 → 1.0.1），版本不变会被拒绝
+18. **插件打包压缩根**: zip 的根目录直接放 `plugin.json` 与 `commands/` 等目录，不要多套一层外层文件夹（如 `openspec-pack-1.0.0/` 作为顶层目录），否则扫描不到

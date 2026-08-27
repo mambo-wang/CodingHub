@@ -34,6 +34,12 @@ CodingHub CLI — 绕过 MCP 直接调用 CodingHub REST API 的命令行工具�
     kb-update <kbId> [--name N] [--desc D]
     kb-delete <kbId>
 
+  插件 (plugins)
+    plugin-search [--query Q] [--limit N]
+    plugin-create --name N --version V [--desc D] [--source S]
+    plugin-file-upload <pluginId> <zipPath>
+    plugin-update <pluginId> <zipPath>
+
 退出码:
   0 成功 / 1 参数错误 / 2 HTTP 或业务错误 / 3 配置或 IO 异常
 """
@@ -381,6 +387,48 @@ def cmd_kb_update(cfg, args):
 def cmd_kb_delete(cfg, args):
     out(ok(api(cfg, "DELETE", f"/api/v1/knowledge/{args.kbId}", auth=True)))
 
+
+# ─────────────────────────────── 插件 (plugins) ───────────────────────────────
+
+def cmd_plugin_search(cfg, args):
+    params = {"page": 0, "size": args.limit, "sort": "new"}
+    if args.query:
+        params["keyword"] = args.query
+    out(ok(api(cfg, "GET", "/api/v1/plugins", params=params)))
+
+
+def cmd_plugin_create(cfg, args):
+    # 两段式第一步: 创建草稿（需认证）
+    body = {"name": args.name, "version": args.version}
+    if args.desc is not None:
+        body["description"] = args.desc
+    if args.source is not None:
+        body["source"] = args.source
+    out(ok(api(cfg, "POST", "/api/v1/plugins/draft", auth=True, json=body), expect_201=True))
+
+
+def cmd_plugin_file_upload(cfg, args):
+    # 两段式第二步: 为草稿补全 zip（免认证，zip 内 name/version 须与草稿一致）
+    f = open(args.zipPath, "rb")
+    try:
+        resp = api(cfg, "POST", f"/api/v1/plugins/{args.pluginId}/file",
+                   auth=False, files=[("file", (Path(args.zipPath).name, f))])
+    finally:
+        f.close()
+    out(ok(resp))
+
+
+def cmd_plugin_update(cfg, args):
+    # 覆盖更新（需认证），要求 zip 内版本较已发布版本递增
+    f = open(args.zipPath, "rb")
+    try:
+        resp = api(cfg, "PUT", f"/api/v1/plugins/{args.pluginId}",
+                   auth=True, files=[("file", (Path(args.zipPath).name, f))])
+    finally:
+        f.close()
+    out(ok(resp))
+
+
 # ─────────────────────────────── CLI 入口 ───────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
@@ -460,6 +508,20 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--name", default=None); sp.add_argument("--desc", default=None)
 
     sp = add("kb-delete", cmd_kb_delete); sp.add_argument("kbId", type=int)
+
+    # 插件
+    sp = add("plugin-search", cmd_plugin_search)
+    sp.add_argument("--query", "-q", default=""); sp.add_argument("--limit", type=int, default=20)
+
+    sp = add("plugin-create", cmd_plugin_create)
+    sp.add_argument("--name", required=True); sp.add_argument("--version", required=True)
+    sp.add_argument("--desc", default=None); sp.add_argument("--source", default=None)
+
+    sp = add("plugin-file-upload", cmd_plugin_file_upload)
+    sp.add_argument("pluginId", type=int); sp.add_argument("zipPath")
+
+    sp = add("plugin-update", cmd_plugin_update)
+    sp.add_argument("pluginId", type=int); sp.add_argument("zipPath")
 
     return p
 

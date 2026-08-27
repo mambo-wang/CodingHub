@@ -37,6 +37,12 @@
  *     kb-update <kbId> [--name N] [--desc D]
  *     kb-delete <kbId>
  *
+ *   插件 (plugins)
+ *     plugin-search [--query Q] [--limit N]
+ *     plugin-create --name N --version V [--desc D] [--source S]
+ *     plugin-file-upload <pluginId> <zipPath>
+ *     plugin-update <pluginId> <zipPath>
+ *
  * 退出码:
  *   0 成功 / 1 参数错误 / 2 HTTP 或业务错误 / 3 配置或 IO 异常
  */
@@ -453,6 +459,55 @@ const cmd_kb_delete = async (cfg, args) => {
   out(await ok(resp));
 };
 
+// ---- 插件 ----
+const cmd_plugin_search = async (cfg, args) => {
+  const query = { page: 0, size: args.limit, sort: 'new' };
+  if (args.query) query.keyword = args.query;
+  const resp = await api(cfg, 'GET', '/api/v1/plugins', { query });
+  out(await ok(resp));
+};
+
+const cmd_plugin_create = async (cfg, args) => {
+  // 两段式第一步: 创建草稿（需认证）
+  const body = { name: args.name, version: args.version };
+  if (args.desc != null) body.description = args.desc;
+  if (args.source != null) body.source = args.source;
+  const resp = await api(cfg, 'POST', '/api/v1/plugins/draft', { auth: true, json: body });
+  out(await ok(resp, { expect201: true }));
+};
+
+const cmd_plugin_file_upload = async (cfg, args) => {
+  // 两段式第二步: 为草稿补全 zip（免认证，zip 内 name/version 须与草稿一致）
+  const abs = path.resolve(args.zipPath);
+  const stat = await fsp.stat(abs).catch(() => null);
+  if (!stat) exitErr(`file not found: ${abs}`, 1);
+  const buf = await fsp.readFile(abs);
+  const fd = new FormData();
+  fd.append('file', new File([buf], path.basename(abs)));
+  const resp = await api(cfg, 'POST', `/api/v1/plugins/${args.pluginId}/file`, {
+    auth: false,
+    formData: fd,
+    timeoutMs: 300_000,
+  });
+  out(await ok(resp));
+};
+
+const cmd_plugin_update = async (cfg, args) => {
+  // 覆盖更新（需认证），要求 zip 内版本较已发布版本递增
+  const abs = path.resolve(args.zipPath);
+  const stat = await fsp.stat(abs).catch(() => null);
+  if (!stat) exitErr(`file not found: ${abs}`, 1);
+  const buf = await fsp.readFile(abs);
+  const fd = new FormData();
+  fd.append('file', new File([buf], path.basename(abs)));
+  const resp = await api(cfg, 'PUT', `/api/v1/plugins/${args.pluginId}`, {
+    auth: true,
+    formData: fd,
+    timeoutMs: 300_000,
+  });
+  out(await ok(resp));
+};
+
 // ─────────────────────────────── CLI 解析 ───────────────────────────────
 
 /**
@@ -579,6 +634,32 @@ const COMMANDS = {
     fn: cmd_kb_delete,
     positional: ['kbId'],
     flagTypes: { kbId: 'int' },
+  },
+  'plugin-search': {
+    fn: cmd_plugin_search,
+    flags: {
+      query: { type: 'string', alias: '-q', default: '', nargs: 1 },
+      limit: { type: 'int', default: 20, nargs: 1 },
+    },
+  },
+  'plugin-create': {
+    fn: cmd_plugin_create,
+    flags: {
+      name: { type: 'string', required: true, nargs: 1 },
+      version: { type: 'string', required: true, nargs: 1 },
+      desc: { type: 'string', default: null, nargs: 1 },
+      source: { type: 'string', default: null, nargs: 1 },
+    },
+  },
+  'plugin-file-upload': {
+    fn: cmd_plugin_file_upload,
+    positional: ['pluginId', 'zipPath'],
+    flagTypes: { pluginId: 'int' },
+  },
+  'plugin-update': {
+    fn: cmd_plugin_update,
+    positional: ['pluginId', 'zipPath'],
+    flagTypes: { pluginId: 'int' },
   },
 };
 
