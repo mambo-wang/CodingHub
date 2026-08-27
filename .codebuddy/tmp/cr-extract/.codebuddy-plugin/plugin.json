@@ -1,6 +1,0 @@
-{
-  "name": "code-reviewer",
-  "version": "1.0.0",
-  "description": "Two-axis code review plugin: validates changes against coding standards and the originating spec, with a built-in Fowler code smell baseline and a merged review report.",
-  "icon": "https://raw.githubusercontent.com/mambo-wang/CodingHub/postgresql/frontend/public/logo.png"
-}
