@@ -1,0 +1,10 @@
+{
+  "notes_since_last_consolidation": 3,
+  "notes_since_last_doctrine": 3,
+  "last_consolidation_at": null,
+  "last_doctrine_at": null,
+  "last_hinted_counter": {
+    "consolidation": 0,
+    "doctrine": 0
+  }
+}

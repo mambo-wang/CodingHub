@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iaihub.toolbox.config.UploadConfig;
 import com.iaihub.toolbox.dto.PageResponse;
+import com.iaihub.toolbox.dto.plugin.PluginCreateDraftRequest;
 import com.iaihub.toolbox.dto.plugin.PluginDetailDTO;
 import com.iaihub.toolbox.dto.plugin.PluginSummaryDTO;
 import com.iaihub.toolbox.exception.BusinessException;
@@ -62,6 +63,8 @@ public class PluginService {
             java.util.regex.Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
     private static final java.util.regex.Pattern SOURCE_PATTERN =
             java.util.regex.Pattern.compile("^(https?://[^\\s]+|[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+)$");
+    /** source 选填时的默认占位值（内网自研插件，不使用外部 GitHub 源） */
+    private static final String DEFAULT_SOURCE = "internal/local";
 
     private final PluginRepository pluginRepository;
     private final UserRepository userRepository;
@@ -71,9 +74,9 @@ public class PluginService {
     // ---------- 上传 ----------
 
     @Transactional
-    public PluginDetailDTO upload(MultipartFile file, String source, Long userId) {
+    public PluginDetailDTO upload(MultipartFile file, String source, String logoUrl, Long userId) {
         validateFile(file);
-        validateSource(source);
+        String src = normalizeSource(source);
 
         Path base = basePluginsDir();
         Path tmpDir = base.resolve("tmp").resolve(UUID.randomUUID().toString());
@@ -114,8 +117,8 @@ public class PluginService {
                     .description(description)
                     .version(version)
                     .author(author)
-                    .logoUrl(str(meta.get("icon")))
-                    .source(source.trim())
+                    .logoUrl(resolveLogoUrl(meta, logoUrl))
+                    .source(src)
                     .pluginJson(objectMapper.writeValueAsString(meta))
                     .components(componentsJson)
                     .build();
@@ -144,17 +147,130 @@ public class PluginService {
         }
     }
 
+    // ---------- MCP 两段式创建：草稿 + 补全 ----------
+
+    /**
+     * 第一步：仅保存插件元数据，status=DRAFT（不进入市场、不参与列表）。
+     * 供 MCP 智能体通过 createDraft 建立插件，随后上传 zip 补全。
+     */
+    @Transactional
+    public PluginDetailDTO createDraft(PluginCreateDraftRequest req, Long userId) {
+        String name = req.getName().trim();
+        String source = normalizeSource(req.getSource());
+        validateName(name);
+        if (pluginRepository.existsByName(name)) {
+            throw new BusinessException(400, "插件名已存在: " + name);
+        }
+        String version = req.getVersion().trim();
+
+        String description = req.getDescription() == null || req.getDescription().isBlank()
+                ? "暂无描述" : req.getDescription().trim();
+        if (description.length() > 5000) {
+            description = description.substring(0, 5000);
+        }
+
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("用户不存在", userId));
+
+        Plugin plugin = Plugin.builder()
+                .name(name)
+                .description(description)
+                .version(version)
+                .author(author)
+                .source(source)
+                .status(Plugin.Status.DRAFT)
+                .build();
+        plugin = pluginRepository.save(plugin);
+        return toDetailDTO(plugin);
+    }
+
+    /**
+     * 第二步：为草稿插件补全 zip 文件。解压校验 plugin.json、生成组件摘要、
+     * 持久化 zip 原件、生成 bare git 仓库，并将 status 从 DRAFT 置为 NORMAL。
+     */
+    @Transactional
+    public PluginDetailDTO finalizeUpload(Long id, MultipartFile file) {
+        Plugin plugin = pluginRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("插件不存在", id));
+        if (plugin.getStatus() != Plugin.Status.DRAFT) {
+            throw new BusinessException(400, "仅草稿状态插件可补全 zip（当前状态: " + plugin.getStatus() + "）");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(400, "请上传插件 zip 包");
+        }
+        if (file.getSize() > MAX_FILE_BYTES) {
+            throw new BusinessException(400, "zip 文件大小不能超过 50MB");
+        }
+
+        Path base = basePluginsDir();
+        Path tmpDir = base.resolve("tmp").resolve(UUID.randomUUID().toString());
+        try {
+            Files.createDirectories(tmpDir);
+            extractZip(file.getInputStream(), tmpDir);
+
+            Path pluginJsonPath = findPluginJson(tmpDir)
+                    .orElseThrow(() -> new BusinessException(400, "压缩包中未找到 plugin.json（应在 .codebuddy-plugin/ 目录或根目录）"));
+            Map<String, Object> meta = parseJson(pluginJsonPath);
+
+            String zipName = requiredString(meta, "name");
+            String zipVersion = requiredString(meta, "version");
+            if (!plugin.getName().equals(zipName)) {
+                throw new BusinessException(400, "zip 包中的 name 必须与草稿一致");
+            }
+            if (!plugin.getVersion().equals(zipVersion)) {
+                throw new BusinessException(400, "zip 包中的 version 必须与草稿一致");
+            }
+
+            String description = str(meta.get("description"));
+            if (description == null || description.isBlank()) {
+                description = "暂无描述";
+            }
+            if (description.length() > 5000) {
+                description = description.substring(0, 5000);
+            }
+
+            plugin.setDescription(description);
+            plugin.setLogoUrl(str(meta.get("icon")));
+            plugin.setPluginJson(objectMapper.writeValueAsString(meta));
+            plugin.setComponents(inspectComponents(tmpDir));
+
+            // 持久化 zip 原件
+            Path dest = persistZip(file, plugin.getId());
+            plugin.setSourceZipPath(relativizeBase(dest));
+
+            // 转为 NORMAL，进入市场
+            plugin.setStatus(Plugin.Status.NORMAL);
+            pluginRepository.save(plugin);
+
+            // 生成 bare git 仓库
+            try {
+                initGitRepo(tmpDir, plugin.getName(), plugin.getVersion());
+            } catch (Exception e) {
+                log.warn("生成 git 仓库失败（不影响上传，仅影响 URL 市场安装）: name={}", plugin.getName(), e);
+            }
+
+            return toDetailDTO(plugin);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("插件草稿补全失败: id={}", id, e);
+            throw new BusinessException(400, "插件补全失败: " + e.getMessage());
+        } finally {
+            deleteQuietly(tmpDir);
+        }
+    }
+
     // ---------- 覆盖式更新 ----------
 
     @Transactional
-    public PluginDetailDTO update(Long id, MultipartFile file, String source, Long userId, boolean isAdmin) {
+    public PluginDetailDTO update(Long id, MultipartFile file, String source, String logoUrl, Long userId, boolean isAdmin) {
         Plugin plugin = getNormal(id);
         checkPermission(plugin, userId, isAdmin);
 
         if (file == null || file.isEmpty()) {
             throw new BusinessException(400, "请上传插件 zip 包");
         }
-        validateSource(source);
+        String src = normalizeSource(source);
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new BusinessException(400, "zip 文件大小不能超过 50MB");
         }
@@ -188,8 +304,8 @@ public class PluginService {
 
             plugin.setVersion(newVersion);
             plugin.setDescription(description);
-            plugin.setLogoUrl(str(meta.get("icon")));
-            plugin.setSource(source.trim());
+            plugin.setLogoUrl(resolveLogoUrl(meta, logoUrl));
+            plugin.setSource(src);
             plugin.setPluginJson(objectMapper.writeValueAsString(meta));
             plugin.setComponents(inspectComponents(tmpDir));
 
@@ -400,13 +516,28 @@ public class PluginService {
         }
     }
 
-    private void validateSource(String source) {
+    /**
+     * source 为选填：未填写时使用默认占位值（内网自研插件场景），填写时校验格式。
+     */
+    private String normalizeSource(String source) {
         if (source == null || source.isBlank()) {
-            throw new BusinessException(400, "source 不能为空（GitHub owner/repo 或绝对 URL）");
+            return DEFAULT_SOURCE;
         }
-        if (!SOURCE_PATTERN.matcher(source.trim()).matches()) {
+        String s = source.trim();
+        if (!SOURCE_PATTERN.matcher(s).matches()) {
             throw new BusinessException(400, "source 格式不合法：应为 GitHub owner/repo（如 owner/repo）或绝对 URL");
         }
+        return s;
+    }
+
+    /**
+     * 图标优先级：显式传入 logoUrl（含空串=清空）优先；未传入时回退到 plugin.json 的 icon 字段。
+     */
+    private String resolveLogoUrl(Map<String, Object> meta, String logoUrl) {
+        if (logoUrl != null) {
+            return logoUrl.isBlank() ? null : logoUrl.trim();
+        }
+        return str(meta.get("icon"));
     }
 
     private void validateName(String name) {

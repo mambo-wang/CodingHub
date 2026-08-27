@@ -6,6 +6,8 @@ import api from '@/services/api'
 const props = defineProps<{
   modelValue?: string | null
   toolId?: number | null
+  /** 自定义提示文案（默认：支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用分类默认 Logo。） */
+  hint?: string
 }>()
 
 const emit = defineEmits<{
@@ -116,7 +118,7 @@ const removeLogo = async () => {
     />
 
     <p v-if="state === 'error'" class="logo-error" role="alert">{{ errorMsg }}</p>
-    <p v-else class="logo-hint">支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用分类默认 Logo。</p>
+    <p v-else class="logo-hint">{{ hint ?? '支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用分类默认 Logo。' }}</p>
   </div>
 </template>
 

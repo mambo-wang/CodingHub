@@ -3,17 +3,20 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { pluginApi } from '@/services/plugin'
+import LogoUploader from '@/components/common/LogoUploader.vue'
 
 const router = useRouter()
 
 const file = ref<File | null>(null)
 const source = ref('')
+const logoUrl = ref<string | null | undefined>(undefined)
 const progress = ref(0)
 const uploading = ref(false)
 
+// source 为选填：未填写时后端使用默认值 internal/local，填写时需符合格式
 const sourceValid = computed(() => {
   const s = source.value.trim()
-  if (!s) return false
+  if (!s) return true
   return /^(https?:\/\/\S+|[a-zA-Z0-9_-]+\/[a-zA-Z0-9._-]+)$/.test(s)
 })
 
@@ -42,9 +45,14 @@ const submit = async () => {
   uploading.value = true
   progress.value = 0
   try {
-    const detail = await pluginApi.upload(file.value, source.value.trim(), (p) => {
-      progress.value = p
-    })
+    const detail = await pluginApi.upload(
+      file.value,
+      source.value.trim() || undefined,
+      logoUrl.value,
+      (p) => {
+        progress.value = p
+      }
+    )
     ElMessage.success(`插件 ${detail.name} 上传成功`)
     router.push(`/plugins/${detail.id}`)
   } catch {
@@ -72,15 +80,26 @@ const back = () => router.push('/plugins')
     <div class="upload-card">
       <div class="form-group">
         <label class="form-label">
-          Source <span class="required">*</span>
-          <span class="label-hint">插件市场引用地址（GitHub owner/repo 或绝对 URL，HTTP 市场 source 不能为相对路径）</span>
+          Source
+          <span class="label-hint">选填。插件市场引用地址（GitHub owner/repo 或绝对 URL）；不填时默认使用 internal/local</span>
         </label>
         <input
           v-model="source"
           class="form-input"
-          placeholder="例如：octocat/my-plugin 或 https://github.com/octocat/my-plugin"
+          placeholder="选填，例如：octocat/my-plugin"
         />
         <p v-if="source && !sourceValid" class="field-error">source 格式不合法：应为 owner/repo 或绝对 URL</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          插件图标
+          <span class="label-hint">选填。支持本地上传；不上传则使用 plugin.json 中 icon 字段或默认图标</span>
+        </label>
+        <LogoUploader
+          v-model="logoUrl"
+          hint="支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用 plugin.json 中 icon 或默认图标。"
+        />
       </div>
 
       <div class="form-group">

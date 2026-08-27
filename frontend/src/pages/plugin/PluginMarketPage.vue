@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Search, Upload, PackageOpen, Eye, Heart, MessageCircle, Link } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { pluginApi } from '@/services/plugin'
 import { useAuthStore } from '@/stores/auth'
+import UserAvatar from '@/components/UserAvatar.vue'
 import type { PluginSummary } from '@/types/plugin'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 const keyword = ref('')
 const sort = ref<'new' | 'hot'>('new')
@@ -44,38 +47,81 @@ const changeSort = (s: 'new' | 'hot') => {
   load()
 }
 
-const copyInstall = async (p: PluginSummary) => {
-  const cmd = `codebuddy plugin install ${p.name}`
-  try {
-    await navigator.clipboard.writeText(cmd)
-    ElMessage.success(`已复制: ${cmd}`)
-  } catch {
-    ElMessage.error('复制失败，请手动复制')
-  }
-}
-
 const goDetail = (id: number) => router.push(`/plugins/${id}`)
 const goUpload = () => router.push('/plugins/upload')
 
-const fmtScore = (score: number | null | undefined) => {
-  const s = Number(score ?? 0)
-  return s >= 10000 ? (s / 10000).toFixed(1) + 'w' : String(Math.round(s))
+// 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082（与快速入门 MCP 地址拼接一致）
+const marketBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
+const marketUrl = computed(() => `http://${window.location.hostname}:${marketBackendPort}/api/v1/plugin-market/marketplace.json`)
+
+// 与快速入门一致的复制封装：非安全上下文(如 http)时回退到 execCommand
+async function copyToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text)
+  } else {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  }
 }
+
+const copyMarketUrl = async () => {
+  try {
+    await copyToClipboard(marketUrl.value)
+    ElMessage.success('市场地址已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+const fmtCount = (count: number | null | undefined) => {
+  const c = Number(count ?? 0)
+  if (c >= 1000000) return `${(c / 1000000).toFixed(1)}M`
+  if (c >= 1000) return `${(c / 1000).toFixed(1)}k`
+  return String(c)
+}
+
+const authorUser = (p: PluginSummary) => ({
+  id: p.authorId,
+  username: p.authorUsername,
+  nickname: p.authorNickname
+})
+
+const authorName = (p: PluginSummary) => p.authorNickname || p.authorUsername
 
 onMounted(load)
 </script>
 
 <template>
   <div class="plugin-market">
-    <div class="market-hero">
-      <h1 class="market-title">插件市场 <span class="title-badge">BETA</span></h1>
-      <p class="market-subtitle">上传并分享你的 CodeBuddy 插件 —— 支持 skills、agents、commands、hooks、MCP 等组件</p>
+    <div class="page-bg">
+      <div class="bg-orb bg-orb-1"></div>
+      <div class="bg-orb bg-orb-2"></div>
+    </div>
+
+    <div class="market-hero animate-fade-in-up">
+      <h1 class="market-title">
+        <span class="title-icon">🧩</span>
+        插件市场
+        <span class="title-badge">BETA</span>
+      </h1>
+      <div class="market-subtitle-row">
+        <p class="market-subtitle">上传并分享你的 CodeBuddy 插件 —— 支持 skills、agents、commands、hooks、MCP 等组件</p>
+        <button class="copy-market-btn" title="复制插件市场地址" @click="copyMarketUrl">
+          <Link :size="14" aria-hidden="true" />
+          复制市场地址
+        </button>
+      </div>
 
       <div class="market-toolbar">
         <div class="search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
+          <Search :size="16" aria-hidden="true" />
           <input
             v-model="keyword"
             class="search-input"
@@ -95,23 +141,41 @@ onMounted(load)
             @click="changeSort('hot')"
           >最热</button>
         </div>
-        <button v-if="authStore.isLoggedIn" class="upload-btn" @click="goUpload">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
+        <button v-if="isLoggedIn" class="upload-btn" @click="goUpload">
+          <Upload :size="16" aria-hidden="true" />
           上传插件
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="state-hint">加载中…</div>
-    <div v-else-if="plugins.length === 0" class="state-hint">
-      <p class="empty-title">暂无插件</p>
-      <p class="empty-sub">成为第一个上传插件的人吧</p>
-      <button v-if="authStore.isLoggedIn" class="upload-btn" @click="goUpload">上传插件</button>
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="plugin-grid" aria-hidden="true">
+      <div v-for="i in 6" :key="i" class="skeleton-card">
+        <div class="skeleton-head">
+          <div class="skeleton-logo"></div>
+          <div class="skeleton-meta">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-sub"></div>
+          </div>
+        </div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>
     </div>
 
-    <div v-else class="plugin-grid">
+    <!-- Empty state -->
+    <div v-else-if="plugins.length === 0" class="empty-state animate-fade-in-up">
+      <PackageOpen :size="48" aria-hidden="true" />
+      <p class="empty-title">暂无插件</p>
+      <p class="empty-sub">成为第一个上传插件的人吧</p>
+      <button v-if="isLoggedIn" class="upload-btn" @click="goUpload">
+        <Upload :size="16" aria-hidden="true" />
+        上传插件
+      </button>
+    </div>
+
+    <!-- Plugin grid -->
+    <div v-else class="plugin-grid stagger-children">
       <div v-for="p in plugins" :key="p.id" class="plugin-card" @click="goDetail(p.id)">
         <div class="card-top">
           <div class="plugin-logo">
@@ -123,32 +187,30 @@ onMounted(load)
               <span class="plugin-name">{{ p.name }}</span>
               <span class="version-tag">v{{ p.version }}</span>
             </div>
-            <div class="plugin-author">@{{ p.authorUsername }}</div>
+            <div class="plugin-author">
+              <UserAvatar :user="authorUser(p)" size="sm" :display-name="authorName(p)" />
+              <span>{{ authorName(p) }}</span>
+            </div>
           </div>
-          <span class="hot-score" :title="`热度 ${fmtScore(p.score)}`">{{ fmtScore(p.score) }}</span>
         </div>
 
         <p class="plugin-desc">{{ p.description }}</p>
 
-        <div class="plugin-source" :title="p.source">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-          </svg>
-          {{ p.source }}
-        </div>
-
         <div class="card-footer">
           <div class="stats">
-            <span class="stat"><span class="dot like">♥</span>{{ p.likeCount }}</span>
-            <span class="stat"><span class="dot comment">💬</span>{{ p.commentCount }}</span>
-            <span class="stat"><span class="dot view">👁</span>{{ p.viewCount }}</span>
+            <span class="stat">
+              <Heart :size="14" aria-hidden="true" />
+              {{ fmtCount(p.likeCount) }}
+            </span>
+            <span class="stat">
+              <MessageCircle :size="14" aria-hidden="true" />
+              {{ fmtCount(p.commentCount) }}
+            </span>
+            <span class="stat">
+              <Eye :size="14" aria-hidden="true" />
+              {{ fmtCount(p.viewCount) }}
+            </span>
           </div>
-          <button class="install-btn" @click.stop="copyInstall(p)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            安装
-          </button>
         </div>
       </div>
     </div>
@@ -163,9 +225,41 @@ onMounted(load)
 
 <style scoped>
 .plugin-market {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
   padding: 32px 24px 64px;
+}
+
+.page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+}
+
+.bg-orb-1 {
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--accent-1), transparent 70%);
+}
+
+.bg-orb-2 {
+  bottom: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--accent-2), transparent 70%);
 }
 
 .market-hero {
@@ -173,30 +267,73 @@ onMounted(load)
 }
 
 .market-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0 0 8px;
   font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  -webkit-text-fill-color: initial;
+  font-size: 28px;
 }
 
 .title-badge {
   font-size: 12px;
   font-weight: 600;
-  vertical-align: middle;
   padding: 3px 8px;
-  margin-left: 8px;
   border-radius: 6px;
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
   border: 1px solid rgba(139, 92, 246, 0.4);
   color: var(--text-primary);
+  -webkit-text-fill-color: initial;
+  white-space: nowrap;
+}
+
+.market-subtitle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 20px;
 }
 
 .market-subtitle {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 14px;
-  margin: 0 0 20px;
+  margin: 0;
+  flex: 1;
+}
+
+.copy-market-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.copy-market-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.1);
 }
 
 .market-toolbar {
@@ -215,6 +352,8 @@ onMounted(load)
   padding: 0 14px;
   height: 42px;
   background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   color: var(--text-muted);
@@ -223,6 +362,7 @@ onMounted(load)
 
 .search-box:focus-within {
   border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
 .search-input {
@@ -240,6 +380,8 @@ onMounted(load)
   gap: 4px;
   padding: 4px;
   background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: 10px;
 }
@@ -256,6 +398,10 @@ onMounted(load)
   transition: all 0.2s ease;
 }
 
+.sort-tab:hover {
+  color: var(--text-primary);
+}
+
 .sort-tab.active {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
   color: var(--text-primary);
@@ -267,33 +413,41 @@ onMounted(load)
   gap: 6px;
   height: 42px;
   padding: 0 18px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
-  border: 1px solid rgba(139, 92, 246, 0.45);
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: white;
+  border: none;
   border-radius: 10px;
-  color: var(--text-primary);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: var(--font-display);
   cursor: pointer;
   transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  white-space: nowrap;
 }
 
 .upload-btn:hover {
-  border-color: rgba(139, 92, 246, 0.7);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
+}
+
+.upload-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .plugin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .plugin-card {
   background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 20px;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -303,9 +457,9 @@ onMounted(load)
 }
 
 .plugin-card:hover {
-  border-color: rgba(139, 92, 246, 0.5);
+  border-color: var(--border-glow);
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-glow);
 }
 
 .card-top {
@@ -315,8 +469,8 @@ onMounted(load)
 }
 
 .plugin-logo {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
@@ -373,17 +527,20 @@ onMounted(load)
 }
 
 .plugin-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 5px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.hot-score {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-1);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
+.plugin-author span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plugin-desc {
@@ -398,29 +555,18 @@ onMounted(load)
   min-height: 42px;
 }
 
-.plugin-source {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--border-color);
   padding-top: 12px;
+  margin-top: auto;
 }
 
 .stats {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .stat {
@@ -432,30 +578,8 @@ onMounted(load)
   font-family: var(--font-mono);
 }
 
-.dot {
-  font-size: 11px;
-  opacity: 0.9;
-}
-
-.install-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 7px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-family: var(--font-display);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.install-btn:hover {
-  color: var(--text-primary);
-  border-color: rgba(139, 92, 246, 0.5);
-  background: rgba(139, 92, 246, 0.1);
+.stat svg {
+  opacity: 0.7;
 }
 
 .pagination {
@@ -469,6 +593,8 @@ onMounted(load)
 .page-btn {
   padding: 8px 18px;
   background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   color: var(--text-secondary);
@@ -494,21 +620,146 @@ onMounted(load)
   font-family: var(--font-mono);
 }
 
-.state-hint {
-  text-align: center;
-  padding: 80px 0;
+/* Skeleton */
+.skeleton-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.skeleton-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 60%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-sub {
+  height: 12px;
+  width: 40%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  animation-delay: 0.1s;
+}
+
+.skeleton-line {
+  height: 12px;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 25%, rgba(139, 92, 246, 0.1) 50%, rgba(139, 92, 246, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  animation-delay: 0.2s;
+}
+
+.skeleton-line.short {
+  width: 70%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 24px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
   color: var(--text-muted);
-  font-size: 14px;
 }
 
 .empty-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 6px;
 }
 
 .empty-sub {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
+}
+
+/* Light theme */
+[data-theme="light"] .plugin-card,
+[data-theme="light"] .skeleton-card,
+[data-theme="light"] .empty-state {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .plugin-card:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .skeleton-logo,
+[data-theme="light"] .skeleton-title,
+[data-theme="light"] .skeleton-sub,
+[data-theme="light"] .skeleton-line {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.05) 25%, rgba(124, 58, 237, 0.08) 50%, rgba(124, 58, 237, 0.05) 75%);
+  background-size: 200% 100%;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-logo,
+  .skeleton-title,
+  .skeleton-sub,
+  .skeleton-line {
+    animation: none;
+  }
+  .plugin-card:hover,
+  .upload-btn:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .plugin-market {
+    padding: 20px 16px 48px;
+  }
+  .market-toolbar {
+    gap: 10px;
+  }
 }
 </style>

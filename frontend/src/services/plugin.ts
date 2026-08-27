@@ -13,10 +13,16 @@ export const pluginApi = {
     return api.get(`/plugins/${id}`).then(res => res.data.data as PluginDetail)
   },
 
-  upload(file: File, source: string, onProgress?: (percent: number) => void): Promise<PluginDetail> {
+  upload(
+    file: File,
+    source?: string,
+    logoUrl?: string | null,
+    onProgress?: (percent: number) => void
+  ): Promise<PluginDetail> {
     const fd = new FormData()
     fd.append('file', file)
-    fd.append('source', source)
+    if (source && source.trim()) fd.append('source', source.trim())
+    if (logoUrl !== undefined) fd.append('logoUrl', logoUrl ?? '')
     return api.post('/plugins', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
@@ -28,10 +34,17 @@ export const pluginApi = {
     }).then(res => res.data.data as PluginDetail)
   },
 
-  update(id: number, file: File, source: string, onProgress?: (percent: number) => void): Promise<PluginDetail> {
+  update(
+    id: number,
+    file: File,
+    source?: string,
+    logoUrl?: string | null,
+    onProgress?: (percent: number) => void
+  ): Promise<PluginDetail> {
     const fd = new FormData()
     fd.append('file', file)
-    fd.append('source', source)
+    if (source && source.trim()) fd.append('source', source.trim())
+    if (logoUrl !== undefined) fd.append('logoUrl', logoUrl ?? '')
     return api.put(`/plugins/${id}`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,

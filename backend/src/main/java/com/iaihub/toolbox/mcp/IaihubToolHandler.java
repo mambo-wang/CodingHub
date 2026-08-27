@@ -17,6 +17,7 @@ import com.iaihub.toolbox.service.UserService;
 import com.iaihub.toolbox.dto.CreateToolRequest;
 import com.iaihub.toolbox.dto.LoginRequest;
 import com.iaihub.toolbox.dto.LoginResponse;
+import com.iaihub.toolbox.dto.PageResponse;
 import com.iaihub.toolbox.dto.ToolDetailDTO;
 import com.iaihub.toolbox.dto.ToolSummaryDTO;
 import com.iaihub.toolbox.dto.UpdateToolRequest;
@@ -27,7 +28,11 @@ import com.iaihub.toolbox.dto.kb.KbResponse;
 import com.iaihub.toolbox.dto.kb.KbSearchRequest;
 import com.iaihub.toolbox.dto.kb.KbSearchResultResponse;
 import com.iaihub.toolbox.dto.kb.KbUpdateRequest;
+import com.iaihub.toolbox.dto.plugin.PluginCreateDraftRequest;
+import com.iaihub.toolbox.dto.plugin.PluginDetailDTO;
+import com.iaihub.toolbox.dto.plugin.PluginSummaryDTO;
 import com.iaihub.toolbox.service.kb.KnowledgeBaseService;
+import com.iaihub.toolbox.service.plugin.PluginService;
 import com.iaihub.toolbox.service.tag.TagService;
 import com.iaihub.toolbox.model.tag.TagType;
 import com.iaihub.toolbox.service.RagApiClient;
@@ -82,6 +87,7 @@ public class IaihubToolHandler {
     private final ObjectMapper objectMapper;
     private final McpNotificationService mcpNotificationService;
     private final TagService tagService;
+    private final PluginService pluginService;
     private final String ragBaseUrl;
 
     public IaihubToolHandler(McpSearchService searchService,
@@ -94,6 +100,7 @@ public class IaihubToolHandler {
                              ObjectMapper objectMapper,
                              McpNotificationService mcpNotificationService,
                              TagService tagService,
+                             PluginService pluginService,
                              @Value("${app.rag.base-url}") String ragBaseUrl) {
         this.searchService = searchService;
         this.toolService = toolService;
@@ -105,6 +112,7 @@ public class IaihubToolHandler {
         this.objectMapper = objectMapper;
         this.mcpNotificationService = mcpNotificationService;
         this.tagService = tagService;
+        this.pluginService = pluginService;
         this.ragBaseUrl = ragBaseUrl;
     }
 
@@ -684,6 +692,77 @@ public class IaihubToolHandler {
     }
 
     /**
+     * 处理插件搜索（MCP 两段式创建的配套查询）
+     */
+    public McpSchema.CallToolResult handlePluginSearch(String keyword, Integer page, Integer size, String sort) {
+        logger.info("MCP plugin search: keyword={}, page={}, size={}, sort={}", keyword, page, size, sort);
+        try {
+            PageResponse<PluginSummaryDTO> result = pluginService.list(keyword, page != null ? page : 0, size != null ? size : 20, sort != null ? sort : "new");
+            String json = toJson(new PluginSearchResponse(result.getContent(), result.getTotalElements(), result.getTotalPages(), result.getPage()));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error searching plugins", e);
+            return errorResult("搜索插件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理创建插件草稿（MCP 两段式创建第一步，仅元数据，不涉及 zip）
+     */
+    public McpSchema.CallToolResult handlePluginCreate(String name, String version, String description, String source,
+                                                        String username, String password) {
+        logger.info("MCP create plugin draft: name={}, version={}, username={}", name, version, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            Long userId = loginResult.getUser().getId();
+
+            PluginCreateDraftRequest request = PluginCreateDraftRequest.builder()
+                    .name(name)
+                    .version(version)
+                    .description(description)
+                    .source(source)
+                    .build();
+
+            PluginDetailDTO created = pluginService.createDraft(request, userId);
+            String json = toJson(created);
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error creating plugin draft via MCP", e);
+            return errorResult("创建插件草稿失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理获取插件 zip 补全接口信息（MCP 两段式创建第二步）
+     * 告知客户端 REST 上传地址，客户端用 curl multipart POST 上传 zip。
+     */
+    public McpSchema.CallToolResult handlePluginFileUpload(Long pluginId) {
+        logger.info("MCP plugin file upload info: pluginId={}", pluginId);
+        try {
+            PluginDetailDTO detail = pluginService.getDetail(pluginId);
+            String json = toJson(new PluginFileUploadInfoResponse(
+                    pluginId,
+                    detail.getName(),
+                    "/api/v1/plugins/" + pluginId + "/file",
+                    "POST",
+                    "multipart/form-data",
+                    "file (必填, 插件 zip 包，需包含 .codebuddy-plugin/plugin.json)",
+                    "50MB",
+                    detail.getVersion(),
+                    detail.getSource()
+            ));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error getting plugin file upload info", e);
+            return errorResult("获取插件补全上传信息失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 版本号最后一位自动递增
      * "1.0.0" → "1.0.1", "1.0.0-beta" → "1.0.1-beta", "1.0.alpha" → "1.0.alpha.1"
      */
@@ -970,6 +1049,51 @@ public class IaihubToolHandler {
             this.kbName = kbName;
             this.documents = documents;
             this.totalCount = documents.size();
+        }
+    }
+
+    // ── Plugin DTO 类 ─────────────────────────────────────────────
+
+    private static class PluginSearchResponse {
+        public List<PluginSummaryDTO> plugins;
+        public long totalElements;
+        public int totalPages;
+        public int page;
+        public PluginSearchResponse(List<PluginSummaryDTO> plugins, long totalElements, int totalPages, int page) {
+            this.plugins = plugins;
+            this.totalElements = totalElements;
+            this.totalPages = totalPages;
+            this.page = page;
+        }
+    }
+
+    private static class PluginFileUploadInfoResponse {
+        public Long pluginId;
+        public String pluginName;
+        public String uploadUrl;
+        public String httpMethod;
+        public String contentType;
+        public String formFields;
+        public String limits;
+        public String version;
+        public String source;
+        public String instruction;
+        public PluginFileUploadInfoResponse(Long pluginId, String pluginName, String uploadUrl, String httpMethod,
+                                            String contentType, String formFields, String limits,
+                                            String version, String source) {
+            this.pluginId = pluginId;
+            this.pluginName = pluginName;
+            this.uploadUrl = uploadUrl;
+            this.httpMethod = httpMethod;
+            this.contentType = contentType;
+            this.formFields = formFields;
+            this.limits = limits;
+            this.version = version;
+            this.source = source;
+            this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
+                    + "，Content-Type 设为 " + contentType
+                    + "，表单字段: " + formFields
+                    + "。zip 包中的 name/version 必须与草稿创建时一致，否则会被拒绝。上传成功后插件转为正式发布。";
         }
     }
 }

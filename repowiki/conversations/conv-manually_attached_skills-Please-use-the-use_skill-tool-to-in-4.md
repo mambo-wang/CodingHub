@@ -1,7 +1,7 @@
 ---
 type: Conversation
 title: "conversation 20260826T121234Z"
-status: pending
+status: distilled
 stale_after: 2026-11-24
 generated: { by: codewiki/5.4.4, at: 2026-08-26T12:12:34Z }
 tags: ["codinghub", "ai-tool-square"]

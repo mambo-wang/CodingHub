@@ -19,6 +19,7 @@ const isSuperAdmin = computed(() => authStore.isSuperAdmin)
 const isDark = computed(() => themeStore.theme === 'dark')
 
 const menuOpen = ref(false)
+const moreOpen = ref(false)
 
 const toggleMenu = () => {
   menuOpen.value = !menuOpen.value
@@ -28,10 +29,26 @@ const closeMenu = () => {
   menuOpen.value = false
 }
 
+const toggleMore = () => {
+  moreOpen.value = !moreOpen.value
+}
+
+const closeMore = () => {
+  moreOpen.value = false
+}
+
+const moreApprovals = () => { goToApprovals(); closeMore() }
+const moreUsers = () => { goToUserList(); closeMore() }
+const moreCategories = () => { goToCategories(); closeMore() }
+const moreAbout = () => { goToAbout(); closeMore() }
+const moreFeedback = () => { goToFeedback(); closeMore() }
+
 const handleDocClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement | null
   if (target && target.closest('.user-menu-wrapper')) return
+  if (target && target.closest('.more-menu-wrapper')) return
   menuOpen.value = false
+  moreOpen.value = false
 }
 
 onMounted(() => {
@@ -82,16 +99,33 @@ const goToCategories = () => router.push('/admin/categories')
         <button class="nav-btn" @click="goToForum">论坛</button>
         <button class="nav-btn" @click="goToVideos">微课</button>
         <button class="nav-btn" @click="goToKnowledge">知识库</button>
-        <button class="nav-btn" @click="goToFeedback">留言板</button>
         <button class="nav-btn" @click="goToChat">聊天室</button>
         <button class="nav-btn" @click="goToOverview">热榜</button>
         <button class="nav-btn" @click="goToQuickStart">快速开始</button>
-        <button class="nav-btn" @click="goToAbout">关于</button>
+
+        <!-- 更多下拉 -->
+        <div class="more-menu-wrapper">
+          <button class="nav-btn dropdown-trigger" @click="toggleMore" :aria-expanded="moreOpen" aria-haspopup="true">
+            更多
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'caret-open': moreOpen }">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <Transition name="dropdown">
+            <div v-if="moreOpen" class="dropdown-menu more-menu">
+              <button class="dropdown-item" role="menuitem" @click="moreFeedback">留言板</button>
+              <button class="dropdown-item" role="menuitem" @click="moreAbout">关于</button>
+              <template v-if="isLoggedIn">
+                <hr class="user-dropdown-divider" />
+                <button v-if="isSuperAdmin" class="dropdown-item" role="menuitem" @click="moreApprovals">审批管理</button>
+                <button v-if="isAdmin" class="dropdown-item" role="menuitem" @click="moreUsers">用户管理</button>
+                <button v-if="isAdmin" class="dropdown-item" role="menuitem" @click="moreCategories">分类管理</button>
+              </template>
+            </div>
+          </Transition>
+        </div>
 
         <template v-if="isLoggedIn">
-          <button v-if="isSuperAdmin" class="nav-btn" @click="goToApprovals">审批管理</button>
-          <button v-if="isAdmin" class="nav-btn" @click="goToUserList">用户管理</button>
-          <button v-if="isAdmin" class="nav-btn" @click="goToCategories">分类管理</button>
           <NotificationBell />
           <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
             <Moon v-if="isDark" :size="18" />
@@ -159,7 +193,7 @@ const goToCategories = () => router.push('/admin/categories')
 }
 
 .header-content {
-  max-width: 1280px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 16px 24px;
   display: flex;
@@ -211,6 +245,10 @@ const goToCategories = () => router.push('/admin/categories')
 
 /* Dropdown */
 .dropdown {
+  position: relative;
+}
+
+.more-menu-wrapper {
   position: relative;
 }
 

@@ -67,6 +67,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/plugins").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plugins/{id}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/plugins/{id}/download").permitAll()
+                // Plugin zip finalize upload (MCP two-phase create) — anon POST, like tool files
+                .requestMatchers(HttpMethod.POST, "/api/v1/plugins/{id}/file").permitAll()
                 .requestMatchers("/api/v1/plugin-market/**").permitAll()
                 // Built-in git server (Smart HTTP) — 匿名 git clone / fetch
                 .requestMatchers("/git/**").permitAll()

@@ -36,6 +36,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/plugin/PluginDetailPage.vue')
   },
   {
+    path: '/plugins/:id/edit',
+    name: 'PluginEdit',
+    component: () => import('@/pages/plugin/PluginEditPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/me/profile',
     name: 'Profile',
     component: () => import('@/pages/ProfilePage.vue'),

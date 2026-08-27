@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 /**
  * MCP Server 配置类 - 使用原生 Java MCP SDK 2.0.0，通过 Streamable HTTP 传输协议暴露 MCP 能力。
  *
- * <p>单一 McpServer 实例注册全部 20 个工具，客户端通过 /mcp 端点（POST/GET）即可调用。
+ * <p>单一 McpServer 实例注册全部 23 个工具，客户端通过 /mcp 端点（POST/GET）即可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -39,9 +39,10 @@ public class McpSdkServerConfig {
             CodingHub 工具广场 MCP Server — AI 工具的搜索、安装、发布、更新与社区协作平台。
 
             ## 能力概览
-            - **工具管理**: 搜索/获取/创建/修改工具，文件上传/下载/删除（共 20 个工具）
+            - **工具管理**: 搜索/获取/创建/修改工具，文件上传/下载/删除（共 23 个工具）
             - **社区论坛**: 帖子搜索/获取/创建
             - **知识库 (RAG)**: 知识库 CRUD、语义搜索、文档上传与状态查询、RAG 分块配置读取/更新
+            - **插件市场**: 插件搜索 (h3_coding_hub_plugin_search)、创建插件草稿 (h3_coding_hub_plugin_create)、获取 zip 补全上传信息 (h3_coding_hub_plugin_file_upload) — 两段式创建插件
             - **工作流指引**: 6 个 Prompt 模板（install-tool, publish-tool, update-tool 等）
             - **上下文资源**: 工具目录 (codinghub://tools/catalog)、最近更新 (codinghub://tools/recent)、单工具详情 (codinghub://tool/{id})
 
@@ -112,14 +113,14 @@ public class McpSdkServerConfig {
         registerAllTools(server, toolHandler);
         registerAllResources(server, resourceHandler);
         registerAllPrompts(server, promptProvider);
-        logger.info("MCP Server (streamable-http, /mcp) initialized with 20 tools, 3 resources, 6 prompts");
+        logger.info("MCP Server (streamable-http, /mcp) initialized with 23 tools, 3 resources, 6 prompts");
         return server;
     }
 
     // ── 工具注册 ──────────────────────────────────────────────────
 
     /**
-     * 在 MCP Server 上注册全部 20 个工具。
+     * 在 MCP Server 上注册全部 23 个工具。
      */
     private void registerAllTools(McpSyncServer server, IaihubToolHandler toolHandler) {
 
@@ -830,6 +831,110 @@ public class McpSdkServerConfig {
                     String username = String.valueOf(args.get("username"));
                     String password = String.valueOf(args.get("password"));
                     return toolHandler.handleKbConfigure(kbId, chunkMode, chunkSize, chunkOverlap, rerank, strategy, contextHeader, username, password);
+                });
+
+        // ── 插件 MCP 工具 ────────────────────────────────────────
+
+        registerTool(server, "h3_coding_hub_plugin_search", "搜索 CodingHub 插件市场的插件列表，可按关键词和排序方式查询",
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "keyword":{"type":"string","description":"搜索关键词（匹配插件名或描述）"},
+                        "page":{"type":"integer","description":"页码，从0开始，默认0"},
+                        "size":{"type":"integer","description":"每页条数，默认20"},
+                        "sort":{"type":"string","description":"排序方式：'new'（最新）或 'hot'（最热），默认'new'"}
+                    }
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "plugins":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},"description":{"type":"string"},"source":{"type":"string"},"authorUsername":{"type":"string"},"createdAt":{"type":"string"}}}},
+                        "totalElements":{"type":"integer"},"totalPages":{"type":"integer"},"page":{"type":"integer"}
+                    },
+                    "required":["plugins","totalElements","page"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    String keyword = args != null && args.containsKey("keyword") ? String.valueOf(args.get("keyword")) : null;
+                    Integer page = args != null && args.containsKey("page") ? ((Number) args.get("page")).intValue() : 0;
+                    Integer size = args != null && args.containsKey("size") ? ((Number) args.get("size")).intValue() : 20;
+                    String sort = args != null && args.containsKey("sort") ? String.valueOf(args.get("sort")) : null;
+                    return toolHandler.handlePluginSearch(keyword, page, size, sort);
+                });
+
+        registerTool(server, "h3_coding_hub_plugin_create", """
+                创建插件草稿（两段式创建第一步）。需要传入账号密码进行认证，MCP客户端应传入客户端所在系统的登录账号，密码默认为123456。
+                仅保存插件元数据（name/version/description/source），不涉及 zip 文件。
+                创建成功后返回插件ID，随后调用 h3_coding_hub_plugin_file_upload 获取 REST 上传地址，用 curl multipart POST 上传插件 zip 包完成发布。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "name":{"type":"string","description":"插件名称，必须为 kebab-case（小写字母/数字，连字符分隔），如 code-reviewer"},
+                        "version":{"type":"string","description":"插件版本号，如1.0.0"},
+                        "description":{"type":"string","description":"插件描述，最大5000字符"},
+                        "source":{"type":"string","description":"市场引用：GitHub owner/repo 或绝对 URL"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["name","version","source","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"integer"},"name":{"type":"string"},"version":{"type":"string"},
+                        "description":{"type":"string"},"source":{"type":"string"},"status":{"type":"string"}
+                    },
+                    "required":["id","name","version","status"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    String name = String.valueOf(args.get("name"));
+                    String version = String.valueOf(args.get("version"));
+                    String description = args.containsKey("description") ? String.valueOf(args.get("description")) : null;
+                    String source = String.valueOf(args.get("source"));
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handlePluginCreate(name, version, description, source, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_plugin_file_upload", """
+                获取插件 zip 补全上传的 REST API 信息（两段式创建第二步）。
+                客户端应使用 HTTP Multipart POST 请求直接上传 zip 文件，无需认证（已放通权限）。
+                zip 包中的 name/version 必须与草稿创建时一致，否则会被拒绝。上传成功后插件转为正式发布并生成 git 仓库。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "pluginId":{"type":"integer","description":"插件ID（先通过 h3_coding_hub_plugin_create 创建获取）"}
+                    },
+                    "required":["pluginId"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "pluginId":{"type":"integer"},"pluginName":{"type":"string"},"uploadUrl":{"type":"string"},
+                        "httpMethod":{"type":"string"},"contentType":{"type":"string"},
+                        "formFields":{"type":"string"},"limits":{"type":"string"},
+                        "version":{"type":"string"},"source":{"type":"string"},"instruction":{"type":"string"}
+                    },
+                    "required":["pluginId","uploadUrl","httpMethod","contentType"]
+                }
+                """,
+                (exchange, request) -> {
+                    Long pluginId = ((Number) request.arguments().get("pluginId")).longValue();
+                    return toolHandler.handlePluginFileUpload(pluginId);
                 });
     }
 

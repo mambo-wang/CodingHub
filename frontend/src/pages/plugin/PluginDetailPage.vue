@@ -2,9 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Link, Download, Trash2, ArrowLeft, Loader2, Star, Pencil } from '@lucide/vue'
 import { pluginApi } from '@/services/plugin'
 import { useInteraction } from '@/composables/useInteraction'
 import { useAuthStore } from '@/stores/auth'
+import UserAvatar from '@/components/UserAvatar.vue'
+import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
+import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
 import type { PluginDetail } from '@/types/plugin'
 import type { CommentResponse } from '@/services/interaction'
 
@@ -29,11 +33,7 @@ const load = async () => {
   loading.value = true
   try {
     detail.value = await pluginApi.getDetail(pluginId)
-    await Promise.all([
-      interaction.loadLikeStatus(),
-      interaction.loadFavoriteStatus(),
-      interaction.loadComments(0)
-    ])
+    await interaction.loadComments(0)
   } catch {
     router.replace('/plugins')
   } finally {
@@ -41,20 +41,29 @@ const load = async () => {
   }
 }
 
-const copyInstall = async () => {
-  if (!detail.value) return
-  const cmd = `codebuddy plugin install ${detail.value.name}`
-  try {
-    await navigator.clipboard.writeText(cmd)
-    ElMessage.success('安装命令已复制')
-  } catch {
-    ElMessage.error('复制失败')
+// 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082（与快速入门 MCP 地址拼接一致）
+const marketBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
+
+// 与快速入门一致的复制封装：非安全上下文(如 http)时回退到 execCommand
+async function copyToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text)
+  } else {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
   }
 }
 
 const copyMarketUrl = async () => {
   try {
-    await navigator.clipboard.writeText(`${location.origin}/api/v1/plugin-market/marketplace.json`)
+    await copyToClipboard(`http://${window.location.hostname}:${marketBackendPort}/api/v1/plugin-market/marketplace.json`)
     ElMessage.success('市场地址已复制')
   } catch {
     ElMessage.error('复制失败')
@@ -110,16 +119,57 @@ const fmtTime = (s: string) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+const authorUser = computed(() => {
+  if (!detail.value) return null
+  return {
+    id: detail.value.authorId,
+    username: detail.value.authorUsername,
+    nickname: detail.value.authorNickname
+  }
+})
+
+const authorName = computed(() => detail.value?.authorNickname || detail.value?.authorUsername)
+
+const fmtCount = (n: number | null | undefined) => {
+  const c = Number(n ?? 0)
+  if (c >= 1000000) return `${(c / 1000000).toFixed(1)}M`
+  if (c >= 1000) return `${(c / 1000).toFixed(1)}k`
+  return String(c)
+}
+
+const onLikeUpdate = (data: { liked: boolean; likeCount: number }) => {
+  if (detail.value) {
+    detail.value.likeCount = data.likeCount
+  }
+}
+
+const onFavoriteUpdate = (_data: { favorited: boolean }) => {
+  // 收藏状态由组件内部维护，无需额外处理
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div class="plugin-detail">
-    <div v-if="loading" class="state-hint">加载中…</div>
+    <div class="page-bg">
+      <div class="bg-orb bg-orb-1"></div>
+      <div class="bg-orb bg-orb-2"></div>
+    </div>
+
+    <button class="back-btn animate-fade-in-up" @click="router.push('/plugins')">
+      <ArrowLeft :size="18" />
+      <span>返回插件市场</span>
+    </button>
+
+    <div v-if="loading" class="detail-loading animate-fade-in-up">
+      <Loader2 :size="32" class="spin" />
+      <span>加载插件...</span>
+    </div>
 
     <div v-else-if="detail" class="detail-wrap">
       <!-- 头部信息 -->
-      <div class="detail-header">
+      <div class="detail-header glass-card animate-fade-in-up">
         <div class="detail-logo">
           <img v-if="detail.logoUrl" :src="detail.logoUrl" alt="" />
           <span v-else class="logo-fallback">{{ detail.name.slice(0, 2).toUpperCase() }}</span>
@@ -131,190 +181,246 @@ onMounted(load)
           </div>
           <p class="detail-desc">{{ detail.description }}</p>
           <div class="meta-row">
-            <span class="meta-item">作者：@{{ detail.authorUsername }}</span>
-            <span class="meta-item">热度：{{ detail.score }}</span>
-            <span class="meta-item">浏览：{{ detail.viewCount }}</span>
+            <span v-if="authorUser" class="meta-item author-meta">
+              <UserAvatar :user="authorUser" size="sm" :display-name="authorName" />
+              作者：{{ authorName }}
+            </span>
+            <span class="meta-item">
+              <Star :size="13" aria-hidden="true" />
+              热度：{{ fmtCount(detail.score) }}
+            </span>
+            <span class="meta-item">浏览：{{ fmtCount(detail.viewCount) }}</span>
             <span class="meta-item">发布于：{{ fmtTime(detail.createdAt) }}</span>
           </div>
         </div>
         <div class="header-actions">
-          <button class="action-btn primary" @click="copyInstall">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            复制安装命令
-          </button>
           <button class="action-btn" @click="copyMarketUrl">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
+            <Link :size="14" aria-hidden="true" />
             复制市场地址
           </button>
           <button class="action-btn" @click="pluginApi.download(pluginId)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
+            <Download :size="14" aria-hidden="true" />
             下载 zip
           </button>
-          <button v-if="canManage" class="action-btn danger" @click="removePlugin">删除</button>
+          <button v-if="canManage" class="action-btn" @click="router.push(`/plugins/${pluginId}/edit`)">
+            <Pencil :size="14" aria-hidden="true" />
+            编辑
+          </button>
+          <button v-if="canManage" class="action-btn danger" @click="removePlugin">
+            <Trash2 :size="14" aria-hidden="true" />
+            删除
+          </button>
         </div>
       </div>
 
-      <div class="detail-body">
-        <!-- 左列：组件摘要 + plugin.json -->
-        <div class="detail-left">
-          <section class="panel">
-            <h2 class="panel-title">组件摘要</h2>
-            <template v-if="detail.components && detail.components.length > 0">
-              <div v-for="(c, idx) in detail.components" :key="idx" class="component-section">
-                <div class="comp-group">
-                  <span class="comp-label">Skills</span>
-                  <div v-if="c.skills.length" class="comp-tags">
-                    <span v-for="s in c.skills" :key="s" class="comp-tag skill">{{ s }}</span>
-                  </div>
-                  <span v-else class="comp-empty">无</span>
-                </div>
-                <div class="comp-group">
-                  <span class="comp-label">Agents</span>
-                  <div v-if="c.agents.length" class="comp-tags">
-                    <span v-for="s in c.agents" :key="s" class="comp-tag agent">{{ s }}</span>
-                  </div>
-                  <span v-else class="comp-empty">无</span>
-                </div>
-                <div class="comp-group">
-                  <span class="comp-label">Commands</span>
-                  <div v-if="c.commands.length" class="comp-tags">
-                    <span v-for="s in c.commands" :key="s" class="comp-tag cmd">{{ s }}</span>
-                  </div>
-                  <span v-else class="comp-empty">无</span>
-                </div>
-                <div class="comp-group">
-                  <span class="comp-label">Hooks</span>
-                  <div v-if="c.hooks.length" class="comp-tags">
-                    <span v-for="s in c.hooks" :key="s" class="comp-tag hook">{{ s }}</span>
-                  </div>
-                  <span v-else class="comp-empty">无</span>
-                </div>
-                <div class="comp-bools">
-                  <span class="bool-item" :class="{ on: c.mcpServers }">MCP {{ c.mcpServers ? '✓' : '✗' }}</span>
-                  <span class="bool-item" :class="{ on: c.lspServers }">LSP {{ c.lspServers ? '✓' : '✗' }}</span>
-                  <span class="bool-item" :class="{ on: c.hasBin }">Bin {{ c.hasBin ? '✓' : '✗' }}</span>
-                  <span class="bool-item" :class="{ on: c.hasSettings }">Settings {{ c.hasSettings ? '✓' : '✗' }}</span>
-                </div>
-              </div>
-            </template>
-            <div v-else class="comp-empty">无组件信息</div>
-          </section>
-
-          <section class="panel">
-            <h2 class="panel-title">plugin.json 元数据</h2>
-            <pre class="json-view">{{ JSON.stringify(detail.pluginJson, null, 2) }}</pre>
-          </section>
-        </div>
-
-        <!-- 右列：互动 -->
-        <div class="detail-right">
-          <section class="panel">
-            <div class="interact-row">
-              <button
-                class="interact-btn"
-                :class="{ active: interaction.liked.value }"
-                :disabled="interaction.likeLoading.value"
-                @click="interaction.toggleLike()"
-              >
-                <span class="heart">{{ interaction.liked.value ? '♥' : '♡' }}</span>
-                <span>{{ interaction.likeCount.value }}</span>
-              </button>
-              <button
-                class="interact-btn"
-                :class="{ active: interaction.favorited.value }"
-                :disabled="interaction.favoriteLoading.value"
-                @click="interaction.toggleFavorite()"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span>收藏</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="panel">
-            <h2 class="panel-title">
-              评论
-              <span v-if="interaction.commentsTotalElements.value > 0" class="comment-count">
-                {{ interaction.commentsTotalElements.value }}
-              </span>
-            </h2>
-
-            <div class="comment-input-row">
-              <input
-                v-model="commentInput"
-                class="comment-input"
-                :placeholder="replyTo ? `回复 @${replyTo.userName || '匿名'}…` : '写下你的评论…'"
-                @keyup.enter="submitComment"
-              />
-              <button class="submit-btn" :disabled="interaction.commentSubmitting.value" @click="submitComment">发送</button>
-            </div>
-            <div v-if="replyTo" class="reply-banner">
-              回复中：@{{ replyTo.userName }}
-              <button class="cancel-reply" @click="replyTo = null">取消</button>
-            </div>
-
-            <div v-if="interaction.commentsLoading.value" class="state-hint small">加载评论…</div>
-            <div v-else-if="interaction.comments.value.length === 0" class="state-hint small">暂无评论，快来抢沙发</div>
-
-            <div v-else class="comment-list">
-              <div
-                v-for="c in interaction.comments.value"
-                :key="c.id"
-                class="comment-item"
-                :class="{ reply: c.parentId }"
-              >
-                <div class="comment-avatar">{{ (c.userNickname || c.userName || '匿')[0] }}</div>
-                <div class="comment-main">
-                  <div class="comment-head">
-                    <span class="comment-user">{{ c.userNickname || c.userName || '匿名用户' }}</span>
-                    <span class="comment-time">{{ fmtTime(c.createdAt) }}</span>
-                  </div>
-                  <p class="comment-content">{{ c.content }}</p>
-                  <div class="comment-actions">
-                    <button class="link-btn" @click="startReply(c)">回复</button>
-                    <button
-                      v-if="isMine(c) || authStore.isAdmin || authStore.isSuperAdmin"
-                      class="link-btn danger"
-                      @click="removeComment(c)"
-                    >删除</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="interaction.commentsTotalPages.value > 1" class="comment-pages">
-              <button
-                class="page-btn"
-                :disabled="interaction.commentsPage.value === 0"
-                @click="interaction.loadComments(interaction.commentsPage.value - 1)"
-              >上一页</button>
-              <span class="page-info">{{ interaction.commentsPage.value + 1 }} / {{ interaction.commentsTotalPages.value }}</span>
-              <button
-                class="page-btn"
-                :disabled="interaction.commentsPage.value >= interaction.commentsTotalPages.value - 1"
-                @click="interaction.loadComments(interaction.commentsPage.value + 1)"
-              >下一页</button>
-            </div>
-          </section>
+      <!-- 互动操作条：点赞 / 收藏 -->
+      <div class="detail-actions glass-card animate-fade-in-up">
+        <div class="actions-inner">
+          <UnifiedLikeButton
+            target-type="PLUGIN"
+            :target-id="pluginId"
+            :initial-count="detail.likeCount"
+            @update="onLikeUpdate"
+          />
+          <UnifiedFavoriteButton
+            target-type="PLUGIN"
+            :target-id="pluginId"
+            @update="onFavoriteUpdate"
+          />
         </div>
       </div>
+
+      <!-- 组件摘要 + plugin.json -->
+      <div class="detail-main animate-fade-in-up">
+        <section class="panel">
+          <h2 class="panel-title">组件摘要</h2>
+          <template v-if="detail.components && detail.components.length > 0">
+            <div v-for="(c, idx) in detail.components" :key="idx" class="component-section">
+              <div class="comp-group">
+                <span class="comp-label">Skills</span>
+                <div v-if="c.skills.length" class="comp-tags">
+                  <span v-for="s in c.skills" :key="s" class="comp-tag skill">{{ s }}</span>
+                </div>
+                <span v-else class="comp-empty">无</span>
+              </div>
+              <div class="comp-group">
+                <span class="comp-label">Agents</span>
+                <div v-if="c.agents.length" class="comp-tags">
+                  <span v-for="s in c.agents" :key="s" class="comp-tag agent">{{ s }}</span>
+                </div>
+                <span v-else class="comp-empty">无</span>
+              </div>
+              <div class="comp-group">
+                <span class="comp-label">Commands</span>
+                <div v-if="c.commands.length" class="comp-tags">
+                  <span v-for="s in c.commands" :key="s" class="comp-tag cmd">{{ s }}</span>
+                </div>
+                <span v-else class="comp-empty">无</span>
+              </div>
+              <div class="comp-group">
+                <span class="comp-label">Hooks</span>
+                <div v-if="c.hooks.length" class="comp-tags">
+                  <span v-for="s in c.hooks" :key="s" class="comp-tag hook">{{ s }}</span>
+                </div>
+                <span v-else class="comp-empty">无</span>
+              </div>
+              <div class="comp-bools">
+                <span class="bool-item" :class="{ on: c.mcpServers }">MCP {{ c.mcpServers ? '✓' : '✗' }}</span>
+                <span class="bool-item" :class="{ on: c.lspServers }">LSP {{ c.lspServers ? '✓' : '✗' }}</span>
+                <span class="bool-item" :class="{ on: c.hasBin }">Bin {{ c.hasBin ? '✓' : '✗' }}</span>
+                <span class="bool-item" :class="{ on: c.hasSettings }">Settings {{ c.hasSettings ? '✓' : '✗' }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="comp-empty">无组件信息</div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title">plugin.json 元数据</h2>
+          <pre class="json-view">{{ JSON.stringify(detail.pluginJson, null, 2) }}</pre>
+        </section>
+      </div>
+
+      <!-- 评论区 -->
+      <section class="panel comment-section animate-fade-in-up">
+        <h2 class="panel-title">
+          评论
+          <span v-if="interaction.commentsTotalElements.value > 0" class="comment-count">
+            {{ interaction.commentsTotalElements.value }}
+          </span>
+        </h2>
+
+        <div class="comment-input-row">
+          <input
+            v-model="commentInput"
+            class="comment-input"
+            :placeholder="replyTo ? `回复 @${replyTo.userName || '匿名'}…` : '写下你的评论…'"
+            @keyup.enter="submitComment"
+          />
+          <button class="submit-btn" :disabled="interaction.commentSubmitting.value" @click="submitComment">发送</button>
+        </div>
+        <div v-if="replyTo" class="reply-banner">
+          回复中：@{{ replyTo.userName }}
+          <button class="cancel-reply" @click="replyTo = null">取消</button>
+        </div>
+
+        <div v-if="interaction.commentsLoading.value" class="state-hint small">加载评论…</div>
+        <div v-else-if="interaction.comments.value.length === 0" class="state-hint small">暂无评论，快来抢沙发</div>
+
+        <div v-else class="comment-list">
+          <div
+            v-for="c in interaction.comments.value"
+            :key="c.id"
+            class="comment-item"
+            :class="{ reply: c.parentId }"
+          >
+            <div class="comment-avatar">{{ (c.userNickname || c.userName || '匿')[0] }}</div>
+            <div class="comment-main">
+              <div class="comment-head">
+                <span class="comment-user">{{ c.userNickname || c.userName || '匿名用户' }}</span>
+                <span class="comment-time">{{ fmtTime(c.createdAt) }}</span>
+              </div>
+              <p class="comment-content">{{ c.content }}</p>
+              <div class="comment-actions">
+                <button class="link-btn" @click="startReply(c)">回复</button>
+                <button
+                  v-if="isMine(c) || authStore.isAdmin || authStore.isSuperAdmin"
+                  class="link-btn danger"
+                  @click="removeComment(c)"
+                >删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="interaction.commentsTotalPages.value > 1" class="comment-pages">
+          <button
+            class="page-btn"
+            :disabled="interaction.commentsPage.value === 0"
+            @click="interaction.loadComments(interaction.commentsPage.value - 1)"
+          >上一页</button>
+          <span class="page-info">{{ interaction.commentsPage.value + 1 }} / {{ interaction.commentsTotalPages.value }}</span>
+          <button
+            class="page-btn"
+            :disabled="interaction.commentsPage.value >= interaction.commentsTotalPages.value - 1"
+            @click="interaction.loadComments(interaction.commentsPage.value + 1)"
+          >下一页</button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
 .plugin-detail {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
   padding: 32px 24px 64px;
+}
+
+.page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+}
+
+.bg-orb-1 {
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--accent-1), transparent 70%);
+}
+
+.bg-orb-2 {
+  bottom: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--accent-2), transparent 70%);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin-bottom: 20px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  border-color: var(--accent-1);
+  color: var(--text-primary);
+}
+
+.detail-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px;
+  color: var(--text-muted);
 }
 
 .state-hint {
@@ -334,9 +440,6 @@ onMounted(load)
   display: flex;
   gap: 20px;
   align-items: flex-start;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
   padding: 24px;
   margin-bottom: 20px;
 }
@@ -380,9 +483,12 @@ onMounted(load)
 }
 
 .detail-name {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
-  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   margin: 0;
   font-family: var(--font-display);
   letter-spacing: -0.5px;
@@ -412,9 +518,20 @@ onMounted(load)
 }
 
 .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   color: var(--text-muted);
   font-family: var(--font-mono);
+}
+
+.meta-item svg {
+  opacity: 0.7;
+}
+
+.author-meta {
+  gap: 6px;
 }
 
 .header-actions {
@@ -447,36 +564,33 @@ onMounted(load)
   background: rgba(139, 92, 246, 0.1);
 }
 
-.action-btn.primary {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
-  border-color: rgba(139, 92, 246, 0.45);
-  color: var(--text-primary);
-}
-
-.action-btn.primary:hover {
-  border-color: rgba(139, 92, 246, 0.7);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
-}
-
 .action-btn.danger:hover {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.5);
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* 主体两栏 */
-.detail-body {
-  display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 20px;
-  align-items: start;
+/* 互动操作条 */
+.detail-actions {
+  margin-bottom: 20px;
 }
 
-.detail-left,
-.detail-right {
+.actions-inner {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 主体单栏 */
+.detail-main {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  margin-bottom: 20px;
+}
+
+.comment-section {
+  margin-top: 0;
 }
 
 .panel {
@@ -586,49 +700,6 @@ onMounted(load)
   overflow-x: auto;
   max-height: 300px;
   overflow-y: auto;
-}
-
-/* 互动 */
-.interact-row {
-  display: flex;
-  gap: 12px;
-}
-
-.interact-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 18px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-family: var(--font-display);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.interact-btn:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: rgba(139, 92, 246, 0.5);
-  background: rgba(139, 92, 246, 0.08);
-}
-
-.interact-btn.active {
-  color: #f472b6;
-  border-color: rgba(244, 114, 182, 0.5);
-  background: rgba(244, 114, 182, 0.1);
-}
-
-.interact-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.heart {
-  font-size: 18px;
-  line-height: 1;
 }
 
 /* 评论 */
@@ -823,11 +894,27 @@ onMounted(load)
   font-family: var(--font-mono);
 }
 
-@media (max-width: 960px) {
-  .detail-body {
-    grid-template-columns: 1fr;
-  }
+.spin {
+  animation: spin 1s linear infinite;
+}
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Light theme */
+[data-theme="light"] .detail-header,
+[data-theme="light"] .panel {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .back-btn {
+  background: var(--bg-card);
+}
+
+@media (max-width: 960px) {
   .detail-header {
     flex-direction: column;
   }
@@ -835,6 +922,16 @@ onMounted(load)
   .header-actions {
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  .actions-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-inner :deep(.unified-like-btn),
+  .actions-inner :deep(.unified-fav-btn) {
+    justify-content: center;
   }
 }
 </style>

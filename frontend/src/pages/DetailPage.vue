@@ -422,7 +422,7 @@ const handleCommentAdded = (_comment: CommentResponse) => {
 }
 
 .app-container {
-  max-width: 900px;
+  max-width: 1280px;
   margin: 0 auto;
   position: relative;
   z-index: 1;

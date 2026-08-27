@@ -2,12 +2,14 @@ package com.iaihub.toolbox.controller.plugin;
 
 import com.iaihub.toolbox.dto.ApiResponse;
 import com.iaihub.toolbox.dto.PageResponse;
+import com.iaihub.toolbox.dto.plugin.PluginCreateDraftRequest;
 import com.iaihub.toolbox.dto.plugin.PluginDetailDTO;
 import com.iaihub.toolbox.dto.plugin.PluginSummaryDTO;
 import com.iaihub.toolbox.model.Role;
 import com.iaihub.toolbox.model.User;
 import com.iaihub.toolbox.service.plugin.PluginService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,20 +44,45 @@ public class PluginController {
     @PostMapping
     public ResponseEntity<ApiResponse<PluginDetailDTO>> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("source") String source,
+            @RequestParam(value = "source", required = false) String source,
+            @RequestParam(value = "logoUrl", required = false) String logoUrl,
             @AuthenticationPrincipal User currentUser) {
-        PluginDetailDTO plugin = pluginService.upload(file, source, currentUser.getId());
+        PluginDetailDTO plugin = pluginService.upload(file, source, logoUrl, currentUser.getId());
         return ResponseEntity.status(201).body(ApiResponse.created("上传成功", plugin));
+    }
+
+    /**
+     * MCP 两段式创建第一步：保存插件元数据（草稿，不含 zip）。
+     */
+    @PostMapping("/draft")
+    public ResponseEntity<ApiResponse<PluginDetailDTO>> createDraft(
+            @RequestBody @Valid PluginCreateDraftRequest request,
+            @AuthenticationPrincipal User currentUser) {
+        PluginDetailDTO plugin = pluginService.createDraft(request, currentUser.getId());
+        return ResponseEntity.status(201).body(ApiResponse.created("插件草稿已创建", plugin));
+    }
+
+    /**
+     * MCP 两段式创建第二步：为草稿插件补全 zip，校验后转为正式发布。
+     */
+    @PostMapping("/{id}/file")
+    public ResponseEntity<ApiResponse<PluginDetailDTO>> finalizeUpload(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        // 免认证补全（对齐 tool 文件上传策略）。安全性由 zip 内 name/version 与草稿一致的校验保证。
+        PluginDetailDTO plugin = pluginService.finalizeUpload(id, file);
+        return ResponseEntity.ok(ApiResponse.success("插件已发布", plugin));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PluginDetailDTO>> update(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("source") String source,
+            @RequestParam(value = "source", required = false) String source,
+            @RequestParam(value = "logoUrl", required = false) String logoUrl,
             @AuthenticationPrincipal User currentUser) {
         boolean isAdmin = currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_ADMIN;
-        PluginDetailDTO plugin = pluginService.update(id, file, source, currentUser.getId(), isAdmin);
+        PluginDetailDTO plugin = pluginService.update(id, file, source, logoUrl, currentUser.getId(), isAdmin);
         return ResponseEntity.ok(ApiResponse.success("更新成功", plugin));
     }
 

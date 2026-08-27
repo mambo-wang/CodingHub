@@ -35,7 +35,10 @@ import java.time.LocalDateTime;
 public class Plugin {
 
     public enum Status {
+        /** 正常发布（已完成 zip 补全，可被市场拉取）。 */
         NORMAL,
+        /** 草稿：已保存元数据但尚未上传 zip，不进入市场、不参与列表展示。 */
+        DRAFT,
         DELETED
     }
 

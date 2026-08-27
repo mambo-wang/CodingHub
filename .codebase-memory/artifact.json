@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "854a0bea368595975d4c6fbbd6807a8e6fd23d9b",
-    "indexed_at": "2026-08-26T12:25:19Z",
+    "commit": "7aeddc21858d3232c3539a90c43b40fd7061ce4f",
+    "indexed_at": "2026-08-27T02:44:13Z",
     "project": "D-repos-CodingHub",
-    "nodes": 18654,
-    "edges": 37824,
-    "original_size": 31064064,
-    "compressed_size": 5184441,
+    "nodes": 18818,
+    "edges": 36492,
+    "original_size": 30736384,
+    "compressed_size": 5130472,
     "compression_level": 3
 }

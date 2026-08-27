@@ -25,7 +25,5 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "code-reviewer@codinghub-market": true
-  }
+  "enabledPlugins": {}
 }
