@@ -3,6 +3,11 @@
 > 按日期倒序分组的操作记录，由系统自动维护（OKF v0.2 §9 格式）
 
 
+## 2026-08-27
+* **ingest_note**: 添加笔记: CodeBuddy 插件清单入口是 .codebuddy-plugin/plugin.json，根目录 plugin.json 不能替代
+* **ingest_note**: 添加笔记: 命令注册名 = frontmatter name（无则文件名），点分文件名会产生错误命令名
+* **ingest_note**: 添加笔记: Windows 文件锁导致 JGit bare 仓库重建失败，仓库目录应带版本号
+
 ## 2026-08-26
 * **ingest_note**: 添加笔记: JPA @PreUpdate 会在任意 save() 时刷新 updatedAt，读改写式计数更新会污染更新时间
 * **ingest_note**: 添加笔记: 内容实体计数更新应改用 repository 层原子 SQL（@Modifying）而非读改写 + save()

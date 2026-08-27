@@ -6,7 +6,7 @@ aliases:
 - 知识笔记索引
 ---
 
-<!-- 自动生成于 2026-08-26T21:54:22+08:00 | Health Score: 0/100 | 本文件由系统自动维护 -->
+<!-- 自动生成于 2026-08-27T17:35:03+08:00 | Health Score: 0/100 | 本文件由系统自动维护 -->
 
 # 项目文档索引
 
@@ -32,6 +32,9 @@ aliases:
 
 ## 知识笔记
 
+* [CodeBuddy 插件清单入口是 .codebuddy-plugin/plugin.json，根目录 plugin.json 不能替代](../notes/2026-08-27-codebuddy-插件清单入口是-codebuddy-pluginpluginjson根目录-pluginjson-不.md) - pitfall (pitfall, 2026-08-27)
+* [Windows 文件锁导致 JGit bare 仓库重建失败，仓库目录应带版本号](../notes/2026-08-27-windows-文件锁导致-jgit-bare-仓库重建失败仓库目录应带版本号.md) - pitfall (pitfall, 2026-08-27)
+* [命令注册名 = frontmatter name（无则文件名），点分文件名会产生错误命令名](../notes/2026-08-27-命令注册名-frontmatter-name无则文件名点分文件名会产生错误命令名.md) - pitfall (pitfall, 2026-08-27)
 * [JPA @PreUpdate 会在任意 save() 时刷新 updatedAt，读改写式计数更新会污染更新时间](../notes/2026-08-26-jpa-preupdate-会在任意-save-时刷新-updatedat读改写式计数更新会污染更新时间.md) - pitfall (pitfall, 2026-08-26)
 * [Spring Boot 3 应使用 jakarta.servlet 命名空间，勿误用 jgit 包下的 HttpServletRequest](../notes/2026-08-26-spring-boot-3-应使用-jakartaservlet-命名空间勿误用-jgit-包下的-httpservle.md) - pitfall (pitfall, 2026-08-26)
 * [内容实体计数更新应改用 repository 层原子 SQL（@Modifying）而非读改写 + save()](../notes/2026-08-26-内容实体计数更新应改用-repository-层原子-sqlmodifying而非读改写-save.md) - decision (decision, 2026-08-26)
