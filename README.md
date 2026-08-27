@@ -18,8 +18,10 @@ CodingHub 是一个支持**离线部署**的 AI 工具发现与经验分享网�
 |------|------|
 | 🔌 **极简依赖** | 仅需 MySQL 8.0+ 和 JDK 17，无其他中间件 |
 | 🏢 **企业友好** | 支持完全离线部署，数据留存本地，满足内网安全要求 |
-| 🔗 **MCP Server** | 内置 18 个 MCP 工具 + 6 套提示词模板，任意智能体可对接，一次配置自动拉取 |
+| 🔗 **MCP Server** | 内置 23 个 MCP 工具 + 6 套提示词模板，任意智能体可对接，一次配置自动拉取 |
 | 🧠 **RAG 知识库** | 内置向量检索知识库，支持语义搜索、多种分块策略与重排序 |
+| 💬 **实时聊天室** | WebSocket 实时聊天，支持游客/登录双模式、回复、表情回应、正在输入 |
+| 🧩 **插件市场** | CodeBuddy 兼容插件市场，marketplace.json/zip 一键导入，两段式发布 |
 | 🎨 **双主题设计** | Cyberpunk Glassmorphism 暗色/亮色主题切换 |
 | 🔐 **安全第一** | JWT 认证 + XSS 防护 + 参数校验 + 角色权限控制 |
 | 📦 **开箱即用** | 一键启动脚本，Windows / Linux / macOS 均支持 |
@@ -68,6 +70,32 @@ AI 工具的发现、分享与管理中心。
 - 我的视频：查看个人上传的视频
 - 我的收藏：查看收藏的视频
 
+### 实时聊天室
+
+基于 WebSocket (STOMP) 的实时聊天系统，支持多房间。
+
+- 实时消息：WebSocket 长连接推送，发送/接收即时可见，多房间隔离（默认全局房间）
+- 双身份模式：登录用户显示昵称，游客凭 IP 哈希标识，无需注册即可参与
+- 消息互动：回复引用（带原文预览）、emoji 表情回应、5 分钟内可编辑/撤回（仅作者）
+- 正在输入：实时展示在线成员输入状态（4 秒无操作自动清除）
+- 在线人数：presence 实时广播当前房间在线数
+- 历史消息：分页拉取历史记录，房间内最多保留 200 条
+- 内容安全：限流（2 秒/条）、XSS 过滤、单条长度限制（1000 字）
+- 管理能力：管理员可软删除违规消息
+
+### 插件市场
+
+面向 CodeBuddy 的独立插件市场，与工具广场解耦。
+
+- 独立插件实体：独立的 `plugin` 表与市场页面，不寄生工具分类
+- CodeBuddy 兼容：`marketplace.json` 由插件表实时聚合生成，`marketplace.zip` 可直接作为 CodeBuddy 插件市场导入
+- 两段式发布：上传 zip → 自动解析 `.codebuddy-plugin/plugin.json` 并提取组件摘要落库
+- 组件摘要：skills / agents / commands / hooks / .mcp.json / .lsp.json / bin / settings.json
+- 源码托管：插件 git 仓库按版本号隔离（`<name>-<version>.git`），支持 HTTP clone，规避 Windows 文件锁
+- 热度计算：`score = 浏览×1 + 点赞×3 + 评论×5`，支持置顶与排序
+- 互动复用：点赞/评论/收藏复用统一互动系统（TargetType.PLUGIN）
+- MCP 集成：智能体可通过 MCP 工具搜索插件、创建插件、上传插件包
+
 ### RAG 知识库
 
 基于向量检索的智能知识库系统，配套 Python RAG 服务。
@@ -87,7 +115,7 @@ AI 工具的发现、分享与管理中心。
 
 内置 MCP (Model Context Protocol) Server，支持 Streamable HTTP 和 SSE 双协议，任意智能体可对接。
 
-**18 个 MCP 工具：**
+**23 个 MCP 工具：**
 
 | 工具 | 说明 |
 |------|------|
@@ -109,6 +137,11 @@ AI 工具的发现、分享与管理中心。
 | `kb_delete` | 删除知识库（需认证） |
 | `kb_upload_document` | 获取 RAG 文档批量上传接口信息 |
 | `kb_document_status` | 查询文档处理状态 |
+| `kb_get_config` | 读取知识库 RAG 配置 |
+| `kb_configure` | 更新知识库分块与检索配置（需认证） |
+| `plugin_search` | 按关键词搜索插件市场 |
+| `plugin_create` | 创建新插件（需认证） |
+| `plugin_file_upload` | 获取插件 zip 上传接口信息 |
 
 **6 套 Prompt 模板：** 搜索工具、安装工具、检查版本更新、发布工具、更新工具、发布帖子到论坛。
 
@@ -116,9 +149,9 @@ AI 工具的发现、分享与管理中心。
 
 ### 统一互动系统
 
-贯穿工具、帖子、视频三大内容模块的统一交互层。
+贯穿工具、帖子、视频、插件四大内容模块的统一交互层。
 
-- 点赞：支持对工具/帖子/视频点赞，已登录用户和匿名用户（IP 哈希）均可参与
+- 点赞：支持对工具/帖子/视频/插件点赞，已登录用户和匿名用户（IP 哈希）均可参与
 - 评论：支持对任意内容类型发表主题评论，支持嵌套回复（楼中楼）
 - 收藏：登录用户可收藏任意内容类型，按类型分页查看
 - 互动统计：浏览量、点赞数、评论数、收藏数统一展示
@@ -178,21 +211,21 @@ AI 工具的发现、分享与管理中心。
 CodingHub/
 ├── backend/                    # Java Spring Boot 后端
 │   └── src/main/java/com/iaihub/toolbox/
-│       ├── controller/        # REST API 控制器 (22)
+│       ├── controller/        # REST API 控制器 (25)
 │       ├── service/           # 业务逻辑层 (22)
-│       ├── repository/        # 数据访问层 (26)
-│       ├── model/             # 实体类 (35)
-│       ├── dto/               # 数据传输对象 (61)
-│       ├── config/            # 配置类 (Security, JWT, MCP, Upload, RAG)
+│       ├── repository/        # 数据访问层 (24)
+│       ├── model/             # 实体类 (34)
+│       ├── dto/               # 数据传输对象 (72)
+│       ├── config/            # 配置类 (Security, JWT, MCP, Upload, RAG, WebSocket)
 │       ├── exception/         # 异常处理
 │       ├── util/              # 工具类 (JWT, XSS)
-│       └── mcp/               # MCP Server (18 tools + SSE)
+│       └── mcp/               # MCP Server (23 tools + SSE)
 ├── frontend/                  # Vue 3 + TypeScript 前端
 │   └── src/
-│       ├── components/        # Vue 组件 (36)
-│       ├── pages/             # 页面 (28)
-│       ├── services/          # API 调用
-│       ├── stores/            # 状态管理
+│       ├── components/        # Vue 组件 (47)
+│       ├── pages/             # 页面 (34)
+│       ├── services/          # API 调用 (11)
+│       ├── stores/            # 状态管理 (4)
 │       ├── router/            # 路由配置
 │       └── types/             # TypeScript 类型定义
 ├── rag/                       # RAG 知识库 Python 服务
@@ -290,7 +323,9 @@ make stop
 | `/api/v1/videos` | 微课视频 | `/sse` | MCP SSE 传输 |
 | `/api/v1/interactions` | 统一互动（点赞/评论/收藏） | `/api/v1/feedback` | 留言反馈 |
 | `/api/v1/knowledge` | 知识库管理 + 语义搜索 | `/api/v1/notifications` | 通知系统 |
-| `/api/v1/tags` | 统一标签系统 | | |
+| `/api/v1/tags` | 统一标签系统 | `/api/v1/chat` | 聊天室 REST（历史消息/管理） |
+| `/api/v1/plugins` | 插件 CRUD（CodeBuddy 插件） | `/api/v1/plugin-market` | 市场目录（marketplace.json / zip） |
+| `/ws` | WebSocket STOMP 聊天端点 | | |
 
 ### 前端页面 (http://localhost:5173)
 
@@ -308,10 +343,13 @@ make stop
 | `/overview` | 平台概览 | `/knowledge` | 知识库列表 |
 | `/feedback` | 留言反馈 | `/knowledge/:id` | 知识库详情 |
 | `/quickstart` | 快速入门 | `/about` | 关于 |
+| `/chat` | 实时聊天室 | `/plugins` | 插件市场 |
+| `/plugins/upload` | 上传插件 | `/plugins/:id` | 插件详情 |
+| `/plugins/:id/edit` | 编辑插件 | | |
 
 ## 数据库表结构
 
-通过 Flyway 迁移脚本自动管理（V1 ~ V9）。
+通过 Flyway 迁移脚本自动管理（V1 ~ V11）。
 
 | 模块 | 表名 | 说明 |
 |------|------|------|
@@ -325,7 +363,10 @@ make stop
 | 论坛 | `forum_post_tag` | 帖子-标签关联 |
 | 微课 | `video` | 视频（标题、描述、封面、热度分数） |
 | 微课 | `danmaku` | 弹幕（时间戳、颜色、类型） |
-| 互动 | `unified_like` | 统一点赞（支持工具/帖子/视频） |
+| 聊天室 | `chat_message` | 聊天消息（回复引用、编辑标记、软删除类型） |
+| 聊天室 | `chat_reaction` | 消息表情回应（消息/用户/emoji 唯一） |
+| 插件 | `plugin` | CodeBuddy 插件（元数据、zip 路径、组件摘要、热度分） |
+| 互动 | `unified_like` | 统一点赞（支持工具/帖子/视频/插件） |
 | 互动 | `unified_comment` | 统一评论（支持嵌套回复） |
 | 互动 | `unified_favorite` | 统一收藏 |
 | 标签 | `tag` | 统一标签（类型：TOOL/FORUM/VIDEO） |
@@ -386,4 +427,4 @@ CodingHub 专为离线环境设计：
 
 ---
 
-**最后更新**: 2026-07-11
+**最后更新**: 2026-08-27
