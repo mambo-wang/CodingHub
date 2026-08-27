@@ -25,5 +25,8 @@
       }
     ]
   },
-  "enabledPlugins": {}
+  "enabledPlugins": {
+    "openspec-pack@codinghub-market": true,
+    "verify-ui-pack@codinghub-market": true
+  }
 }
