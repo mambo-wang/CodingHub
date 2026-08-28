@@ -621,6 +621,8 @@ function dismissError() {
   border: 1px solid var(--border-color);
   position: relative;
   max-width: 100%;
+  /* 微信式气泡：宽度收缩贴合内容，不撑满整行 */
+  width: fit-content;
   word-break: break-word;
 }
 

@@ -88,3 +88,14 @@ function onCodeClick(e: MouseEvent) {
   margin-left: 6px;
 }
 </style>
+
+<style>
+/* 聊天气泡内的 markdown：背景必须透明。
+   全局 github-markdown-combined.css 给 .markdown-body 设了白色（light）/深黑（dark）底色，
+   带进气泡会形成一条突兀的色块。特异性须高于 :root[data-theme] .markdown-body（0-3-0）。 */
+:root[data-theme='light'] .chat-messages .markdown-body,
+:root:not([data-theme='light']) .chat-messages .markdown-body {
+  background-color: transparent;
+  font-size: 14px;
+}
+</style>

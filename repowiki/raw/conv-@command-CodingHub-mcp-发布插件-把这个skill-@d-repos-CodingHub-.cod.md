@@ -1,18 +1,18 @@
 ---
 type: Conversation
-title: "conversation 20260827T092253Z"
+title: "conversation 20260827T140454Z"
 status: pending
 stale_after: 2026-11-25
-generated: { by: codewiki/5.4.4, at: 2026-08-27T09:22:53Z }
+generated: { by: codewiki/5.4.4, at: 2026-08-27T14:04:54Z }
 tags: ["codinghub", "ai-tool-square"]
-captured_at: "2026-08-27T09:22:53Z"
-content_hash: "sha256:e4a1e4291086dbb935e56da43aef57249075f2ac6cb30262c9d9fe09011f2ca6"
-friction_score: 45
-friction_signals: "correction=2,interrupt=0,repeat=0,user_turns=4"
+captured_at: "2026-08-27T14:04:54Z"
+content_hash: "sha256:180ddb387f77b22f4bb3fec7f6e2248f03a5fa8f8c23c5ef0e6dd9f980ab71c5"
+friction_score: 50
+friction_signals: "correction=2,interrupt=0,repeat=0,user_turns=10"
 keep_raw: false
 link_to: ""
 source_session: "a68be4e74a2844efb223a148ac8b0ea5"
-turn_count: 161
+turn_count: 221
 ---
 
 # Conversation Transcript
@@ -323,3 +323,232 @@ assistant: 编译成功。重启后端加载新代码。
 assistant: 后端就绪。验证新代码下 marketplace.json 的 URL 结构，然后 bump 到 1.0.3 触发 update 全链路验证。
 assistant: URL 已带版本（`verify-ui-pack-1.0.2.git`）。现在 bump 到 1.0.3 触发 update，验证新 `initGitRepo` 全链路。
 assistant: 更新成功（1.0.3）。验证新代码生成的 repo、HTTP clone 和 marketplace 更新。
+assistant: **全链路验证通过**：
+- `verify-ui-pack-1.0.3.git` 完整，HTTP clone 成功
+- clone 内容正确：`.codebuddy-plugin/plugin.json`（manifest）+ `commands/wbnb.md` + `skills/verify-ui/SKILL.md`
+- marketplace URL 指向带版本仓库
+
+清理不再被引用的残缺/残留目录。
+assistant: 全部清理完成。修复已全链路验证通过。
+
+## 问题根因（三个叠加）
+
+你点了"安装"没反应，是因为 verify-ui-pack 插件包**不符合 CodeBuddy 客户端的插件规范**，导致命令和技能根本没被注册：
+
+**1. 插件包缺少 `.codebuddy-plugin/plugin.json`（核心根因）**
+CodeBuddy 客户端只认 `.codebuddy-plugin/plugin.json` 作为插件清单入口（缓存中叫 `configPath`），**不认根目录的 `plugin.json`**。CodingHub 平台后端支持根目录回退，但客户端不支持——你的插件只有根目录 `plugin.json`，客户端找不到清单 → 直接跳过组件发现 → 命令/技能全部不注册。对比官方插件（`code-reviewer`、`weixin-minigame-helper`）都有 `.codebuddy-plugin/plugin.json`。
+
+**2. 命令文件名不符合客户端命名规则**
+`commands/verify-ui-pack.wbnb.md`（点分命名）会被客户端注册成 `/verify-ui-pack.wbnb`，而非 `/wbnb`。客户端命令名 = 文件名，官方市场所有命令都是 `commands/<cmd>.md` 平铺命名。
+
+**3. 后端更新插件时 git 仓库重建失败**
+Windows 文件锁：JGit git 服务缓存了旧仓库，`deleteQuietly` 删除失败 → clone 重建失败 → bare 仓库残缺（实测 `Remove-Item` 重试 5 次都删不掉）→ 客户端无法 clone 新版本。
+
+## 已修复
+
+| 项 | 修复内容 |
+|---|---|
+| 插件包 | 新增 `.codebuddy-plugin/plugin.json`（manifest 入口，`strict: false`） |
+| 命令 | `commands/verify-ui-pack.wbnb.md` → `commands/wbnb.md`（注册 `/wbnb`） |
+| 技能 | `skills/verify-ui/SKILL.md` 符合标准结构，无需改 |
+| 后端 | `initGitRepo` 仓库目录带版本（`verify-ui-pack-1.0.3.git`），更新生成新路径、不删旧仓库；`getMarketplace` 的 URL 同步带版本 |
+| 版本 | 插件已更新到 **v1.0.3** |
+
+**验证结果**：`verify-ui-pack-1.0.3.git` 完整可 clone，HTTP clone 内容正确（manifest + `wbnb.md` + verify-ui 技能），marketplace.json 指向新 URL。后端已重启加载新代码。
+
+## 你需要在客户端做的
+
+1. 在 CodingHub 市场页**刷新市场**（重新拉取 marketplace.json）
+2. **更新** verify-ui-pack 到 1.0.3（市场检测到版本变化，或先卸载再安装）
+3. 重启 CodeBuddy（或运行 `/reload-plugins` 加载插件更改）
+4. 验证：`/wbnb` 命令可用、`verify-ui` 技能出现在技能列表
+
+另外，`.codebuddy/skills/codinghub/references/plugin-packaging.md` 中"禁止声明 commands/skills 字段"和"命令点分命名"的约定与 CodeBuddy 客户端实际行为**矛盾**（客户端需要 manifest 存在、命令用平铺命名），建议更新该文档以免后续插件再次踩坑。需要我顺手更新吗？
+user: <cb_summary>
+This session is being continued from a previous conversation that was compacted to stay within the model context window.
+Messages after this summary (if any) are the original recent turns. Tool results from before this summary were omitted.
+If you need exact code, command output, or file contents from before compaction, re-read those files. Do not treat omitted tool bodies as still in context.
+
+Earlier user requests:
+- <user_info> OS Version: win32 Shell: PowerShell (Windows) Workspace Folder: d:/repos/CodingHub Note: Prefer using absolute paths over relative paths as tool call args when possible. </user_info>  <rules> The rules section has a number of possible rules/memories/context that you should consider. In each subsection, we provide instructions about what information the subsection contains and how you should consider/follow the contents of the subsection. Explicit user rules take precedence over default tool preferences described in tool descriptions.  <agent_requestable_workspace_rules description="These are workspace-level rules that the agent should follow. They can request the full details of the rule with the read_rules tool.">  Use read rule tool to fetch the rule content if needed. In <ag…
+
+Earlier assistant notes (truncated):
+- 插件更新成功：version 1.0.1，后端已识别新 manifest（`.codebuddy-plugin/plugin.json`），技能 `verify-ui` 扫描正常。现在验证 git repo 重建和 marketplace.json 是否反映新版本。
+- marketplace.json 已更新为 v1.0.1。现在验证 git repo 重建后的实际内容（模拟客户端 clone）。
+- clone 失败——更新后 git repo 可能未正确重建。检查 git-repos 目录状态。
+- `verify-ui-pack.git` 只有 `objects/` 目录，没有 `HEAD`/`refs/`/`config`——bare 仓库重建不完整，导致 clone 失败。查看 `initGitRepo()` 实现。
+- `initGitRepo` 先删旧 repo 再重建。检查 verify-ui-pack.git 完整内容（含隐藏文件）和 update 方法如何调用它。
+- 确认 `verify-ui-pack.git` 缺少 `HEAD`/`refs/`/`config`——bare 仓库重建失败。对比其他正常 repo 并查看 GitHttpConfig 服务配置。
+- JGit 的 `FileResolver` 会缓存打开的仓库，Windows 文件锁导致 `deleteQuietly` 删不掉旧 repo，clone 重建失败。先确认其他 repo 是否完整，并查 JGit 版本。
+- `openspec-pack.git`（14:34）和 `verify-ui-pack.git`（17:13）都残缺，而更早的 repo 都完整——initGitRepo 失败是近期问题。查看后端日志确认失败原因。
+
+Tools used before this summary: execute_command × 32, read_file × 19, search_content × 15, web_fetch × 4, search_file × 4, write_to_file × 4, list_dir × 2, web_search × 2
+</cb_summary>
+
+继续
+assistant: 继续完成收尾：更新 `plugin-packaging.md` 文档，使其与 CodeBuddy 客户端实际行为一致。先读取当前内容。
+assistant: 文档中"根目录与 `.codebuddy-plugin/plugin.json` 等价"和"命令点分命名"这两处与客户端实际行为矛盾。先确认平台后端扫描 commands 的实际规则，避免误改。
+assistant: 平台后端 `inspectComponents` 只是按目录列出文件名，不强求点分命名。点分命名纯属文档约定，与客户端"命令名 = 文件名"的实际行为冲突。现在更新文档中的两处矛盾。
+assistant: 更新第 4 节命令命名规范。先读取当前该节内容（行号已变）。
+assistant: 本机 `.codebuddy/commands/` 的删除记录显示客户端命令系统支持子目录+frontmatter。为确保文档只写实证结论，先确认客户端命令注册名的实际规则（查本机已注册命令）。
+assistant: 关键发现：`opsx/new.md` 用 frontmatter `name: OPSX: New` 注册为 `/opsx:new`，而 `wbnb.md` 无 name 时用文件名。确认客户端命令注册规则：**frontmatter `name` 优先，否则文件名**。检查当前修复包的命令文件 frontmatter。
+assistant: 当前包 `commands/wbnb.md` 带 `name: "wbnb"`，注册 `/wbnb` 正确。实证链完整，现在更新文档三处。
+assistant: 更新第 7 节常见错误表（替换过时的点分命名条目，新增 manifest 缺失条目）。
+assistant: 检查全文一致性，并确认 `gotchas.md` 和 `SKILL.md` 是否也有相关过时约定。
+assistant: 还有两处需要同步修正：`gotchas.md` L19 和 `SKILL.md` L331-333 仍写着过时的"点分命名"和"plugin.json 等价"约定。
+assistant: 检查仓库中是否还有其他过时的点分命名/等价表述。
+assistant: 匹配到的都是 `repowiki/raw/` 历史对话归档（不可改），文档无其他过时表述。检查 lint。
+assistant: Lint 干净。文档更新完成。按知识沉淀流程，先检查 Wiki 是否已有相关覆盖。
+assistant: 检查确认 Wiki 无相关覆盖。本次调试沉淀出 3 条有复用价值的经验，按流程先征求你的确认：
+
+## 收尾情况汇总
+
+**文档已更新**（3 个文件，与客户端实际行为对齐）：
+
+| 文件 | 修正内容 |
+|---|---|
+| `references/plugin-packaging.md` | `.codebuddy-plugin/plugin.json` 标注为【必须】（客户端唯一清单入口，根目录 plugin.json 不能替代）；命令命名改为 `commands/<命令名>.md` + frontmatter `name`，移除"点分命名"约定；错误表新增 manifest 缺失/点分命名两条 |
+| `gotchas.md` | 第 15 条改为"命令平铺命名 + frontmatter 写 name"，移除点分命名 |
+| `SKILL.md` | 插件规范核心段同步修正（manifest 必须、命令平铺命名） |
+
+**提醒**：你客户端侧还需操作——刷新市场 → 更新 verify-ui-pack 到 1.0.3 → 重启 CodeBuddy（或 `/reload-plugins`），验证 `/wbnb` 和 `verify-ui`。
+
+## 待确认的 Wiki 笔记草稿（3 条）
+
+| # | 类型 | 草稿要点 |
+|---|---|---|
+| 1 | pitfall | **CodeBuddy 客户端插件清单入口是 `.codebuddy-plugin/plugin.json`**。根目录 `plugin.json` 仅平台读取（有回退），客户端不识别（对应缓存 `configPath`），缺 manifest 时客户端跳过组件发现，命令/技能全部不注册 |
+| 2 | pitfall | **命令注册名 = frontmatter `name`（无则文件名）**。点分文件名如 `commands/verify-ui-pack.wbnb.md` 且无 `name` 会注册成 `/verify-ui-pack.wbnb`；应 `commands/wbnb.md` + `name: "wbnb"` → `/wbnb` |
+| 3 | pitfall | **Windows 文件锁导致 JGit bare 仓库重建失败**。git 服务（RepositoryCache）缓存已打开仓库时 `deleteQuietly` 删不掉（AccessDeniedException），覆盖重建的 repo 残缺、HTTP clone 失败。修复：仓库目录带版本号 `<name>-<version>.git`，更新走新路径、不删旧仓库 |
+
+要我把这 3 条记录到 Wiki 吗？确认后写入（`ingest_note`）。
+user: <cb_summary>
+This session is being continued from a previous conversation that was compacted to stay within the model context window.
+Messages after this summary (if any) are the original recent turns. Tool results from before this summary were omitted.
+If you need exact code, command output, or file contents from before compaction, re-read those files. Do not treat omitted tool bodies as still in context.
+
+Earlier user requests:
+- 继续
+
+Earlier assistant notes (truncated):
+- 继续完成收尾：更新 `plugin-packaging.md` 文档，使其与 CodeBuddy 客户端实际行为一致。先读取当前内容。
+- 文档中"根目录与 `.codebuddy-plugin/plugin.json` 等价"和"命令点分命名"这两处与客户端实际行为矛盾。先确认平台后端扫描 commands 的实际规则，避免误改。
+- 平台后端 `inspectComponents` 只是按目录列出文件名，不强求点分命名。点分命名纯属文档约定，与客户端"命令名 = 文件名"的实际行为冲突。现在更新文档中的两处矛盾。
+- 更新第 4 节命令命名规范。先读取当前该节内容（行号已变）。
+- 本机 `.codebuddy/commands/` 的删除记录显示客户端命令系统支持子目录+frontmatter。为确保文档只写实证结论，先确认客户端命令注册名的实际规则（查本机已注册命令）。
+
+Tools used before this summary: read_file × 2, search_content × 2, replace_in_file × 1, search_file × 1, execute_command × 1
+</cb_summary>
+
+记入笔记
+assistant: 收到，写入 3 条笔记。
+assistant: 3 条笔记已全部写入：
+
+| 笔记 | 路径 |
+|---|---|
+| pitfall: 插件清单入口 `.codebuddy-plugin/plugin.json` | `repowiki/notes/2026-08-27-codebuddy-插件清单入口…md` |
+| pitfall: 命令注册名 = frontmatter name（点分文件名坑） | `repowiki/notes/2026-08-27-命令注册名-frontmatter-name…md` |
+| pitfall: Windows 文件锁 → JGit bare 仓库带版本号 | `repowiki/notes/2026-08-27-windows-文件锁导致-jgit-bare…md` |
+
+均标记 `stable` 并带别名（3x 检索权重），未来 Agent 检索"插件打包/命令命名/JGit 文件锁"即可命中。
+
+本次任务闭环状态：
+- **插件修复**：verify-ui-pack 1.0.3 已发布，`marketplace.json` 指向带版本号的 git 仓库（后端已修复，旧插件更新即走新路径）
+- **文档对齐**：`plugin-packaging.md` / `gotchas.md` / `SKILL.md` 三处已修正点分命名与 manifest 等价表述
+- **知识沉淀**：3 条 pitfall 已归档
+
+你客户端侧还差最后一步：刷新插件市场 → 更新 verify-ui-pack → 重启 CodeBuddy，确认 `/wbnb` 和 `verify-ui` 技能生效。
+user: 嗯，没问题了 提交 推送代码
+user: <question>本会话要关联哪个进行中的任务？</question>
+<answers>
+跳过(本次会话不做任务关联，直接开始干活)
+</answers>
+</question_item>
+</questions>
+</question_answer>
+assistant: 好的，跳过任务关联。先查看当前改动状态，确认提交范围。
+assistant: 改动较多，先确认哪些是缓存/临时文件不该提交，以及 `.codebuddy/market/`、`settings.local.json` 的性质。
+assistant: 确认几个待定项：`.codebuddy/market/` 内容、`repowiki/.meta` 与 `.codebase-memory` 历史是否入库、settings.local.json 内容。
+assistant: `.codebuddy/market/` 是客户端插件缓存（含 `.git` 仓库副本），`tmp/`、`settings.local.json`、`__pycache__` 都是运行时/本地文件——这些不提交。再确认 `.codewiki` 缓存历史提交惯例。
+assistant: `.codewiki` 缓存历史一直入库（按仓库惯例提交）。提交方案确定，拆 3 个语义清晰的提交（符合 Conventional Commits、单次新增 ≤1000 行），排除运行时缓存/临时文件：
+
+1. **fix(plugin)**：后端 2 文件 + 插件技能 5 文件
+2. **chore**：`.codebuddy/commands` 清理 + settings.json
+3. **docs**：repowiki 笔记 + 索引产物
+assistant: 第一组 496 行新增，符合规范。提交并暂存第二组。
+assistant: PowerShell 传递中文参数出现编码问题，改用英文提交消息。
+assistant: 第一组提交成功（`621f60e`）。暂存第二组：`.codebuddy/commands` 清理 + settings.json。
+assistant: 第二组提交成功（`bbf3f83`）。暂存第三组：repowiki 笔记 + 索引产物。
+assistant: 三个提交完成。推送至 `origin/postgresql`。
+assistant: 推送成功。最后确认工作区状态。
+assistant: 完成。3 个提交已推送到 `origin/postgresql`：
+
+```
+2f543fd docs: archive plugin packaging pitfalls and update CodeWiki artifacts
+bbf3f83 chore: remove local OpenSpec commands and record enabled plugins
+621f60e fix(plugin): isolate plugin git repos by version to avoid Windows file lock
+```
+
+**提交内容划分：**
+
+| 提交 | 内容 | 行数 |
+|---|---|---|
+| `621f60e` fix(plugin) | 后端 `PluginService`（git 仓库版本号隔离）+ `McpPromptProvider`（MCP prompt）+ 插件技能 5 文件（SKILL/gotchas/chub 脚本/plugin-packaging.md） | +496 |
+| `bbf3f83` chore | 删除本机 OpenSpec 命令（16 个 opsx + wbnb）+ `settings.json` 记录启用插件 | -2500（纯删除） |
+| `2f543fd` docs | 3 条 pitfall 笔记 + 对话原文 + task bindings + CodeWiki 索引 + `.codebase-memory`/`.codewiki` 产物 | +480 |
+
+**未提交（保留在工作区）：**
+- `.codebuddy/market/`（客户端插件缓存，含 git 仓库副本）、`.codebuddy/tmp/`、`__pycache__/`、`settings.local.json` — 本地运行时文件
+- `_tmp_*.ps1`（调试脚本）
+- `.codebase-memory/` 有新的索引变化（提交后又更新，属正常，下次提交带上即可）
+
+推送已确认：`1f2d640..2f543fd postgresql -> postgresql`。
+user: 更新readme把近期做的聊天室、插件市场功能的介绍加上去。改完自动提交推送
+user: <question>本会话要关联哪个进行中的任务？</question>
+<answers>
+跳过(本次会话不做任务关联，直接开始干活)
+</answers>
+</question_item>
+</questions>
+</question_answer>
+assistant: 继续任务：更新 README 加入聊天室、插件市场功能。先读取当前 README 并收集这两个功能的信息。
+assistant: 后端已有聊天室（WebSocket）和插件市场模块。读取核心代码与前端页面确认功能细节。
+assistant: 读取聊天室与插件服务核心逻辑及前端对应文件，确认功能细节。
+assistant: 聊天室与插件市场核心功能已掌握。现在重新读取 README（之前内容已清除），并确认 MCP 工具数量与在线人数实现。
+assistant: README 已获取。最后确认 MCP 工具数量（插件市场是否新增了 plugin 工具）。
+assistant: 读取聊天室 WebSocket 端点与核心逻辑、MCP 全部工具注册，确认准确的功能描述。
+assistant: 聊天室核心逻辑已完全清楚。再确认 REST 端点、WebSocket 握手端点、MCP 全部工具名与前端路由。
+assistant: 信息基本齐全：MCP 工具实际已是 23 个（README 写的 18 个过时）。再确认插件 REST 前缀、数据库表、前端页面路由。
+assistant: 确认插件表结构与 marketplace 聚合逻辑。
+assistant: 插件市场信息已完整。确认 WebSocket 端点和前端聊天室路由后开始更新。
+assistant: 全部信息确认完毕。重新读取 README 全文，准备编辑。
+assistant: README 已读取。项目结构注释里有文件数量（controller 22、pages 28 等），需先精确统计当前数量避免写错。
+assistant: 数量已确认。现在开始编辑 README。先更新核心特性表与 MCP 工具数。
+assistant: 插入聊天室与插件市场功能小节（微课视频之后、RAG 之前）。
+assistant: 更新 MCP Server 工具表（18 → 23，补充 5 个新工具）。
+assistant: 更新项目结构中的文件数量与 MCP 注释。
+assistant: 更新后端 API 入口表。
+assistant: 更新前端页面表。
+assistant: 更新数据库表结构（Flyway 版本 + 新增聊天室/插件表）。
+assistant: 更新最后更新日期。
+assistant: 编辑完成。检查 lint 并通读全文确认无遗漏。
+assistant: 全文检查通过。有一处小一致性遗漏：统一互动系统说明仍写"三大内容模块"，需补上插件。修正后提交。
+assistant: 全部修改完成。提交并推送（用户已明确授权"改完自动提交推送"）。
+assistant: 完成。README 已更新并推送（`65f5c6a`）。
+
+**本次更新内容（+59/-18 行）：**
+
+| 位置 | 更新 |
+|---|---|
+| 核心特性表 | 新增「实时聊天室」「插件市场」两行；MCP 工具数 18 → 23 |
+| 功能概览 | 新增「实时聊天室」「插件市场」两个完整小节 |
+| MCP 工具表 | 补充 `kb_get_config` / `kb_configure` / `plugin_search` / `plugin_create` / `plugin_file_upload` |
+| 项目结构 | 文件数同步（controller 25、dto 72、pages 34、components 47 等） |
+| API 入口表 | 新增 `/api/v1/chat`、`/api/v1/plugins`、`/api/v1/plugin-market`、`/ws` |
+| 前端页面表 | 新增 `/chat`、`/plugins` 及上传/详情/编辑页 |
+| 数据库表 | Flyway V1~V11；新增 `chat_message`、`chat_reaction`、`plugin`；互动支持插件 |
+| 尾部 | 最后更新 2026-08-27 |
+
+聊天室介绍覆盖了 WebSocket 双身份模式、回复/表情/编辑/撤回、正在输入、限流与 XSS 过滤；插件市场覆盖了 marketplace.json/zip 聚合、两段式发布、组件摘要、按版本隔离的 git 托管与热度分计算。
+
+推送已确认：`9f3246e..65f5c6a postgresql -> postgresql`。

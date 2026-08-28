@@ -71,6 +71,14 @@ const entries = computed(() => Object.entries(props.reactions || {}))
   display: flex;
   gap: 2px;
   margin-left: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+}
+.reactions:hover .picker,
+.reactions:focus-within .picker {
+  opacity: 1;
+  visibility: visible;
 }
 .emoji-btn {
   background: transparent;
