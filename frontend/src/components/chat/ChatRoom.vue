@@ -280,20 +280,21 @@ function dismissError() {
             {{ msg.displayName?.charAt(0)?.toUpperCase() || '?' }}
           </div>
         </div>
-        <div class="message-bubble" :class="{ self: isSelf(msg), guest: msg.guest }">
-          <div class="message-meta">
+        <div class="message-col" :class="{ self: isSelf(msg) }">
+          <!-- 发送者信息在气泡外上方（自己的右对齐） -->
+          <div class="message-meta" :class="{ self: isSelf(msg) }">
             <span class="message-author">{{ msg.displayName }}</span>
             <span v-if="msg.guest" class="guest-badge">游客</span>
             <span class="message-time">{{ formatTime(msg.createdAt) }}</span>
           </div>
-
-          <ReplyQuote
-            v-if="msg.replyTo"
-            :display-name="msg.replyToDisplayName"
-            :preview="msg.replyToContentPreview"
-            :deleted="isRefDeleted(msg.replyTo)"
-            @jump="scrollToMessage(msg.replyTo)"
-          />
+          <div class="message-bubble" :class="{ self: isSelf(msg), guest: msg.guest }">
+            <ReplyQuote
+              v-if="msg.replyTo"
+              :display-name="msg.replyToDisplayName"
+              :preview="msg.replyToContentPreview"
+              :deleted="isRefDeleted(msg.replyTo)"
+              @jump="scrollToMessage(msg.replyTo)"
+            />
 
           <template v-if="isDeleted(msg)">
             <div class="recalled-text">{{ deletedText(msg) }}</div>
@@ -375,6 +376,7 @@ function dismissError() {
             >
               <Trash2 :size="12" />
             </button>
+          </div>
           </div>
         </div>
         <div class="message-avatar" v-if="isSelf(msg)">
@@ -614,6 +616,19 @@ function dismissError() {
   background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
 }
 
+/* 微信式消息列：meta 在气泡外上方，气泡只框消息内容 */
+.message-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.message-col.self {
+  align-items: flex-end;
+}
+
 .message-bubble {
   padding: 8px 12px;
   border-radius: 8px;
@@ -639,7 +654,8 @@ function dismissError() {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  padding: 0 2px;
   font-size: 12px;
 }
 
@@ -683,14 +699,25 @@ function dismissError() {
 }
 
 .message-actions {
+  /* 浮层定位：不占据布局空间，避免每条消息下方留白 */
+  position: absolute;
+  bottom: -26px;
+  left: 0;
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  padding-top: 10px; /* 悬停桥：与气泡底边无缝衔接，鼠标移向按钮不闪隐 */
   opacity: 0;
   transition: opacity 0.15s ease;
+  z-index: 5;
+}
+
+.message-col.self .message-actions {
+  left: auto;
+  right: 0;
 }
 
 .message-bubble:hover .message-actions,
+.message-actions:hover,
 .message-actions.open {
   opacity: 1;
 }
