@@ -1,3 +1,5 @@
+import type { Tag } from '@/types'
+
 export interface PluginSummary {
   id: number
   name: string
@@ -8,6 +10,9 @@ export interface PluginSummary {
   likeCount: number
   commentCount: number
   viewCount: number
+  favoriteCount: number
+  pinned: boolean
+  tags: Tag[]
   score: number
   authorId: number
   authorUsername: string

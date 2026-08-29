@@ -17,12 +17,14 @@ export const pluginApi = {
     file: File,
     source?: string,
     logoUrl?: string | null,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    tagIds?: number[]
   ): Promise<PluginDetail> {
     const fd = new FormData()
     fd.append('file', file)
     if (source && source.trim()) fd.append('source', source.trim())
     if (logoUrl !== undefined) fd.append('logoUrl', logoUrl ?? '')
+    if (tagIds) tagIds.forEach(id => fd.append('tagIds', String(id)))
     return api.post('/plugins', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
@@ -39,12 +41,14 @@ export const pluginApi = {
     file: File,
     source?: string,
     logoUrl?: string | null,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    tagIds?: number[]
   ): Promise<PluginDetail> {
     const fd = new FormData()
     fd.append('file', file)
     if (source && source.trim()) fd.append('source', source.trim())
     if (logoUrl !== undefined) fd.append('logoUrl', logoUrl ?? '')
+    if (tagIds) tagIds.forEach(id => fd.append('tagIds', String(id)))
     return api.put(`/plugins/${id}`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
@@ -54,6 +58,18 @@ export const pluginApi = {
         }
       }
     }).then(res => res.data.data as PluginDetail)
+  },
+
+  getHotTop5(): Promise<number[]> {
+    return api.get('/plugins/hot-top5').then(res => res.data.data as number[])
+  },
+
+  pin(id: number): Promise<void> {
+    return api.post(`/plugins/${id}/pin`).then(() => undefined)
+  },
+
+  unpin(id: number): Promise<void> {
+    return api.delete(`/plugins/${id}/pin`).then(() => undefined)
   },
 
   remove(id: number): Promise<void> {

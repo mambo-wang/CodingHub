@@ -180,6 +180,9 @@ onMounted(load)
             <span class="version-tag">v{{ detail.version }}</span>
           </div>
           <p class="detail-desc">{{ detail.description }}</p>
+          <div v-if="detail.tags && detail.tags.length" class="tag-row">
+            <TagBadge v-for="t in detail.tags" :key="t.id" :tag="t" />
+          </div>
           <div class="meta-row">
             <span v-if="authorUser" class="meta-item author-meta">
               <UserAvatar :user="authorUser" size="sm" :display-name="authorName" />
@@ -189,6 +192,8 @@ onMounted(load)
               <Star :size="13" aria-hidden="true" />
               热度：{{ fmtCount(detail.score) }}
             </span>
+            <span class="meta-item">点赞：{{ fmtCount(detail.likeCount ?? 0) }}</span>
+            <span class="meta-item">收藏：{{ fmtCount(detail.favoriteCount ?? 0) }}</span>
             <span class="meta-item">浏览：{{ fmtCount(detail.viewCount) }}</span>
             <span class="meta-item">发布于：{{ fmtTime(detail.createdAt) }}</span>
           </div>
@@ -510,6 +515,8 @@ onMounted(load)
   line-height: 1.7;
   margin: 0 0 10px;
 }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 
 .meta-row {
   display: flex;

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Upload, PackageOpen, Eye, Heart, MessageCircle, Link } from '@lucide/vue'
+import { Search, Upload, PackageOpen, Eye, Heart, MessageCircle, Link, Bookmark, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
 import { pluginApi } from '@/services/plugin'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
+import TagBadge from '@/components/common/TagBadge.vue'
 import type { PluginSummary } from '@/types/plugin'
 
 const router = useRouter()
@@ -19,6 +20,31 @@ const size = ref(12)
 const total = ref(0)
 const loading = ref(false)
 const plugins = ref<PluginSummary[]>([])
+const hotTop5Ids = ref<Set<number>>(new Set())
+const pinLoadingId = ref<number | null>(null)
+
+const loadHotTop5 = async () => {
+  try {
+    hotTop5Ids.value = new Set(await pluginApi.getHotTop5())
+  } catch { /* 静默降级：不影响列表 */ }
+}
+
+const handlePinPlugin = async (p: PluginSummary) => {
+  if (pinLoadingId.value === p.id) return
+  pinLoadingId.value = p.id
+  try {
+    if (p.pinned) {
+      await pluginApi.unpin(p.id)
+    } else {
+      await pluginApi.pin(p.id)
+    }
+    p.pinned = !p.pinned
+  } catch {
+    ElMessage.error('操作失败')
+  } finally {
+    pinLoadingId.value = null
+  }
+}
 
 const load = async () => {
   loading.value = true
@@ -95,7 +121,7 @@ const authorUser = (p: PluginSummary) => ({
 
 const authorName = (p: PluginSummary) => p.authorNickname || p.authorUsername
 
-onMounted(load)
+onMounted(() => { load(); loadHotTop5() })
 </script>
 
 <template>
@@ -177,6 +203,16 @@ onMounted(load)
     <!-- Plugin grid -->
     <div v-else class="plugin-grid stagger-children">
       <div v-for="p in plugins" :key="p.id" class="plugin-card" @click="goDetail(p.id)">
+        <button
+          v-if="authStore.isAdmin"
+          class="btn-icon-pin"
+          :aria-label="p.pinned ? '取消置顶' : '置顶'"
+          :disabled="pinLoadingId === p.id"
+          @click.stop="handlePinPlugin(p)"
+        >
+          <PinOff v-if="p.pinned" :size="14" />
+          <Pin v-else :size="14" />
+        </button>
         <div class="card-top">
           <div class="plugin-logo">
             <img v-if="p.logoUrl" :src="p.logoUrl" alt="" />
@@ -186,6 +222,14 @@ onMounted(load)
             <div class="plugin-name-row">
               <span class="plugin-name">{{ p.name }}</span>
               <span class="version-tag">v{{ p.version }}</span>
+              <span v-if="p.pinned" class="badge-pill badge-pinned">
+                <ArrowUp :size="12" aria-hidden="true" />
+                <span>置顶</span>
+              </span>
+              <span v-if="hotTop5Ids.has(p.id)" class="badge-pill badge-hot">
+                <Flame :size="12" aria-hidden="true" />
+                <span>热门</span>
+              </span>
             </div>
             <div class="plugin-author">
               <UserAvatar :user="authorUser(p)" size="sm" :display-name="authorName(p)" />
@@ -196,11 +240,20 @@ onMounted(load)
 
         <p class="plugin-desc">{{ p.description }}</p>
 
+        <div v-if="p.tags && p.tags.length" class="plugin-tags">
+          <TagBadge v-for="t in p.tags.slice(0, 3)" :key="t.id" :tag="t" />
+          <span v-if="p.tags.length > 3" class="tags-more">+{{ p.tags.length - 3 }}</span>
+        </div>
+
         <div class="card-footer">
           <div class="stats">
             <span class="stat">
               <Heart :size="14" aria-hidden="true" />
               {{ fmtCount(p.likeCount) }}
+            </span>
+            <span class="stat" title="收藏数">
+              <Bookmark :size="14" aria-hidden="true" />
+              {{ fmtCount(p.favoriteCount ?? 0) }}
             </span>
             <span class="stat">
               <MessageCircle :size="14" aria-hidden="true" />
@@ -224,6 +277,18 @@ onMounted(load)
 </template>
 
 <style scoped>
+/* 置顶/热门角标与置顶按钮（对齐 HomePage 工具卡片） */
+.badge-pill { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px 3px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; cursor: default; flex-shrink: 0; }
+.badge-pinned { background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); }
+.badge-hot { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+[data-theme="light"] .badge-pinned { background: rgba(124, 58, 237, 0.08); color: #7c3aed; border-color: rgba(124, 58, 237, 0.15); }
+[data-theme="light"] .badge-hot { background: rgba(217, 119, 6, 0.08); color: #b45309; border-color: rgba(217, 119, 6, 0.15); }
+.btn-icon-pin { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--bg-glass); color: var(--text-muted); cursor: pointer; transition: all 200ms ease; opacity: 0; }
+.plugin-card:hover .btn-icon-pin, .plugin-card:focus-within .btn-icon-pin { opacity: 1; }
+.btn-icon-pin:hover { color: var(--accent-1); border-color: color-mix(in srgb, var(--accent-1) 30%, transparent); }
+.btn-icon-pin:disabled { opacity: 0.5; cursor: not-allowed; }
+.plugin-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 8px; min-height: 22px; }
+.tags-more { font-size: 11px; color: var(--text-muted); }
 .plugin-market {
   position: relative;
   max-width: 1280px;
@@ -443,6 +508,7 @@ onMounted(load)
 }
 
 .plugin-card {
+  position: relative;
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

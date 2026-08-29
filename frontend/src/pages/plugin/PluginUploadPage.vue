@@ -4,12 +4,15 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { pluginApi } from '@/services/plugin'
 import LogoUploader from '@/components/common/LogoUploader.vue'
+import TagSelector from '@/components/common/TagSelector.vue'
+import type { Tag } from '@/types'
 
 const router = useRouter()
 
 const file = ref<File | null>(null)
 const source = ref('')
 const logoUrl = ref<string | null | undefined>(undefined)
+const selectedTags = ref<Tag[]>([])
 const progress = ref(0)
 const uploading = ref(false)
 
@@ -51,7 +54,8 @@ const submit = async () => {
       logoUrl.value,
       (p) => {
         progress.value = p
-      }
+      },
+      selectedTags.value.map(t => t.id)
     )
     ElMessage.success(`插件 ${detail.name} 上传成功`)
     router.push(`/plugins/${detail.id}`)
@@ -100,6 +104,14 @@ const back = () => router.push('/plugins')
           v-model="logoUrl"
           hint="支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用 plugin.json 中 icon 或默认图标。"
         />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          标签
+          <span class="label-hint">选填。为插件选择或创建标签，便于分类检索</span>
+        </label>
+        <TagSelector v-model="selectedTags" tagType="PLUGIN" />
       </div>
 
       <div class="form-group">

@@ -5,7 +5,9 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, FileArchive, UploadCloud, Info, Loader2 } from '@lucide/vue'
 import { pluginApi } from '@/services/plugin'
 import LogoUploader from '@/components/common/LogoUploader.vue'
+import TagSelector from '@/components/common/TagSelector.vue'
 import type { PluginDetail } from '@/types/plugin'
+import type { Tag } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +19,7 @@ const loading = ref(true)
 const file = ref<File | null>(null)
 const source = ref('')
 const logoUrl = ref<string>('')
+const selectedTags = ref<Tag[]>([])
 const progress = ref(0)
 const uploading = ref(false)
 
@@ -34,6 +37,7 @@ onMounted(async () => {
     detail.value = await pluginApi.getDetail(pluginId)
     source.value = detail.value.source ?? ''
     logoUrl.value = detail.value.logoUrl ?? ''
+    selectedTags.value = detail.value.tags ?? []
   } catch {
     router.replace('/plugins')
   } finally {
@@ -71,7 +75,8 @@ const submit = async () => {
       logoUrl.value,
       (p) => {
         progress.value = p
-      }
+      },
+      selectedTags.value.map(t => t.id)
     )
     ElMessage.success(`插件 ${updated.name} 已更新至 v${updated.version}`)
     router.push(`/plugins/${pluginId}`)
@@ -151,6 +156,15 @@ const back = () => router.push(`/plugins/${pluginId}`)
             插件图标
             <span class="label-hint">选填。支持本地上传；不上传则使用 plugin.json 中 icon 字段或默认图标</span>
           </label>
+        <div class="form-group">
+          <label class="form-label">
+            标签
+            <span class="label-hint">选填。更新插件的标签分类</span>
+          </label>
+          <TagSelector v-model="selectedTags" tagType="PLUGIN" />
+        </div>
+
+        <div class="form-group">
           <LogoUploader
             v-model="logoUrl"
             hint="支持 jpg/png/gif/webp/svg，最大 10MB。不上传则使用 plugin.json 中 icon 或默认图标。"
