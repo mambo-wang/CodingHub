@@ -45,6 +45,7 @@ const fetchUsers = async () => {
 
 const handlePageChange = (page: number) => {
   currentPage.value = page - 1
+  fetchUsers()
 }
 
 const handleFilterChange = () => {
