@@ -73,12 +73,18 @@ public class UnifiedFavoriteService {
             favorited = true;
         }
 
-        // Update tool-level denormalized counter and hot score (atomic, avoids updatedAt refresh)
+        // Update denormalized counter and hot score (atomic, avoids updatedAt refresh)
         if (targetType == TargetType.TOOL) {
             if (favorited) {
                 toolRepository.incrementFavoriteCount(targetId);
             } else {
                 toolRepository.decrementFavoriteCount(targetId);
+            }
+        } else if (targetType == TargetType.PLUGIN) {
+            if (favorited) {
+                pluginRepository.incrementFavoriteCount(targetId);
+            } else {
+                pluginRepository.decrementFavoriteCount(targetId);
             }
         }
 

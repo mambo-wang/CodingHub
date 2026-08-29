@@ -11,8 +11,14 @@ import com.iaihub.toolbox.exception.BusinessException;
 import com.iaihub.toolbox.exception.ResourceNotFoundException;
 import com.iaihub.toolbox.model.Plugin;
 import com.iaihub.toolbox.model.User;
+import com.iaihub.toolbox.model.tag.PluginTag;
+import com.iaihub.toolbox.model.tag.Tag;
 import com.iaihub.toolbox.repository.PluginRepository;
 import com.iaihub.toolbox.repository.UserRepository;
+import com.iaihub.toolbox.repository.tag.PluginTagRepository;
+import com.iaihub.toolbox.repository.tag.TagRepository;
+import com.iaihub.toolbox.dto.tag.TagDTO;
+import com.iaihub.toolbox.service.tag.TagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
@@ -38,6 +44,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -71,11 +78,14 @@ public class PluginService {
     private final UserRepository userRepository;
     private final UploadConfig uploadConfig;
     private final ObjectMapper objectMapper;
+    private final PluginTagRepository pluginTagRepository;
+    private final TagRepository tagRepository;
+    private final TagService tagService;
 
     // ---------- 上传 ----------
 
     @Transactional
-    public PluginDetailDTO upload(MultipartFile file, String source, String logoUrl, Long userId) {
+    public PluginDetailDTO upload(MultipartFile file, String source, String logoUrl, Long userId, List<Long> tagIds) {
         validateFile(file);
         String src = normalizeSource(source);
 
@@ -129,6 +139,11 @@ public class PluginService {
             Path dest = persistZip(file, plugin.getId());
             plugin.setSourceZipPath(relativizeBase(dest));
             pluginRepository.save(plugin);
+
+            // 标签关联（上传时同事务写入）
+            if (tagIds != null && !tagIds.isEmpty()) {
+                replaceTags(plugin.getId(), tagIds);
+            }
 
             // 生成 bare git 仓库，供 CodeBuddy URL 市场 git clone 安装
             try {
@@ -264,7 +279,7 @@ public class PluginService {
     // ---------- 覆盖式更新 ----------
 
     @Transactional
-    public PluginDetailDTO update(Long id, MultipartFile file, String source, String logoUrl, Long userId, boolean isAdmin) {
+    public PluginDetailDTO update(Long id, MultipartFile file, String source, String logoUrl, Long userId, boolean isAdmin, List<Long> tagIds) {
         Plugin plugin = getNormal(id);
         checkPermission(plugin, userId, isAdmin);
 
@@ -315,6 +330,11 @@ public class PluginService {
             plugin.setSourceZipPath(relativizeBase(dest));
             pluginRepository.save(plugin);
 
+            // 标签替换（请求带 tagIds 字段才替换，对齐 ToolService 语义）
+            if (tagIds != null) {
+                replaceTags(plugin.getId(), tagIds);
+            }
+
             // 重新生成 bare git 仓库
             try {
                 initGitRepo(tmpDir, plugin.getName(), newVersion);
@@ -331,6 +351,33 @@ public class PluginService {
         } finally {
             deleteQuietly(tmpDir);
         }
+    }
+
+    // ---------- 标签 ----------
+
+    /** 重建插件标签关联（先减旧标签 usage，再挂新标签并加 usage）。传 null 视为清空。 */
+    @Transactional
+    public void replaceTags(Long pluginId, List<Long> tagIds) {
+        List<PluginTag> oldTags = pluginTagRepository.findByPluginId(pluginId);
+        for (PluginTag pt : oldTags) {
+            tagRepository.findById(pt.getTagId()).ifPresent(Tag::decrementUsage);
+        }
+        pluginTagRepository.deleteByPluginId(pluginId);
+        pluginTagRepository.flush();
+        if (tagIds == null) return;
+        for (Long tagId : tagIds) {
+            pluginTagRepository.save(new PluginTag(pluginId, tagId));
+            tagRepository.findById(tagId).ifPresent(Tag::incrementUsage);
+        }
+    }
+
+    /** 加载插件关联的标签 DTO 列表。 */
+    private List<TagDTO> loadTags(Long pluginId) {
+        return pluginTagRepository.findByPluginId(pluginId).stream()
+                .map(pt -> tagRepository.findById(pt.getTagId()).orElse(null))
+                .filter(Objects::nonNull)
+                .map(tagService::toDTO)
+                .toList();
     }
 
     // ---------- 查询 ----------
@@ -357,6 +404,22 @@ public class PluginService {
                 .page(page)
                 .size(size)
                 .build();
+    }
+
+    public void pinPlugin(Long id) {
+        pluginRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("插件不存在"));
+        pluginRepository.pinById(id);
+    }
+
+    public void unpinPlugin(Long id) {
+        pluginRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("插件不存在"));
+        pluginRepository.unpinById(id);
+    }
+
+    public List<Long> getHotTop5() {
+        return pluginRepository.findTop5ByStatusOrderByScoreDesc(PageRequest.of(0, 5));
     }
 
     @Transactional
@@ -748,6 +811,9 @@ public class PluginService {
                 .likeCount(plugin.getLikeCount())
                 .commentCount(plugin.getCommentCount())
                 .viewCount(plugin.getViewCount())
+                .favoriteCount(plugin.getFavoriteCount())
+                .pinned(plugin.getPinned())
+                .tags(loadTags(plugin.getId()))
                 .score(plugin.getScore())
                 .authorId(author != null ? author.getId() : null)
                 .authorUsername(author != null ? author.getUsername() : "Unknown")
@@ -784,6 +850,9 @@ public class PluginService {
         to.setLikeCount(from.getLikeCount());
         to.setCommentCount(from.getCommentCount());
         to.setViewCount(from.getViewCount());
+        to.setFavoriteCount(from.getFavoriteCount());
+        to.setPinned(from.getPinned());
+        to.setTags(from.getTags());
         to.setScore(from.getScore());
         to.setAuthorId(from.getAuthorId());
         to.setAuthorUsername(from.getAuthorUsername());

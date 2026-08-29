@@ -101,17 +101,28 @@ public class Plugin {
     @Builder.Default
     private Integer commentCount = 0;
 
+    @Column(name = "favorite_count")
+    @Builder.Default
+    private Integer favoriteCount = 0;
+
     @Column(name = "score", precision = 10, scale = 2)
     @Builder.Default
     private BigDecimal score = BigDecimal.ZERO;
 
-    // 综合热度分：score = viewCount×1 + likeCount×3 + commentCount×5（对齐工具广场，无下载/收藏参与）
+    /** 管理员置顶标记（hot 排序优先；存量行可能为 null，读取用 Boolean.TRUE.equals 兜底） */
+    @Column(name = "pinned")
+    @Builder.Default
+    private Boolean pinned = false;
+
+    // 综合热度分：score = viewCount×1 + likeCount×3 + favoriteCount×4 + commentCount×5（对齐工具广场，插件无下载量）
     public void updateScore() {
         int view = this.viewCount != null ? this.viewCount : 0;
         int like = this.likeCount != null ? this.likeCount : 0;
+        int favorite = this.favoriteCount != null ? this.favoriteCount : 0;
         int comment = this.commentCount != null ? this.commentCount : 0;
         this.score = BigDecimal.valueOf(view)
             .add(BigDecimal.valueOf(like).multiply(BigDecimal.valueOf(3)))
+            .add(BigDecimal.valueOf(favorite).multiply(BigDecimal.valueOf(4)))
             .add(BigDecimal.valueOf(comment).multiply(BigDecimal.valueOf(5)));
     }
 
@@ -128,6 +139,17 @@ public class Plugin {
     public void decrementLikeCount() {
         this.likeCount = this.likeCount == null ? 0 : this.likeCount;
         if (this.likeCount > 0) this.likeCount--;
+        updateScore();
+    }
+
+    public void incrementFavoriteCount() {
+        this.favoriteCount = (this.favoriteCount == null ? 0 : this.favoriteCount) + 1;
+        updateScore();
+    }
+
+    public void decrementFavoriteCount() {
+        this.favoriteCount = this.favoriteCount == null ? 0 : this.favoriteCount;
+        if (this.favoriteCount > 0) this.favoriteCount--;
         updateScore();
     }
 

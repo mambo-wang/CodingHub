@@ -111,6 +111,55 @@ class UnifiedFavoriteServiceTest {
     }
 
     @Test
+    void toggleFavorite_plugin_add_increments_favorite_count() {
+        Plugin testPlugin = Plugin.builder()
+                .id(10L).name("demo-plugin").version("1.0.0")
+                .author(testUser).status(Plugin.Status.NORMAL)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        when(pluginRepository.findByIdAndStatusNormal(10L)).thenReturn(Optional.of(testPlugin));
+        when(favoriteRepository.findByUserIdAndTargetTypeAndTargetId(100L, "PLUGIN", 10L))
+                .thenReturn(Optional.empty());
+        when(favoriteRepository.save(any(UnifiedFavorite.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        InteractionResponse response = favoriteService.toggleFavorite("PLUGIN", 10L, 100L);
+
+        assertTrue(response.getFavorited());
+        verify(pluginRepository).incrementFavoriteCount(10L);
+        verify(pluginRepository, never()).decrementFavoriteCount(anyLong());
+    }
+
+    @Test
+    void toggleFavorite_plugin_remove_decrements_favorite_count() {
+        Plugin testPlugin = Plugin.builder()
+                .id(10L).name("demo-plugin").version("1.0.0")
+                .author(testUser).status(Plugin.Status.NORMAL)
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                .build();
+        UnifiedFavorite existing = UnifiedFavorite.builder()
+                .id(1L).targetType("PLUGIN").targetId(10L).userId(100L).build();
+        when(pluginRepository.findByIdAndStatusNormal(10L)).thenReturn(Optional.of(testPlugin));
+        when(favoriteRepository.findByUserIdAndTargetTypeAndTargetId(100L, "PLUGIN", 10L))
+                .thenReturn(Optional.of(existing));
+
+        InteractionResponse response = favoriteService.toggleFavorite("PLUGIN", 10L, 100L);
+
+        assertFalse(response.getFavorited());
+        verify(pluginRepository).decrementFavoriteCount(10L);
+        verify(pluginRepository, never()).incrementFavoriteCount(anyLong());
+    }
+
+    @Test
+    void pluginUpdateScore_includes_favorite_weight_four() {
+        Plugin p = Plugin.builder()
+                .viewCount(1).likeCount(1).commentCount(1).favoriteCount(3)
+                .build();
+        p.updateScore();
+        // score = 1×1 + 1×3 + 3×4 + 1×5 = 21
+        assertEquals(0, new java.math.BigDecimal("21").compareTo(p.getScore()));
+    }
+
+    @Test
     void toggleFavorite_notLoggedIn() {
         assertThrows(BusinessException.class, () ->
                 favoriteService.toggleFavorite("TOOL", 1L, null));

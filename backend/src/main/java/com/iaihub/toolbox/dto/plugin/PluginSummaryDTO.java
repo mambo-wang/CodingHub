@@ -1,5 +1,6 @@
 package com.iaihub.toolbox.dto.plugin;
 
+import com.iaihub.toolbox.dto.tag.TagDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +24,10 @@ public class PluginSummaryDTO {
     private Integer likeCount;
     private Integer commentCount;
     private Integer viewCount;
+    private Integer favoriteCount;
+    private Boolean pinned;
     private BigDecimal score;
+    private java.util.List<TagDTO> tags;
     private Long authorId;
     private String authorUsername;
     private String authorNickname;

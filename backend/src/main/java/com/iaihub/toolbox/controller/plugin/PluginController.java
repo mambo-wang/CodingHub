@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/plugins")
@@ -41,13 +43,33 @@ public class PluginController {
         return ResponseEntity.ok(ApiResponse.success(pluginService.getDetail(id)));
     }
 
+    @GetMapping("/hot-top5")
+    public ResponseEntity<ApiResponse<List<Long>>> getHotTop5() {
+        return ResponseEntity.ok(ApiResponse.success(pluginService.getHotTop5()));
+    }
+
+    @PostMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> pinPlugin(@PathVariable Long id) {
+        pluginService.pinPlugin(id);
+        return ResponseEntity.ok(ApiResponse.success("置顶成功", null));
+    }
+
+    @DeleteMapping("/{id}/pin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> unpinPlugin(@PathVariable Long id) {
+        pluginService.unpinPlugin(id);
+        return ResponseEntity.ok(ApiResponse.success("取消置顶成功", null));
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<PluginDetailDTO>> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "source", required = false) String source,
             @RequestParam(value = "logoUrl", required = false) String logoUrl,
+            @RequestParam(value = "tagIds", required = false) List<Long> tagIds,
             @AuthenticationPrincipal User currentUser) {
-        PluginDetailDTO plugin = pluginService.upload(file, source, logoUrl, currentUser.getId());
+        PluginDetailDTO plugin = pluginService.upload(file, source, logoUrl, currentUser.getId(), tagIds);
         return ResponseEntity.status(201).body(ApiResponse.created("上传成功", plugin));
     }
 
@@ -80,9 +102,10 @@ public class PluginController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "source", required = false) String source,
             @RequestParam(value = "logoUrl", required = false) String logoUrl,
+            @RequestParam(value = "tagIds", required = false) List<Long> tagIds,
             @AuthenticationPrincipal User currentUser) {
         boolean isAdmin = currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.SUPER_ADMIN;
-        PluginDetailDTO plugin = pluginService.update(id, file, source, logoUrl, currentUser.getId(), isAdmin);
+        PluginDetailDTO plugin = pluginService.update(id, file, source, logoUrl, currentUser.getId(), isAdmin, tagIds);
         return ResponseEntity.ok(ApiResponse.success("更新成功", plugin));
     }
 

@@ -30,4 +30,7 @@ public interface UnifiedFavoriteRepository extends JpaRepository<UnifiedFavorite
             "WHERE f.targetType = :targetType AND f.targetId IN :targetIds GROUP BY f.targetId")
     List<Object[]> countByTargetTypeAndTargetIdIn(@Param("targetType") String targetType,
                                                   @Param("targetIds") Collection<Long> targetIds);
+
+    @Query("SELECT f.targetId, COUNT(f) FROM UnifiedFavorite f WHERE f.targetType = :targetType GROUP BY f.targetId")
+    List<Object[]> countByTargetTypeGroupByTargetId(@Param("targetType") String targetType);
 }
