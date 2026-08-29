@@ -1,54 +1,61 @@
-# 插件市场列表页收藏数展示 — 设计文档
+# 插件市场增强：收藏数展示 + 标签 + 置顶/热门角标 — 设计文档
 
 日期：2026-08-29 ｜ 状态：已批准 ｜ 范围：CodingHub 插件市场
 
 ## 背景
 
-插件市场列表页卡片 stats 行目前展示点赞（Heart）、评论（MessageCircle）、浏览（Eye）三项，缺少收藏数。
-插件收藏功能已存在（`UnifiedFavoriteService`，favorite 表 `target_type='PLUGIN'`），但 `Plugin` 实体没有冗余
-`favoriteCount` 字段，toggle 收藏时也只维护 TOOL 的计数。用户已确认：**收藏数需计入热度分 score**。
+插件市场列表页卡片 stats 行目前只有点赞/评论/浏览，缺收藏数；插件模块未接入统一标签系统；管理员无法置顶插件，卡片也无置顶/热门角标。用户决策：收藏数计入热度分 score；标签在上传+编辑页维护、卡片与详情页都展示；热门角标沿用 hot-top5 模式。
 
 ## 方案选择
 
-- 方案 A（采纳）：对齐工具广场 Tool 的既有模式——冗余计数列 + repository 层原子 UPDATE 同步维护计数与 score。
-- 方案 B（否决）：列表查询实时 COUNT favorite 表。改动小但 score 是存储字段、"hot" 排序依赖它，收藏变化无法联动热度，与需求冲突。
+- 收藏计数（采纳）：对齐工具广场 Tool 既有模式——冗余 `favoriteCount` 列 + repository 原子 UPDATE 同步维护计数与 score。否决"实时 COUNT"：score 是存储字段且 hot 排序依赖它，收藏变化无法联动。
+- 标签（采纳）：统一标签系统扩展 `TagType.PLUGIN` + `plugin_tag` 关联表，复用 `TagService`/`TagSelector`/`TagBadge`。
+- 置顶/热门（采纳）：完全对齐 Tool：`pinned` 字段 + `POST/DELETE /plugins/{id}/pin`（ADMIN/SUPER_ADMIN）+ hot 排序 `pinned DESC, score DESC`（new 排序不置顶优先，与工具一致）+ `hot-top5` 接口驱动前端 Flame 角标。
 
-## 设计
-
-### 后端
+## 后端设计
 
 1. **Plugin 实体**（`model/Plugin.java`）
-   - 新增列 `favorite_count`（`favoriteCount`，Integer，默认 0），由 Hibernate `ddl-auto: update` 自动建列（MySQL/PG 双库兼容）。
-   - `updateScore()` 公式变更为 `view×1 + like×3 + favorite×4 + comment×5`（收藏权重与 Tool 一致，插件无下载量），同步更新方法注释。
-   - 新增实体方法 `incrementFavoriteCount()` / `decrementFavoriteCount()`（与其他计数方法同风格，内部调 `updateScore()`）。
-2. **PluginRepository**（`repository/PluginRepository.java`）
-   - 新增 `@Modifying` 原子 JPQL：`incrementFavoriteCount` / `decrementFavoriteCount`，同时调 `score ±4`，
-     带 `status='NORMAL'` 守卫与 `CASE WHEN` 下限保护（完全对齐 `ToolRepository` 第 165~179 行写法）。
-     规避已知教训：计数更新必须用 repository 层 @Modifying，禁止 save 读改写（并发丢更新且意外刷新 updatedAt）。
-3. **UnifiedFavoriteService.toggleFavorite**
-   - 现有 `if (targetType == TargetType.TOOL)` 计数块扩展为 `TOOL` / `PLUGIN` 分支，PLUGIN 走 `pluginRepository.increment/decrementFavoriteCount`。
-4. **DTO 链路**
-   - `PluginSummaryDTO` 加 `favoriteCount`；`PluginService.toSummaryDTO()` 与 `copySummary()` 同步补映射。
-   - `PluginDetailDTO` 经 `copySummary` 继承该字段，前端详情页类型顺带可用。
-5. **存量回填（幂等）**
-   - `DataInitializer` 增加启动步骤：按 favorite 表 `target_type='PLUGIN'` 分组计数，与 `Plugin.favoriteCount`
-     不一致的实体修正并用 `updateScore()` 重算（量少，逐条 JPA 即可，避免方言 SQL）。列刚新增时默认 0 而存量收藏>0 的插件必须回填，保证 "hot" 排序正确。
+   - 新增 `favorite_count`（Integer 默认 0）、`pinned`（Boolean 默认 false）。Schema 走 Hibernate `ddl-auto: update`（项目权威机制，双库兼容，不另写 Flyway）。
+   - `updateScore()`：`view×1 + like×3 + favorite×4 + comment×5`（收藏权重对齐 Tool；插件无下载量），同步注释。
+   - 新增 `increment/decrementFavoriteCount()` 实体方法（内部调 `updateScore()`）。
+2. **PluginRepository**
+   - `@Modifying` 原子 JPQL `increment/decrementFavoriteCount`：计数与 `score ±4` 同步，`status='NORMAL'` 守卫 + `CASE WHEN` 下限保护（对齐 ToolRepository 写法；教训：计数更新必须 repository 层 @Modifying，禁止 save 读改写）。
+   - `pinById/unpinById` 原子更新（对齐 ToolRepository）。
+   - `findByFiltersOrderByHot` 改为 `ORDER BY p.pinned DESC, p.score DESC`；`findByFilters`（最新）保持 `createdAt DESC`。
+   - `findTop5ByStatusOrderByScoreDesc`（hot-top5 用）。
+3. **UnifiedFavoriteService.toggleFavorite**：计数块从 `TOOL` 扩展 `PLUGIN` 分支。
+4. **标签接入**
+   - `TagType` 枚举加 `PLUGIN`；新建 `PluginTag`（表 `plugin_tag`：plugin_id + tag_id）+ `PluginTagRepository`，对齐 `ToolTag`。
+   - 插件创建/更新请求 DTO 加 `tags: List<String>`；`PluginService` 走 `TagService.resolveOrCreateTags(names, PLUGIN)` 重建关联并维护 usageCount（对齐 ToolService 模式）。
+   - 查询详情/列表时装配 tags（批量查关联，避免 N+1 失控）。
+5. **接口**（`PluginController` 或 `PluginMarketController`）
+   - `POST/DELETE /api/v1/plugins/{id}/pin`，`@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")`。
+   - `GET /api/v1/plugins/hot-top5`，匿名可访问，返回 5 个 ID（对齐 `/tools/hot-top5`）。
+6. **DTO**：`PluginSummaryDTO` 加 `favoriteCount`、`pinned`、`tags`；`toSummaryDTO()`/`copySummary()` 补映射，`PluginDetailDTO` 继承。
+7. **存量回填（幂等）**：`DataInitializer` 启动步骤——按 favorite 表 `target_type='PLUGIN'` 分组计数修正 `Plugin.favoriteCount` 不一致项并 `updateScore()` 重算；tags 无存量无需回填。
 
-### 前端
+## 前端设计
 
-6. `types/plugin.ts`：`PluginSummary` 加 `favoriteCount: number`。
-7. `PluginMarketPage.vue`：从 `@lucide/vue` 增导 `Bookmark`；stats 行 Heart 之后插入
-   `<span class="stat"><Bookmark :size="14" /> {{ fmtCount(p.favoriteCount) }}</span>`，与工具广场图标一致。
-8. 详情页展示、收藏按钮态本次不做（YAGNI）。
+8. `types/plugin.ts`：`PluginSummary` 加 `favoriteCount: number`、`pinned: boolean`、`tags: Tag[]`。
+9. `PluginMarketPage.vue`
+   - stats 行 Heart 之后加 `<Bookmark :size="14" /> {{ fmtCount(p.favoriteCount) }}`（图标与工具广场一致）。
+   - 名称行加角标：`pinned` → `badge-pill badge-pinned`（ArrowUp + 置顶）；`hotTop5Ids.has(p.id)` → `badge-pill badge-hot`（Flame + 热门）；`hotTop5Ids` 页面加载时经新接口获取。样式对齐 HomePage 对应 class。
+   - 卡片描述下方展示 `TagBadge`（最多 3 个）。
+   - `authStore.isAdmin` 时卡片显示 Pin/PinOff 切换按钮（`@click.stop`，调 pin/unpin API 后本地翻转，对齐 HomePage handlePinTool）。
+10. `PluginUploadPage.vue` / `PluginEditPage.vue`：接入 `TagSelector`，tags 随创建/更新请求提交。
+11. `PluginDetailPage.vue`：展示 tags（TagBadge）。
 
-## 测试
+## 测试与验证
 
-- 后端（先写失败测试，TDD）：扩展 `UnifiedFavoriteServiceTest`（如无则新建）——PLUGIN 收藏 toggle 后
-  `favoriteCount` ±1 且 `score` ±4；取消收藏不低于 0；`PluginServiceTest` 断言 summary 含 favoriteCount；
-  回填逻辑测试：预置 favorite 行 + favoriteCount=0，跑 initializer 后计数与 score 修正。
-- 验证：`make lint`、后端 `gradlew test`（JBR21 JAVA_HOME）、前端 `vue-tsc`，浏览器实测列表页四 stats 展示与翻页。
+- 后端 JUnit，失败测试先行（TDD）：
+  - 收藏 toggle：favoriteCount ±1、score ±4、取消防护负数；summary 含 favoriteCount。
+  - pin/unpin：权限（USER 403）、hot 排序置顶优先、new 排序不受影响；hot-top5 返回 ≤5 个 ID。
+  - tags：创建带 tags 建关联；更新重建关联且 usageCount 正确；列表/详情返回 tags。
+  - 回填：预置 favorite 行 + favoriteCount=0，initializer 后计数与 score 修正。
+- 前端无测试框架：`vue-tsc` + 运行中服务（JBR21 + postgresql profile）浏览器实测卡片角标、标签、收藏数、置顶按钮。
+- `make lint` 通过；提交按文末拆分方案执行，单 commit ≤1000 行。
 
-## 数据与兼容性
+## 提交拆分
 
-- 新增列可空带默认，不破坏既有行；MySQL profile 本机不可用不影响（代码层双库兼容）。
-- 提交拆分：后端 + 前端各一 commit，均 <1000 行，Conventional Commits（feat(plugin)）。
+- commit 1：后端（实体/仓库/服务/控制器/测试）
+- commit 2：前端（类型/市场页/上传编辑页/详情页）
