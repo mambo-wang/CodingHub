@@ -46,8 +46,8 @@ const copyUnifiedTip = async (index: number) => {
 
 // 后端端口可通过 VITE_BACKEND_PORT 覆盖，默认 8082
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpTransportType = ref('streamableHttp')
-const mcpConfigs = {
+const mcpTransportType = ref<'streamableHttp'>('streamableHttp')
+const mcpConfigs: Record<string, { "mcpServers": Record<string, { "type": string; "url": string; "description": string; "disabled": boolean }> }> = {
   streamableHttp: {
     "mcpServers": {
       "CodingHub-mcp": {

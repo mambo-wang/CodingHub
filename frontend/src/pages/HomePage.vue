@@ -90,8 +90,8 @@ const formattedFileSize = (bytes: number): string => {
 
 // MCP config
 const mcpBackendPort = (import.meta.env.VITE_BACKEND_PORT as string) || '8082'
-const mcpTransportType = ref('streamableHttp')
-const mcpConfigs = {
+const mcpTransportType = ref<'streamableHttp'>('streamableHttp')
+const mcpConfigs: Record<string, { mcpServers: Record<string, { type: string; url: string; description: string; disabled: boolean }> }> = {
   streamableHttp: {
     mcpServers: {
       "CodingHub-mcp": {

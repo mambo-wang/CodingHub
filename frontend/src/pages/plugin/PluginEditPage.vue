@@ -156,6 +156,7 @@ const back = () => router.push(`/plugins/${pluginId}`)
             插件图标
             <span class="label-hint">选填。支持本地上传；不上传则使用 plugin.json 中 icon 字段或默认图标</span>
           </label>
+        </div>
         <div class="form-group">
           <label class="form-label">
             标签
