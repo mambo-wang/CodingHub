@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{
+defineProps<{
   displayName?: string | null
   preview?: string | null
   deleted?: boolean

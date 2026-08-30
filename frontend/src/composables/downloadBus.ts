@@ -11,6 +11,6 @@ export function addDownload(toolId: number): void {
 
 export function clearDownloads(): void {
   for (const key of Object.keys(sessionDownloads)) {
-    delete sessionDownloads[key]
+    delete sessionDownloads[Number(key)]
   }
 }

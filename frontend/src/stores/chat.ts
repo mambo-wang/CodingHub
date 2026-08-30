@@ -57,23 +57,27 @@ export const useChatStore = defineStore('chat', () => {
     connected.value = true
     client?.subscribe('/topic/chat.global', (msg) => {
       const data = JSON.parse(msg.body) as ChatEvent
-      if (data.type === 'DELETE') {
-        const idx = messages.value.findIndex((m) => m.id === (data as { id: number }).id)
-        if (idx !== -1) messages.value.splice(idx, 1)
-      } else if (data.type === 'PRESENCE') {
-        onlineCount.value = (data as PresencePayload).online
-      } else if (data.type === 'ERROR') {
-        error.value = (data as { message: string }).message
-      } else if ((data as ChatMessage).id != null && !('type' in data)) {
-        const msg = data as ChatMessage
+      // 普通聊天消息（ChatMessage）无 type 字段，其余事件均有
+      if (!('type' in data)) {
+        const chatMsg = data as ChatMessage
         // 按 id 去重：防止多连接/重复订阅导致同一条消息重复显示
-        const existing = messages.value.find((m) => m.id === msg.id)
+        const existing = messages.value.find((m) => m.id === chatMsg.id)
         if (existing) {
-          Object.assign(existing, msg)
+          Object.assign(existing, chatMsg)
         } else {
-          messages.value.push(msg)
+          messages.value.push(chatMsg)
           if (!drawerOpen.value) unreadCount.value += 1
         }
+        return
+      }
+      const type = data.type as string
+      if (type === 'DELETE') {
+        const idx = messages.value.findIndex((m) => m.id === (data as { id: number }).id)
+        if (idx !== -1) messages.value.splice(idx, 1)
+      } else if (type === 'PRESENCE') {
+        onlineCount.value = (data as PresencePayload).online
+      } else if (type === 'ERROR') {
+        error.value = (data as unknown as { message: string }).message
       }
     })
 
@@ -244,6 +248,8 @@ export const useChatStore = defineStore('chat', () => {
     typingUsers,
     connected,
     loading,
+    drawerOpen,
+    unreadCount,
     connect,
     disconnect,
     send,
@@ -255,8 +261,6 @@ export const useChatStore = defineStore('chat', () => {
     deleteMessage,
     clearError,
     isSelf,
-    drawerOpen,
-    unreadCount,
     openDrawer,
     closeDrawer,
     toggleDrawer,
