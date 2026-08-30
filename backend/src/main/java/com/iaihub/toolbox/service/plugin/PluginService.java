@@ -692,7 +692,7 @@ public class PluginService {
         summary.put("agents", listComponentNames(root.resolve("agents")));
         summary.put("commands", listComponentNames(root.resolve("commands")));
         summary.put("hooks", listHooks(root.resolve("hooks")));
-        summary.put("mcpServers", Files.isRegularFile(root.resolve(".mcp.json")));
+        summary.put("mcpServers", listMcpServers(root));
         summary.put("lspServers", Files.isRegularFile(root.resolve(".lsp.json")));
         summary.put("hasBin", Files.isDirectory(root.resolve("bin")));
         summary.put("hasSettings", Files.isRegularFile(root.resolve("settings.json")));
@@ -756,6 +756,34 @@ public class PluginService {
             }
         }
         return listComponentNames(dir);
+    }
+
+    /**
+     * 枚举 MCP server 名称：解析根目录 .mcp.json 中 mcpServers 对象的 key
+     * （如 {"mcpServers": {"codewiki": {...}}}），缺失或解析失败时返回空列表。
+     */
+    private List<String> listMcpServers(Path root) {
+        Path mcpJson = root.resolve(".mcp.json");
+        if (!Files.isRegularFile(mcpJson)) {
+            return List.of();
+        }
+        try {
+            Map<String, Object> rootMap = parseJson(mcpJson);
+            Object servers = rootMap.get("mcpServers");
+            if (servers instanceof Map<?, ?> serverMap) {
+                List<String> names = new ArrayList<>();
+                for (Object k : serverMap.keySet()) {
+                    if (k != null) {
+                        names.add(String.valueOf(k));
+                    }
+                }
+                Collections.sort(names);
+                return names;
+            }
+        } catch (IOException e) {
+            log.warn("解析 .mcp.json 失败: {}", mcpJson, e);
+        }
+        return List.of();
     }
 
     private Path persistZip(MultipartFile file, Long pluginId) throws IOException {

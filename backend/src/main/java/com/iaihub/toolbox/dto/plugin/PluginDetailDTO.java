@@ -35,7 +35,8 @@ public class PluginDetailDTO extends PluginSummaryDTO {
         private List<String> agents;
         private List<String> commands;
         private List<String> hooks;
-        private boolean mcpServers;
+        /** MCP server 名称列表（解析自 .mcp.json 的 mcpServers keys）。 */
+        private List<String> mcpServers;
         private boolean lspServers;
         private boolean hasBin;
         private boolean hasSettings;

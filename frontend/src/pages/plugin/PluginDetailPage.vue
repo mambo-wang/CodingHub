@@ -269,8 +269,14 @@ onMounted(load)
                 </div>
                 <span v-else class="comp-empty">无</span>
               </div>
+              <div class="comp-group">
+                <span class="comp-label">MCP Servers</span>
+                <div v-if="c.mcpServers.length" class="comp-tags">
+                  <span v-for="s in c.mcpServers" :key="s" class="comp-tag mcp">{{ s }}</span>
+                </div>
+                <span v-else class="comp-empty">无</span>
+              </div>
               <div class="comp-bools">
-                <span class="bool-item" :class="{ on: c.mcpServers }">MCP {{ c.mcpServers ? '✓' : '✗' }}</span>
                 <span class="bool-item" :class="{ on: c.lspServers }">LSP {{ c.lspServers ? '✓' : '✗' }}</span>
                 <span class="bool-item" :class="{ on: c.hasBin }">Bin {{ c.hasBin ? '✓' : '✗' }}</span>
                 <span class="bool-item" :class="{ on: c.hasSettings }">Settings {{ c.hasSettings ? '✓' : '✗' }}</span>
@@ -667,6 +673,7 @@ onMounted(load)
 .comp-tag.agent { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
 .comp-tag.cmd  { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
 .comp-tag.hook { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+.comp-tag.mcp  { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 
 .comp-empty {
   font-size: 12px;

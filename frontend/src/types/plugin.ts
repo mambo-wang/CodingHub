@@ -25,7 +25,7 @@ export interface ComponentSummary {
   agents: string[]
   commands: string[]
   hooks: string[]
-  mcpServers: boolean
+  mcpServers: string[]
   lspServers: boolean
   hasBin: boolean
   hasSettings: boolean
