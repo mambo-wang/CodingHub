@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -687,10 +688,10 @@ public class PluginService {
     /** 枚举插件组件目录/文件，生成组件摘要 JSON 字符串。 */
     private String inspectComponents(Path root) throws IOException {
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("skills", listDirs(root.resolve("skills")));
-        summary.put("agents", listDirs(root.resolve("agents")));
-        summary.put("commands", listDirs(root.resolve("commands")));
-        summary.put("hooks", listDirs(root.resolve("hooks")));
+        summary.put("skills", listComponentNames(root.resolve("skills")));
+        summary.put("agents", listComponentNames(root.resolve("agents")));
+        summary.put("commands", listComponentNames(root.resolve("commands")));
+        summary.put("hooks", listHooks(root.resolve("hooks")));
         summary.put("mcpServers", Files.isRegularFile(root.resolve(".mcp.json")));
         summary.put("lspServers", Files.isRegularFile(root.resolve(".lsp.json")));
         summary.put("hasBin", Files.isDirectory(root.resolve("bin")));
@@ -698,21 +699,63 @@ public class PluginService {
         return objectMapper.writeValueAsString(summary);
     }
 
-    private List<String> listDirs(Path dir) {
+    /**
+     * 枚举组件目录中的条目名：子目录用目录名，普通文件去掉扩展名。
+     *
+     * <p>CodeBuddy 插件规范中 skills/agents/commands 既可能是目录形式
+     * （如 skills/foo/），也可能是文件形式（如 commands/wbnb.md、agents/distill-worker.md），
+     * 仅列子目录会漏掉文件形式的组件。</p>
+     */
+    private List<String> listComponentNames(Path dir) {
         if (!Files.isDirectory(dir)) {
             return List.of();
         }
         List<String> names = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
+                String name = p.getFileName().toString();
                 if (Files.isDirectory(p)) {
-                    names.add(p.getFileName().toString());
+                    names.add(name);
+                } else {
+                    int dot = name.lastIndexOf('.');
+                    names.add(dot > 0 ? name.substring(0, dot) : name);
                 }
             }
         } catch (IOException e) {
             log.warn("枚举插件组件目录失败: {}", dir, e);
         }
+        Collections.sort(names);
         return names;
+    }
+
+    /**
+     * 枚举 hooks 组件：优先解析 hooks/hooks.json 中注册的事件名（如 SessionStart/SessionEnd），
+     * 更直观地表达 hook 挂载点；缺失或解析失败时回退为文件/目录名列表。
+     */
+    private List<String> listHooks(Path dir) {
+        if (!Files.isDirectory(dir)) {
+            return List.of();
+        }
+        Path hooksJson = dir.resolve("hooks.json");
+        if (Files.isRegularFile(hooksJson)) {
+            try {
+                Map<String, Object> root = parseJson(hooksJson);
+                Object hooksObj = root.get("hooks");
+                if (hooksObj instanceof Map<?, ?> hooksMap) {
+                    List<String> events = new ArrayList<>();
+                    for (Object k : hooksMap.keySet()) {
+                        if (k != null) {
+                            events.add(String.valueOf(k));
+                        }
+                    }
+                    Collections.sort(events);
+                    return events;
+                }
+            } catch (IOException e) {
+                log.warn("解析 hooks/hooks.json 失败，回退为文件列表: {}", hooksJson, e);
+            }
+        }
+        return listComponentNames(dir);
     }
 
     private Path persistZip(MultipartFile file, Long pluginId) throws IOException {
@@ -723,6 +766,41 @@ public class PluginService {
             Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
         }
         return dest;
+    }
+
+    /**
+     * 根据持久化的 zip 原件重算组件摘要并落库（幂等：内容一致时零写入）。
+     *
+     * <p>用于存量数据回填：修复组件枚举逻辑（文件形式的 agents/commands/hooks 曾被
+     * {@code listDirs} 漏掉）后，历史插件的 components 需要按 zip 原件重新生成。</p>
+     */
+    @Transactional
+    public void recomputeComponents(Plugin plugin) {
+        if (plugin.getSourceZipPath() == null || plugin.getSourceZipPath().isBlank()) {
+            return;
+        }
+        Path zipPath = Paths.get(uploadConfig.getBaseDir(), plugin.getSourceZipPath());
+        if (!Files.exists(zipPath)) {
+            log.warn("recompute components: zip 原件不存在, plugin={} path={}", plugin.getName(), zipPath);
+            return;
+        }
+        Path tmpDir = basePluginsDir().resolve("tmp").resolve(UUID.randomUUID().toString());
+        try {
+            Files.createDirectories(tmpDir);
+            try (InputStream in = Files.newInputStream(zipPath)) {
+                extractZip(in, tmpDir);
+            }
+            String components = inspectComponents(tmpDir);
+            if (!Objects.equals(plugin.getComponents(), components)) {
+                plugin.setComponents(components);
+                pluginRepository.save(plugin);
+                log.info("recompute components: plugin={} (id={}) 已更新", plugin.getName(), plugin.getId());
+            }
+        } catch (Exception e) {
+            log.warn("recompute components 失败: plugin={} (id={})", plugin.getName(), plugin.getId(), e);
+        } finally {
+            deleteQuietly(tmpDir);
+        }
     }
 
     /**
