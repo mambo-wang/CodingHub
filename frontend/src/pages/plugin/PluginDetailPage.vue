@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
 import UnifiedLikeButton from '@/components/common/UnifiedLikeButton.vue'
 import UnifiedFavoriteButton from '@/components/common/UnifiedFavoriteButton.vue'
+import TagBadge from '@/components/common/TagBadge.vue'
 import type { PluginDetail } from '@/types/plugin'
 import type { CommentResponse } from '@/services/interaction'
 
