@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Upload, PackageOpen, Eye, Heart, MessageCircle, Link, Bookmark, ArrowUp, Flame, Pin, PinOff } from '@lucide/vue'
 import { ElMessage } from 'element-plus'
+import api from '@/services/api'
 import { pluginApi } from '@/services/plugin'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from '@/components/UserAvatar.vue'
 import TagBadge from '@/components/common/TagBadge.vue'
 import type { PluginSummary } from '@/types/plugin'
+import type { Tag } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -22,6 +24,48 @@ const loading = ref(false)
 const plugins = ref<PluginSummary[]>([])
 const hotTop5Ids = ref<Set<number>>(new Set())
 const pinLoadingId = ref<number | null>(null)
+
+// 标签筛选（对齐工具广场 HomePage）
+const pluginTags = ref<Tag[]>([])
+const selectedTagId = ref<number | null>(null)
+const tagDropdownOpen = ref(false)
+const tagDropdownRef = ref<HTMLElement | null>(null)
+
+// 当前选中标签的显示名称（null 表示"全部标签"）
+const selectedTagName = computed(() => {
+  if (!selectedTagId.value) return null
+  return pluginTags.value.find(t => t.id === selectedTagId.value)?.name || null
+})
+
+const loadPluginTags = async () => {
+  try {
+    const response = await api.get('/tags', { params: { type: 'PLUGIN' } })
+    pluginTags.value = response.data.data
+  } catch (error) {
+    console.error('Failed to fetch plugin tags:', error)
+  }
+}
+
+const toggleTagDropdown = () => {
+  tagDropdownOpen.value = !tagDropdownOpen.value
+}
+
+const handleTagSelect = (tagId: number | null) => {
+  selectedTagId.value = tagId
+  tagDropdownOpen.value = false
+  page.value = 0
+  load()
+}
+
+const handleTagBadgeClick = (tag: Tag) => {
+  handleTagSelect(tag.id)
+}
+
+const handleTagOutsideClick = (event: MouseEvent) => {
+  if (tagDropdownRef.value && !tagDropdownRef.value.contains(event.target as Node)) {
+    tagDropdownOpen.value = false
+  }
+}
 
 const loadHotTop5 = async () => {
   try {
@@ -51,6 +95,7 @@ const load = async () => {
   try {
     const data = await pluginApi.list({
       keyword: keyword.value.trim() || undefined,
+      tagId: selectedTagId.value ?? undefined,
       page: page.value,
       size: size.value,
       sort: sort.value
@@ -121,7 +166,16 @@ const authorUser = (p: PluginSummary) => ({
 
 const authorName = (p: PluginSummary) => p.authorNickname || p.authorUsername
 
-onMounted(() => { load(); loadHotTop5() })
+onMounted(() => {
+  load()
+  loadHotTop5()
+  loadPluginTags()
+  document.addEventListener('click', handleTagOutsideClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleTagOutsideClick)
+})
 </script>
 
 <template>
@@ -154,6 +208,46 @@ onMounted(() => { load(); loadHotTop5() })
             placeholder="搜索插件名或描述…"
             @keyup.enter="search"
           />
+        </div>
+        <div class="tag-filter" ref="tagDropdownRef">
+          <button
+            type="button"
+            class="tag-filter-trigger"
+            :class="{ active: selectedTagId !== null, open: tagDropdownOpen }"
+            aria-haspopup="listbox"
+            :aria-expanded="tagDropdownOpen"
+            @click="toggleTagDropdown"
+          >
+            <span class="tag-filter-label">标签:</span>
+            <span class="tag-filter-value">{{ selectedTagName || '全部标签' }}</span>
+            <svg class="tag-filter-arrow" :class="{ open: tagDropdownOpen }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <div v-if="tagDropdownOpen" class="tag-dropdown-panel" role="listbox" aria-label="按标签筛选">
+            <div
+              class="tag-dropdown-item"
+              :class="{ selected: selectedTagId === null }"
+              role="option"
+              :aria-selected="selectedTagId === null"
+              @click="handleTagSelect(null)"
+            >
+              <span class="tag-radio"></span>
+              <span class="tag-option-name">全部标签</span>
+            </div>
+            <div
+              v-for="tag in pluginTags"
+              :key="tag.id"
+              class="tag-dropdown-item"
+              :class="{ selected: selectedTagId === tag.id }"
+              role="option"
+              :aria-selected="selectedTagId === tag.id"
+              @click="handleTagSelect(tag.id)"
+            >
+              <span class="tag-radio"></span>
+              <span class="tag-option-name">{{ tag.name }}</span>
+            </div>
+          </div>
         </div>
         <div class="sort-tabs">
           <button
@@ -220,7 +314,7 @@ onMounted(() => { load(); loadHotTop5() })
           </div>
           <div class="plugin-meta">
             <div class="plugin-name-row">
-              <span class="plugin-name">{{ p.name }}</span>
+              <span class="plugin-name" :title="p.name">{{ p.name }}</span>
               <span class="version-tag">v{{ p.version }}</span>
               <span v-if="p.pinned" class="badge-pill badge-pinned">
                 <ArrowUp :size="12" aria-hidden="true" />
@@ -241,7 +335,7 @@ onMounted(() => { load(); loadHotTop5() })
         <p class="plugin-desc">{{ p.description }}</p>
 
         <div v-if="p.tags && p.tags.length" class="plugin-tags">
-          <TagBadge v-for="t in p.tags.slice(0, 3)" :key="t.id" :tag="t" />
+          <TagBadge v-for="t in p.tags.slice(0, 3)" :key="t.id" :tag="t" :clickable="true" @click="handleTagBadgeClick" />
           <span v-if="p.tags.length > 3" class="tags-more">+{{ p.tags.length - 3 }}</span>
         </div>
 
@@ -328,6 +422,8 @@ onMounted(() => { load(); loadHotTop5() })
 }
 
 .market-hero {
+  position: relative;
+  z-index: 30;
   margin-bottom: 28px;
 }
 
@@ -438,6 +534,95 @@ onMounted(() => { load(); loadHotTop5() })
   color: var(--text-primary);
   font-size: 14px;
   font-family: var(--font-display);
+}
+
+/* Tag Filter Dropdown（对齐工具广场 HomePage，套用插件市场玻璃拟态风格） */
+.tag-filter { position: relative; flex-shrink: 0; }
+.tag-filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 14px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tag-filter-trigger:hover { border-color: var(--accent-1); color: var(--text-primary); }
+.tag-filter-trigger:focus-visible { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+.tag-filter-trigger.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.25));
+  border-color: rgba(139, 92, 246, 0.45);
+  color: var(--text-primary);
+}
+.tag-filter-trigger.open { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+.tag-filter-label { color: var(--text-muted); }
+.tag-filter-value { color: inherit; font-weight: 500; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.tag-filter-arrow { color: var(--text-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.tag-filter-arrow.open { transform: rotate(180deg); }
+
+.tag-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 60;
+  width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--bg-glass, rgba(20, 20, 30, 0.95));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  animation: tagDropIn 0.15s ease;
+}
+@keyframes tagDropIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.tag-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tag-dropdown-item:hover { background: rgba(139, 92, 246, 0.1); color: var(--text-primary); }
+.tag-dropdown-item.selected { color: var(--text-primary); font-weight: 500; }
+.tag-option-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.tag-dropdown-item:hover .tag-radio { border-color: rgba(139, 92, 246, 0.5); }
+.tag-dropdown-item.selected .tag-radio { border-color: var(--accent-1, #8b5cf6); }
+.tag-dropdown-item.selected .tag-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent-1, #8b5cf6);
+}
+[data-theme="light"] .tag-dropdown-panel {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
 }
 
 .sort-tabs {

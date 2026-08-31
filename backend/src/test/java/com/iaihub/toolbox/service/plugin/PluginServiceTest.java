@@ -153,7 +153,7 @@ class PluginServiceTest {
         when(tagService.toDTO(tag)).thenReturn(
                 new com.iaihub.toolbox.dto.tag.TagDTO(42L, "效率", "PLUGIN", 1));
 
-        var result = pluginService.list(null, 0, 12, "new");
+        var result = pluginService.list(null, null, 0, 12, "new");
 
         PluginSummaryDTO dto = (PluginSummaryDTO) result.getContent().get(0);
         assertTrue(dto.getPinned());

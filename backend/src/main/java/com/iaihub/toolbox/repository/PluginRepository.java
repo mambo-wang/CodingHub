@@ -26,6 +26,23 @@ public interface PluginRepository extends JpaRepository<Plugin, Long> {
            "ORDER BY p.pinned DESC, p.score DESC")
     Page<Plugin> findByFiltersOrderByHot(@Param("keyword") String keyword, Pageable pageable);
 
+    // 带标签筛选：EXISTS 子查询关联 plugin_tag 表（对齐工具广场 ToolRepository 实现）
+    @Query("SELECT p FROM Plugin p WHERE p.status = 'NORMAL' " +
+           "AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.description LIKE %:keyword%) " +
+           "AND EXISTS (SELECT 1 FROM PluginTag pt WHERE pt.pluginId = p.id AND pt.tagId = :tagId) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Plugin> findByFiltersWithTag(@Param("keyword") String keyword,
+                                      @Param("tagId") Long tagId,
+                                      Pageable pageable);
+
+    @Query("SELECT p FROM Plugin p WHERE p.status = 'NORMAL' " +
+           "AND (:keyword IS NULL OR p.name LIKE %:keyword% OR p.description LIKE %:keyword%) " +
+           "AND EXISTS (SELECT 1 FROM PluginTag pt WHERE pt.pluginId = p.id AND pt.tagId = :tagId) " +
+           "ORDER BY p.pinned DESC, p.score DESC")
+    Page<Plugin> findByFiltersWithTagOrderByHot(@Param("keyword") String keyword,
+                                                @Param("tagId") Long tagId,
+                                                Pageable pageable);
+
     @Query("SELECT p FROM Plugin p WHERE p.id = :id AND p.status = 'NORMAL'")
     Optional<Plugin> findByIdAndStatusNormal(@Param("id") Long id);
 

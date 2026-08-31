@@ -384,11 +384,16 @@ public class PluginService {
     // ---------- 查询 ----------
 
     @Transactional(readOnly = true)
-    public PageResponse<PluginSummaryDTO> list(String keyword, int page, int size, String sort) {
+    public PageResponse<PluginSummaryDTO> list(String keyword, Long tagId, int page, int size, String sort) {
         Pageable pageable = PageRequest.of(page, Math.min(size, 100));
         Page<Plugin> pluginPage;
         String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
-        if ("hot".equalsIgnoreCase(sort)) {
+        boolean hot = "hot".equalsIgnoreCase(sort);
+        if (tagId != null) {
+            pluginPage = hot
+                    ? pluginRepository.findByFiltersWithTagOrderByHot(kw, tagId, pageable)
+                    : pluginRepository.findByFiltersWithTag(kw, tagId, pageable);
+        } else if (hot) {
             pluginPage = pluginRepository.findByFiltersOrderByHot(kw, pageable);
         } else {
             pluginPage = pluginRepository.findByFilters(kw, pageable);

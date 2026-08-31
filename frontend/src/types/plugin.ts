@@ -39,6 +39,7 @@ export interface PluginDetail extends PluginSummary {
 
 export interface PluginQuery {
   keyword?: string
+  tagId?: number
   page?: number
   size?: number
   sort?: 'new' | 'hot'

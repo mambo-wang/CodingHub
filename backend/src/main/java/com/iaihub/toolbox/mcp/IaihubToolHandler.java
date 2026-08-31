@@ -697,7 +697,7 @@ public class IaihubToolHandler {
     public McpSchema.CallToolResult handlePluginSearch(String keyword, Integer page, Integer size, String sort) {
         logger.info("MCP plugin search: keyword={}, page={}, size={}, sort={}", keyword, page, size, sort);
         try {
-            PageResponse<PluginSummaryDTO> result = pluginService.list(keyword, page != null ? page : 0, size != null ? size : 20, sort != null ? sort : "new");
+            PageResponse<PluginSummaryDTO> result = pluginService.list(keyword, null, page != null ? page : 0, size != null ? size : 20, sort != null ? sort : "new");
             String json = toJson(new PluginSearchResponse(result.getContent(), result.getTotalElements(), result.getTotalPages(), result.getPage()));
             return successResult(json);
         } catch (Exception e) {

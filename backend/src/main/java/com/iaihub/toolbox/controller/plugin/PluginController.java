@@ -32,10 +32,11 @@ public class PluginController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<PluginSummaryDTO>>> list(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long tagId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
             @RequestParam(defaultValue = "new") String sort) {
-        return ResponseEntity.ok(ApiResponse.success(pluginService.list(keyword, page, size, sort)));
+        return ResponseEntity.ok(ApiResponse.success(pluginService.list(keyword, tagId, page, size, sort)));
     }
 
     @GetMapping("/{id}")
