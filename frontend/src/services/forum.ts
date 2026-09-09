@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import type {
   ForumPost,
   ForumPostCreateRequest,
+  ForumPostImportParams,
   ForumComment,
   ForumCommentCreateRequest,
   ForumCategory,
@@ -67,6 +68,25 @@ const forumService = {
 
   async deletePost(id: number): Promise<void> {
     await forumApi.delete(`/posts/${id}`);
+  },
+
+  /**
+   * 导入 .md / .html 文件并直接建帖。
+   * 文件解析完即丢弃（不落盘留存）；title / categoryId / visibility / contentFormat 均可省略，由服务端推导。
+   */
+  async importPost(file: File, params?: ForumPostImportParams): Promise<ForumPost> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (params?.title) formData.append('title', params.title);
+    if (params?.categoryId !== undefined) formData.append('categoryId', String(params.categoryId));
+    if (params?.visibility) formData.append('visibility', params.visibility);
+    if (params?.contentFormat) formData.append('contentFormat', params.contentFormat);
+
+    const response = await forumApi.post('/posts/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000
+    });
+    return response.data;
   },
 
   async pinPost(id: number): Promise<void> {

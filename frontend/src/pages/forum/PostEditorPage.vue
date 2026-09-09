@@ -54,7 +54,43 @@
 
     <div class="form-group">
       <div class="content-toolbar">
-        <label>内容（Markdown）</label>
+        <label>内容</label>
+        <div class="format-switch" role="group" aria-label="正文格式">
+          <button
+            type="button"
+            class="format-option"
+            :class="{ active: contentFormat === 'MARKDOWN' }"
+            @click="contentFormat = 'MARKDOWN'"
+          >
+            Markdown
+          </button>
+          <button
+            type="button"
+            class="format-option"
+            :class="{ active: contentFormat === 'HTML' }"
+            @click="contentFormat = 'HTML'"
+          >
+            HTML
+          </button>
+        </div>
+        <button
+          v-if="!isEdit"
+          type="button"
+          class="import-btn"
+          :disabled="importing"
+          @click="triggerImportInput"
+          title="导入 .md / .html 文件并直接发布"
+        >
+          <FileUp :size="16" />
+          {{ importing ? '导入中...' : '导入文件' }}
+        </button>
+        <input
+          ref="importInputRef"
+          type="file"
+          accept=".md,.markdown,.html,.htm"
+          style="display: none"
+          @change="handleImportSelect"
+        />
         <button
           type="button"
           class="upload-img-btn"
@@ -72,17 +108,30 @@
           style="display: none"
           @change="handleFileSelect"
         />
+        <button
+          type="button"
+          class="preview-btn"
+          :class="{ active: showPreview }"
+          @click="showPreview = !showPreview"
+          title="实时预览"
+        >
+          <Eye :size="16" />
+          {{ showPreview ? '隐藏预览' : '预览' }}
+        </button>
       </div>
       <textarea
         ref="contentRef"
         v-model="content"
-        placeholder="输入内容... 支持粘贴或拖拽图片"
+        :placeholder="contentFormat === 'HTML' ? '输入 HTML 原文...' : '输入 Markdown 内容... 支持粘贴或拖拽图片'"
         class="content-input"
         rows="15"
         @paste="handlePaste"
         @drop.prevent="handleDrop"
         @dragover.prevent
       ></textarea>
+      <div v-if="showPreview" class="content-preview">
+        <PostContent :content="content" :content-format="contentFormat" />
+      </div>
     </div>
 
     <div class="form-actions">
@@ -95,12 +144,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { Globe, Lock, Image as ImageIcon } from '@lucide/vue';
+import { Globe, Lock, Image as ImageIcon, FileUp, Eye } from '@lucide/vue';
 import { useForumStore } from '@/stores/forum';
 import forumService from '@/services/forum';
 import api from '@/services/api';
 import type { Tag } from '@/types';
 import TagSelector from '@/components/common/TagSelector.vue';
+import PostContent from '@/components/forum/PostContent.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -112,15 +162,19 @@ const isEdit = computed(() => !!route.params.id);
 const title = ref('');
 const categoryId = ref<number | ''>('');
 const content = ref('');
+const contentFormat = ref('MARKDOWN');
 const visibility = ref('PUBLIC');
 const errorMessage = ref('');
 const loading = ref(false);
 const selectedTags = ref<Tag[]>([]);
+const showPreview = ref(false);
 
 // 图片上传相关
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const importInputRef = ref<HTMLInputElement | null>(null);
 const contentRef = ref<HTMLTextAreaElement | null>(null);
 const uploading = ref(false);
+const importing = ref(false);
 
 const triggerFileInput = () => {
   fileInputRef.value?.click();
@@ -194,6 +248,36 @@ const uploadImage = async (file: File) => {
   }
 };
 
+/**
+ * 导入文件：服务端解析后直接建帖（文件不落盘），因此仅在新帖页面提供，
+ * 编辑页导入会变成"另发一篇"，容易误解。
+ */
+const triggerImportInput = () => {
+  importInputRef.value?.click();
+};
+
+const handleImportSelect = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+
+  importing.value = true;
+  errorMessage.value = '';
+  try {
+    const created = await forumService.importPost(file, {
+      categoryId: categoryId.value === '' ? undefined : Number(categoryId.value),
+      visibility: visibility.value
+    });
+    router.push(`/forum/posts/${created.id}`);
+  } catch (err: any) {
+    errorMessage.value =
+      err.response?.data?.message || '导入失败，请确认是 UTF-8 编码的 .md / .html 文件（最大 10MB）';
+  } finally {
+    importing.value = false;
+  }
+};
+
 onMounted(async () => {
   await forumStore.fetchCategories();
   if (route.params.id) {
@@ -202,6 +286,7 @@ onMounted(async () => {
       title.value = post.title;
       categoryId.value = post.categoryId;
       content.value = post.content;
+      contentFormat.value = post.contentFormat || 'MARKDOWN';
       visibility.value = post.visibility || 'PUBLIC';
       if (post.tags) {
         selectedTags.value = post.tags;
@@ -230,6 +315,7 @@ const publish = async () => {
     const data = {
       title: title.value,
       content: content.value,
+      contentFormat: contentFormat.value,
       categoryId: categoryId.value as number,
       tagIds: selectedTags.value.map(t => t.id),
       visibility: visibility.value
@@ -290,6 +376,8 @@ const publish = async () => {
 .content-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: space-between;
   margin-bottom: 8px;
 }
@@ -322,6 +410,77 @@ const publish = async () => {
 .upload-img-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.format-switch {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.format-option {
+  padding: 6px 14px;
+  border: none;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.format-option + .format-option {
+  border-left: 1px solid var(--border-color);
+}
+
+.format-option.active {
+  background: rgba(139, 92, 246, 0.16);
+  color: var(--accent-1);
+  font-weight: 600;
+}
+
+.import-btn,
+.preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.import-btn:hover:not(:disabled),
+.preview-btn:hover {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.preview-btn.active {
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.content-preview {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  min-height: 80px;
 }
 
 .title-input {

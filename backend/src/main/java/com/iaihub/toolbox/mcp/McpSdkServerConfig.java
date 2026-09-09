@@ -24,7 +24,7 @@ import java.util.function.BiFunction;
 /**
  * MCP Server 配置类 - 使用原生 Java MCP SDK 2.0.0，通过 Streamable HTTP 传输协议暴露 MCP 能力。
  *
- * <p>单一 McpServer 实例注册全部 23 个工具，客户端通过 /mcp 端点（POST/GET）即可调用。
+ * <p>单一 McpServer 实例注册全部 26 个工具，客户端通过 /mcp 端点（POST/GET）即可调用。
  */
 @Configuration
 public class McpSdkServerConfig {
@@ -233,7 +233,7 @@ public class McpSdkServerConfig {
                     return toolHandler.handlePostSearch(query, limit);
                 });
 
-        registerTool(server, "h3_coding_hub_post_get", "获取帖子内容，包括完整的 markdown",
+        registerTool(server, "h3_coding_hub_post_get", "获取帖子正文，可能是 Markdown 或 HTML，由返回的 contentFormat 字段指明",
                 """
                 {
                     "type":"object",
@@ -248,9 +248,10 @@ public class McpSdkServerConfig {
                     "type":"object",
                     "properties":{
                         "id":{"type":"integer"},"title":{"type":"string"},"content":{"type":"string"},
+                        "contentFormat":{"type":"string","enum":["MARKDOWN","HTML"]},
                         "authorId":{"type":"integer"},"createdAt":{"type":"string"}
                     },
-                    "required":["id","title","content","authorId","createdAt"]
+                    "required":["id","title","content","contentFormat","authorId","createdAt"]
                 }
                 """,
                 (exchange, request) -> {
@@ -336,7 +337,8 @@ public class McpSdkServerConfig {
                     "type":"object",
                     "properties":{
                         "title":{"type":"string","description":"帖子标题"},
-                        "content":{"type":"string","description":"帖子内容"},
+                        "content":{"type":"string","description":"帖子内容，Markdown 或 HTML 原文"},
+                        "contentFormat":{"type":"string","enum":["MARKDOWN","HTML"],"description":"正文格式，缺省 MARKDOWN"},
                         "categoryId":{"type":"integer","description":"帖子分类ID"},
                         "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
                         "password":{"type":"string","description":"登录密码，默认123456"}
@@ -349,6 +351,7 @@ public class McpSdkServerConfig {
                     "type":"object",
                     "properties":{
                         "id":{"type":"integer"},"title":{"type":"string"},"content":{"type":"string"},
+                        "contentFormat":{"type":"string"},
                         "authorId":{"type":"integer"},"authorName":{"type":"string"}
                     },
                     "required":["id","title"]
@@ -358,10 +361,135 @@ public class McpSdkServerConfig {
                     Map<String, Object> args = request.arguments();
                     String title = String.valueOf(args.get("title"));
                     String content = String.valueOf(args.get("content"));
+                    String contentFormat = args.containsKey("contentFormat") ? String.valueOf(args.get("contentFormat")) : null;
                     Long categoryId = ((Number) args.get("categoryId")).longValue();
                     String username = String.valueOf(args.get("username"));
                     String password = String.valueOf(args.get("password"));
-                    return toolHandler.handlePostCreate(title, content, categoryId, username, password);
+                    return toolHandler.handlePostCreate(title, content, categoryId, contentFormat, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_post_list", """
+                分页列出帖子。只返回元数据（不含正文），需要正文请调用 h3_coding_hub_post_get。
+                适合遍历论坛找帖子；若已有关键词，优先用 h3_coding_hub_post_search。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "categoryId":{"type":"integer","description":"按分类过滤，缺省不过滤"},
+                        "keyword":{"type":"string","description":"按标题关键词过滤，缺省不过滤"},
+                        "sortBy":{"type":"string","description":"排序方式：hot 或 latest，缺省 latest"},
+                        "page":{"type":"integer","description":"页码，从0开始，缺省0"},
+                        "size":{"type":"integer","description":"每页数量，缺省20"}
+                    }
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "posts":{"type":"array","items":{"type":"object","properties":{
+                            "id":{"type":"integer"},"title":{"type":"string"},
+                            "contentFormat":{"type":"string"},
+                            "categoryId":{"type":"integer"},"categoryName":{"type":"string"},
+                            "authorId":{"type":"integer"},"authorName":{"type":"string"},
+                            "viewCount":{"type":"integer"},"likeCount":{"type":"integer"},
+                            "commentCount":{"type":"integer"},"score":{"type":"number"},
+                            "pinned":{"type":"boolean"},"visibility":{"type":"string"},
+                            "createdAt":{"type":"string"},"updatedAt":{"type":"string"}}}},
+                        "totalElements":{"type":"integer"},"totalPages":{"type":"integer"},
+                        "page":{"type":"integer"},"size":{"type":"integer"}
+                    },
+                    "required":["posts","totalElements"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long categoryId = args != null && args.get("categoryId") != null
+                            ? ((Number) args.get("categoryId")).longValue() : null;
+                    String keyword = args != null && args.get("keyword") != null ? String.valueOf(args.get("keyword")) : null;
+                    String sortBy = args != null && args.get("sortBy") != null ? String.valueOf(args.get("sortBy")) : null;
+                    Integer page = args != null && args.get("page") != null ? ((Number) args.get("page")).intValue() : null;
+                    Integer size = args != null && args.get("size") != null ? ((Number) args.get("size")).intValue() : null;
+                    return toolHandler.handlePostList(categoryId, keyword, sortBy, page, size);
+                });
+
+        registerTool(server, "h3_coding_hub_post_update", """
+                更新已有帖子。需要传入账号密码进行认证，只有作者本人或管理员可更新。
+                未提供的字段保持原值（title/content/categoryId/contentFormat 均可只传要改的那一个）。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "postId":{"type":"integer","description":"帖子ID"},
+                        "title":{"type":"string","description":"新标题，缺省保持原值"},
+                        "content":{"type":"string","description":"新正文，Markdown 或 HTML 原文，缺省保持原值"},
+                        "contentFormat":{"type":"string","enum":["MARKDOWN","HTML"],"description":"正文格式，缺省保持原值"},
+                        "categoryId":{"type":"integer","description":"新分类ID，缺省保持原值"},
+                        "username":{"type":"string","description":"登录账号，MCP客户端应传入客户端所在系统的登录账号"},
+                        "password":{"type":"string","description":"登录密码，默认123456"}
+                    },
+                    "required":["postId","username","password"]
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "id":{"type":"integer"},"title":{"type":"string"},"content":{"type":"string"},
+                        "contentFormat":{"type":"string"},
+                        "authorId":{"type":"integer"},"authorName":{"type":"string"}
+                    },
+                    "required":["id","title"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long postId = ((Number) args.get("postId")).longValue();
+                    String title = args.get("title") != null ? String.valueOf(args.get("title")) : null;
+                    String content = args.get("content") != null ? String.valueOf(args.get("content")) : null;
+                    String contentFormat = args.get("contentFormat") != null ? String.valueOf(args.get("contentFormat")) : null;
+                    Long categoryId = args.get("categoryId") != null ? ((Number) args.get("categoryId")).longValue() : null;
+                    String username = String.valueOf(args.get("username"));
+                    String password = String.valueOf(args.get("password"));
+                    return toolHandler.handlePostUpdate(postId, title, content, contentFormat, categoryId, username, password);
+                });
+
+        registerTool(server, "h3_coding_hub_post_import", """
+                获取帖子导入接口信息。本工具不接收文件内容，只回传 REST API 详情，
+                客户端应使用 HTTP Multipart POST 直接上传 .md / .html 文件（与 h3_coding_hub_tool_file_upload 同构）。
+
+                服务端解析文件后直接建帖，文件解析完即丢弃（不落盘留存）。
+                title / categoryId / visibility / contentFormat 均可省略，由服务端按规则推导：
+                标题取 <title>、<h1> 或 Markdown 首个标题，退化为文件名；格式按扩展名判定。
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "categoryId":{"type":"integer","description":"可选，导入时的默认分类ID"}
+                    }
+                }
+                """,
+                """
+                {
+                    "type":"object",
+                    "properties":{
+                        "uploadUrl":{"type":"string"},"httpMethod":{"type":"string"},
+                        "contentType":{"type":"string"},"formFields":{"type":"string"},
+                        "limits":{"type":"string"},"requiresAuth":{"type":"string"},
+                        "supportedFileTypes":{"type":"array","items":{"type":"string"}},
+                        "curlExample":{"type":"string"},"instruction":{"type":"string"}
+                    },
+                    "required":["uploadUrl","httpMethod","contentType"]
+                }
+                """,
+                (exchange, request) -> {
+                    Map<String, Object> args = request.arguments();
+                    Long categoryId = args != null && args.get("categoryId") != null
+                            ? ((Number) args.get("categoryId")).longValue() : null;
+                    return toolHandler.handlePostImport(categoryId);
                 });
 
         registerTool(server, "h3_coding_hub_tool_file_upload", """

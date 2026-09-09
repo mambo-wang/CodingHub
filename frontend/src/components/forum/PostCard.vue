@@ -151,15 +151,31 @@ const categoryColors: Record<number, string> = {
 const getCategoryColor = (categoryId: number) => categoryColors[categoryId] || '#7C3AED';
 const getCategoryBg = (categoryId: number) => `${categoryColors[categoryId] || '#7C3AED'}15`;
 
-const contentPreview = computed(() => {
-  if (!props.post.content) return '';
-  const plain = props.post.content
+/** Markdown 纯文本化：沿用原有正则 */
+const stripMarkdown = (text: string) =>
+  text
     .replace(/#{1,6}\s/g, '')
     .replace(/[*_~`]/g, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, '')
     .replace(/\n+/g, ' ')
     .trim();
+
+/**
+ * HTML 纯文本化：DOMParser 只解析不执行，且结果经 {{ }} 插值输出，
+ * 因此不会把列表页变成 XSS 面（Q7 明确排除了「列表页渲染富文本片段」）。
+ */
+const htmlToPlainText = (html: string) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+};
+
+const contentPreview = computed(() => {
+  if (!props.post.content) return '';
+  const isHtml = (props.post.contentFormat || 'MARKDOWN').toUpperCase() === 'HTML';
+  const plain = isHtml
+    ? htmlToPlainText(props.post.content)
+    : stripMarkdown(props.post.content);
   return plain.length > 50 ? plain.slice(0, 50) + '…' : plain;
 });
 

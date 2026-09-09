@@ -4,6 +4,8 @@ export interface ForumPost {
   id: number;
   title: string;
   content: string;
+  /** 正文存储格式：MARKDOWN 或 HTML */
+  contentFormat?: string;
   authorId: number;
   authorName: string;
   authorNickname?: string;
@@ -29,6 +31,15 @@ export interface ForumPostCreateRequest {
   categoryId: number;
   tagIds?: number[];
   visibility?: string;
+  /** MARKDOWN 或 HTML，缺省由服务端按 MARKDOWN 处理 */
+  contentFormat?: string;
+}
+
+export interface ForumPostImportParams {
+  title?: string;
+  categoryId?: number;
+  visibility?: string;
+  contentFormat?: string;
 }
 
 export interface ForumComment {

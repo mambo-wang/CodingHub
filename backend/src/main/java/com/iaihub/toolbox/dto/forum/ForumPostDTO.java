@@ -10,6 +10,7 @@ public record ForumPostDTO(
     Long id,
     String title,
     String content,
+    String contentFormat,
     Long authorId,
     String authorName,
     String authorNickname,

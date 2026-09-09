@@ -41,6 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -58,6 +60,9 @@ import java.util.Map;
  *   <li>h3_coding_hub_tool_files - 获取工具文件</li>
  *   <li>h3_coding_hub_post_search - 搜索帖子</li>
  *   <li>h3_coding_hub_post_get - 获取帖子详情</li>
+ *   <li>h3_coding_hub_post_list - 帖子列表（仅元数据）</li>
+ *   <li>h3_coding_hub_post_update - 更新帖子（需要认证）</li>
+ *   <li>h3_coding_hub_post_import - 获取帖子导入接口信息</li>
  *   <li>h3_coding_hub_tool_download - 获取文件下载链接</li>
  *   <li>h3_coding_hub_tool_create - 创建工具（需要认证）</li>
  *   <li>h3_coding_hub_post_create - 创建帖子（需要认证）</li>
@@ -210,6 +215,7 @@ public class IaihubToolHandler {
                     post.getId(),
                     post.getTitle(),
                     post.getContent() != null ? post.getContent() : "",
+                    post.getContentFormat() != null ? post.getContentFormat().name() : "MARKDOWN",
                     post.getAuthorId() != null ? post.getAuthorId() : 0,
                     post.getCreatedAt() != null ? post.getCreatedAt().toString() : ""
             ));
@@ -293,8 +299,9 @@ public class IaihubToolHandler {
      * 处理创建帖子（认证参数由 MCP 客户端传入）
      */
     public McpSchema.CallToolResult handlePostCreate(String title, String content, Long categoryId,
-                                                      String username, String password) {
-        logger.info("MCP create post: title={}, categoryId={}, username={}", title, categoryId, username);
+                                                      String contentFormat, String username, String password) {
+        logger.info("MCP create post: title={}, categoryId={}, contentFormat={}, username={}",
+                title, categoryId, contentFormat, username);
         try {
             // 使用 MCP 客户端传入的账号密码登录
             LoginRequest loginRequest = LoginRequest.builder()
@@ -305,13 +312,108 @@ public class IaihubToolHandler {
             Long userId = loginResult.getUser().getId();
 
             // 调用创建帖子
-            ForumPostCreateRequest request = new ForumPostCreateRequest(title, content, categoryId, null, null);
+            ForumPostCreateRequest request = new ForumPostCreateRequest(title, content, categoryId, null, null, contentFormat);
             ForumPostDTO created = postService.createPost(userId, request);
             String json = toJson(created);
             return successResult(json);
         } catch (Exception e) {
             logger.error("Error creating post via MCP", e);
             return errorResult("创建帖子失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理更新帖子（认证参数由 MCP 客户端传入）
+     * 未提供的字段保持原值——先取现有帖子，再与入参合并。
+     */
+    public McpSchema.CallToolResult handlePostUpdate(Long postId, String title, String content,
+                                                      String contentFormat, Long categoryId,
+                                                      String username, String password) {
+        logger.info("MCP update post: postId={}, contentFormat={}, username={}", postId, contentFormat, username);
+        try {
+            LoginRequest loginRequest = LoginRequest.builder()
+                    .username(username)
+                    .password(password)
+                    .build();
+            LoginResponse loginResult = userService.login(loginRequest);
+            User mcpUser = User.builder()
+                    .id(loginResult.getUser().getId())
+                    .username(loginResult.getUser().getUsername())
+                    .role(loginResult.getUser().getRole() != null ? Role.valueOf(loginResult.getUser().getRole()) : Role.USER)
+                    .build();
+
+            ForumPostDTO current = postService.getPostForEdit(postId, mcpUser);
+            ForumPostCreateRequest request = new ForumPostCreateRequest(
+                    title != null && !title.isBlank() ? title : current.title(),
+                    content != null && !content.isBlank() ? content : current.content(),
+                    categoryId != null ? categoryId : current.categoryId(),
+                    null,
+                    current.visibility(),
+                    contentFormat != null && !contentFormat.isBlank() ? contentFormat : current.contentFormat()
+            );
+
+            ForumPostDTO updated = postService.updatePost(postId, mcpUser, request);
+            return successResult(toJson(updated));
+        } catch (Exception e) {
+            logger.error("Error updating post via MCP", e);
+            return errorResult("更新帖子失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理帖子列表（仅元数据，不含正文；需要正文请调用 h3_coding_hub_post_get）
+     */
+    public McpSchema.CallToolResult handlePostList(Long categoryId, String keyword, String sortBy,
+                                                    Integer page, Integer size) {
+        logger.info("MCP post list: categoryId={}, keyword={}, sortBy={}, page={}, size={}",
+                categoryId, keyword, sortBy, page, size);
+        try {
+            Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 20);
+            Page<ForumPostDTO> posts = postService.getPostList(categoryId, null, keyword,
+                    sortBy != null ? sortBy : "latest", pageable);
+
+            List<PostSummary> items = posts.getContent().stream()
+                    .map(p -> new PostSummary(
+                            p.id(), p.title(), p.contentFormat(),
+                            p.categoryId(), p.categoryName(),
+                            p.authorId(), p.authorName(),
+                            p.viewCount(), p.likeCount(), p.commentCount(),
+                            p.score() != null ? p.score().doubleValue() : 0.0,
+                            p.pinned() != null ? p.pinned() : false,
+                            p.visibility(),
+                            p.createdAt() != null ? p.createdAt().toString() : "",
+                            p.updatedAt() != null ? p.updatedAt().toString() : ""
+                    ))
+                    .toList();
+
+            String json = toJson(new PostListResponse(items, posts.getTotalElements(),
+                    posts.getTotalPages(), posts.getNumber(), posts.getSize()));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error listing posts", e);
+            return errorResult("获取帖子列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理获取帖子导入接口信息（告知客户端 REST API 详情）。
+     * MCP 协议不便直接传二进制文件，因此沿用 tool_file_upload 的惯例：只回传接口信息。
+     */
+    public McpSchema.CallToolResult handlePostImport(Long categoryId) {
+        logger.info("MCP post import info: categoryId={}", categoryId);
+        try {
+            String json = toJson(new PostImportInfoResponse(
+                    "/api/forum/posts/import",
+                    "POST",
+                    "multipart/form-data",
+                    "file (必填, .md/.markdown/.html/.htm); title, categoryId, visibility, contentFormat (均可选，缺省由服务端推导)",
+                    "单文件最大 10MB，编码需为 UTF-8",
+                    "需要 Bearer Token（Authorization 头）"
+            ));
+            return successResult(json);
+        } catch (Exception e) {
+            logger.error("Error getting post import info", e);
+            return errorResult("获取帖子导入接口信息失败: " + e.getMessage());
         }
     }
 
@@ -894,14 +996,105 @@ public class IaihubToolHandler {
         public Long id;
         public String title;
         public String content;
+        public String contentFormat;
         public Long authorId;
         public String createdAt;
-        public PostDetailResponse(Long id, String title, String content, Long authorId, String createdAt) {
+        public PostDetailResponse(Long id, String title, String content, String contentFormat, Long authorId, String createdAt) {
             this.id = id;
             this.title = title;
             this.content = content;
+            this.contentFormat = contentFormat;
             this.authorId = authorId;
             this.createdAt = createdAt;
+        }
+    }
+
+    /** 帖子列表项：Q9 只返回元数据，不含正文（需要正文请调用 post_get）。 */
+    private static class PostSummary {
+        public Long id;
+        public String title;
+        public String contentFormat;
+        public Long categoryId;
+        public String categoryName;
+        public Long authorId;
+        public String authorName;
+        public Integer viewCount;
+        public Integer likeCount;
+        public Integer commentCount;
+        public Double score;
+        public Boolean pinned;
+        public String visibility;
+        public String createdAt;
+        public String updatedAt;
+        public PostSummary(Long id, String title, String contentFormat, Long categoryId, String categoryName,
+                           Long authorId, String authorName, Integer viewCount, Integer likeCount,
+                           Integer commentCount, Double score, Boolean pinned, String visibility,
+                           String createdAt, String updatedAt) {
+            this.id = id;
+            this.title = title;
+            this.contentFormat = contentFormat;
+            this.categoryId = categoryId;
+            this.categoryName = categoryName;
+            this.authorId = authorId;
+            this.authorName = authorName;
+            this.viewCount = viewCount;
+            this.likeCount = likeCount;
+            this.commentCount = commentCount;
+            this.score = score;
+            this.pinned = pinned;
+            this.visibility = visibility;
+            this.createdAt = createdAt;
+            this.updatedAt = updatedAt;
+        }
+    }
+
+    private static class PostListResponse {
+        public List<PostSummary> posts;
+        public long totalElements;
+        public int totalPages;
+        public int page;
+        public int size;
+        public PostListResponse(List<PostSummary> posts, long totalElements, int totalPages, int page, int size) {
+            this.posts = posts;
+            this.totalElements = totalElements;
+            this.totalPages = totalPages;
+            this.page = page;
+            this.size = size;
+        }
+    }
+
+    private static class PostImportInfoResponse {
+        public String uploadUrl;
+        public String httpMethod;
+        public String contentType;
+        public String formFields;
+        public String limits;
+        public String requiresAuth;
+        public String[] supportedFileTypes;
+        public String curlExample;
+        public String explanation;
+        public String instruction;
+        public PostImportInfoResponse(String uploadUrl, String httpMethod, String contentType,
+                                       String formFields, String limits, String requiresAuth) {
+            this.uploadUrl = uploadUrl;
+            this.httpMethod = httpMethod;
+            this.contentType = contentType;
+            this.formFields = formFields;
+            this.limits = limits;
+            this.requiresAuth = requiresAuth;
+            this.supportedFileTypes = new String[]{"md", "markdown", "html", "htm"};
+            this.curlExample = "curl -X POST \"http://localhost:8082" + uploadUrl + "\" \\\n"
+                    + "  -H \"Authorization: Bearer <token>\" \\\n"
+                    + "  -F \"file=@/path/to/post.md\" \\\n"
+                    + "  -F \"categoryId=1\"";
+            this.explanation = "MCP 协议不直接支持二进制文件传输，因此本工具只回传导入接口信息，"
+                    + "由客户端自行以 HTTP Multipart POST 上传 .md / .html 文件。"
+                    + "服务端解析后直接建帖，文件解析完即丢弃（不落盘留存）。"
+                    + "title / categoryId / visibility / contentFormat 均可省略，由服务端推导。";
+            this.instruction = "使用 HTTP " + httpMethod + " 请求 " + uploadUrl
+                    + "，Content-Type 设为 " + contentType
+                    + "，表单字段: " + formFields
+                    + "。" + requiresAuth + "。返回值为创建后的帖子。";
         }
     }
 

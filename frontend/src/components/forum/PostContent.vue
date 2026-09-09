@@ -18,7 +18,11 @@ const themeStore = useThemeStore()
 
 const props = defineProps<{
   content: string
+  /** 正文存储格式：MARKDOWN（缺省）或 HTML */
+  contentFormat?: string
 }>()
+
+const isHtml = computed(() => (props.contentFormat || 'MARKDOWN').toUpperCase() === 'HTML')
 
 // 根据当前主题初始化 mermaid
 const initMermaid = () => {
@@ -63,7 +67,8 @@ const md = markdownIt({
 
 const processedHtml = computed(() => {
   mermaidId = 0
-  let html = md.render(props.content)
+  // HTML 帖直接输出原文，不再过 markdown-it——否则整篇 HTML 文档会被当成段落文本处理
+  let html = isHtml.value ? props.content : md.render(props.content)
 
   // 内部工具链接添加 target="_blank"
   html = html.replace(

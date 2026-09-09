@@ -9,5 +9,6 @@ public record ForumPostCreateRequest(
     @NotBlank String content,
     @NotNull Long categoryId,
     List<Long> tagIds,
-    String visibility
+    String visibility,
+    String contentFormat
 ) {}

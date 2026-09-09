@@ -10,11 +10,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import com.iaihub.toolbox.model.User;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -74,6 +76,28 @@ public class ForumPostController {
         }
         Long authorId = user.getId();
         ForumPostDTO created = postService.createPost(authorId, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * 导入 .md / .html 文件直接建帖（文件解析后即丢弃，不落盘留存）。
+     * title / categoryId / visibility / contentFormat 均可省略，由服务端按规则推导。
+     */
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ForumPostDTO> importPost(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String visibility,
+            @RequestParam(required = false) String contentFormat) {
+
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        ForumPostDTO created = postService.importPost(user.getId(), file, title, categoryId, visibility, contentFormat);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

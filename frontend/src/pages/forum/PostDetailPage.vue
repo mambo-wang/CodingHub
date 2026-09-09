@@ -95,7 +95,7 @@
           </button>
         </div>
 
-        <PostContent :content="post.content" />
+        <PostContent :content="post.content" :content-format="post.contentFormat" />
       </div>
 
       <div class="comments-section">

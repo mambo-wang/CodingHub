@@ -31,6 +31,11 @@ public class ForumPost {
     @Column(nullable = false, columnDefinition = "text")
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_format", nullable = false, length = 20)
+    @Builder.Default
+    private ContentFormat contentFormat = ContentFormat.MARKDOWN;
+
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 

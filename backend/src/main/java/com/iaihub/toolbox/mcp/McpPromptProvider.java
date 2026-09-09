@@ -390,7 +390,7 @@ public class McpPromptProvider {
     private McpServerFeatures.SyncPromptSpecification forumPost() {
         McpSchema.Prompt prompt = McpSchema.Prompt.builder("forum-post")
                 .title("论坛发帖")
-                .description("将本地 Markdown 文件或指定内容发布到 CodingHub 论坛")
+                .description("将本地 Markdown / HTML 文件或指定内容发布到 CodingHub 论坛")
                 .arguments(List.of(
                         McpSchema.PromptArgument.builder("filePath")
                                 .description("要发布的本地 Markdown 文件路径")
@@ -423,14 +423,19 @@ public class McpPromptProvider {
                     操作步骤:
                     1. 准备帖子内容:
                        %s
-                       - 如果是文件路径，读取该 Markdown 文件内容作为帖子正文
+                       - 如果是 .md / .html 文件路径，优先走步骤 2 的导入方式，由服务端解析
+                       - 否则读取文件内容作为帖子正文，并判断格式（Markdown 或 HTML）
                        - 如果指定了标题，使用该标题；否则从文件内容提取标题
-                    2. 确认 categoryId（论坛分类 ID）:
+                    2. 若来源是文件，调用 h3_coding_hub_post_import 获取导入接口信息，
+                       再用 HTTP Multipart POST 上传该文件（服务端解析后直接建帖，文件不留存）；
+                       拿到返回的帖子后跳到步骤 5
+                    3. 确认 categoryId（论坛分类 ID）:
                        - 可通过 h3_coding_hub_post_search 查看已有帖子的分类来推断
                        - 或询问用户希望发到哪个分类
-                    3. 调用 h3_coding_hub_post_create 创建帖子:
+                    4. 调用 h3_coding_hub_post_create 创建帖子:
                        - title: 帖子标题
-                       - content: Markdown 正文
+                       - content: 帖子正文原文
+                       - contentFormat: MARKDOWN 或 HTML（省略则默认 MARKDOWN）
                        - categoryId: 论坛分类 ID
                        - username/password: 从记忆中获取
                     4. 创建成功后调用 h3_coding_hub_post_get 确认帖子内容完整
