@@ -1,15 +1,25 @@
 ---
 type: pitfall
-title: "CodeBuddy 插件清单入口是 .codebuddy-plugin/plugin.json，根目录 plugin.json 不能替代"
-tags: ["codebuddy", "pitfall"]
-aliases: ["configPath", "plugin-manifest", "codebuddy-plugin", "插件清单"]
+title: CodeBuddy 插件清单入口是 .codebuddy-plugin/plugin.json，根目录 plugin.json 不能替代
+tags:
+- codebuddy
+- pitfall
+aliases:
+- configPath
+- plugin-manifest
+- codebuddy-plugin
+- 插件清单
 metadata:
   date: 2026-08-27
-  related_modules: ["plugin"]
+  related_modules:
+  - plugin
   severity: high
-status: stable
-generated: { by: codewiki/5.4.4, at: 2026-08-27T09:34:57Z }
+status: deprecated
+generated:
+  by: codewiki/5.4.4
+  at: 2026-08-27 09:34:57+00:00
 stale_after: 2027-02-23
+reject_reason: '"唯一入口"表述被实测反驳：CodeBuddy 客户端同样识别 .claude-plugin/plugin.json。替代笔记：2026-09-05-codebuddy-插件清单入口兼容双格式codebuddy-pluginpluginjson-或-claude-plu.md'
 ---
 
 ## 背景

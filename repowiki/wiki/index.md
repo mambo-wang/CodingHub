@@ -6,7 +6,7 @@ aliases:
 - 知识笔记索引
 ---
 
-<!-- 自动生成于 2026-08-27T17:35:03+08:00 | Health Score: 0/100 | 本文件由系统自动维护 -->
+<!-- 自动生成于 2026-09-05T19:46:25+08:00 | Health Score: 0/100 | 本文件由系统自动维护 -->
 
 # 项目文档索引
 
@@ -32,6 +32,7 @@ aliases:
 
 ## 知识笔记
 
+* [CodeBuddy 插件清单入口兼容双格式：.codebuddy-plugin/plugin.json 或 .claude-plugin/plugin.json](../notes/2026-09-05-codebuddy-插件清单入口兼容双格式codebuddy-pluginpluginjson-或-claude-plu.md) - general (general, 2026-09-05)
 * [CodeBuddy 插件清单入口是 .codebuddy-plugin/plugin.json，根目录 plugin.json 不能替代](../notes/2026-08-27-codebuddy-插件清单入口是-codebuddy-pluginpluginjson根目录-pluginjson-不.md) - pitfall (pitfall, 2026-08-27)
 * [Windows 文件锁导致 JGit bare 仓库重建失败，仓库目录应带版本号](../notes/2026-08-27-windows-文件锁导致-jgit-bare-仓库重建失败仓库目录应带版本号.md) - pitfall (pitfall, 2026-08-27)
 * [命令注册名 = frontmatter name（无则文件名），点分文件名会产生错误命令名](../notes/2026-08-27-命令注册名-frontmatter-name无则文件名点分文件名会产生错误命令名.md) - pitfall (pitfall, 2026-08-27)

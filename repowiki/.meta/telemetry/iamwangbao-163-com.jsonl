@@ -1,0 +1,5 @@
+{"t": "hit", "doc": "notes/2026-08-27-codebuddy-插件清单入口是-codebuddy-pluginpluginjson根目录-pluginjson-不.md", "at": "2026-09-05", "n": 1}
+{"t": "hit", "doc": "notes/2026-08-27-命令注册名-frontmatter-name无则文件名点分文件名会产生错误命令名.md", "at": "2026-09-05", "n": 1}
+{"t": "hit", "doc": "notes/2026-08-27-windows-文件锁导致-jgit-bare-仓库重建失败仓库目录应带版本号.md", "at": "2026-09-05", "n": 1}
+{"t": "hit", "doc": "notes/2026-08-26-内容实体计数更新应改用-repository-层原子-sqlmodifying而非读改写-save.md", "at": "2026-09-05", "n": 1}
+{"t": "hit", "doc": "notes/2026-08-26-jpa-preupdate-会在任意-save-时刷新-updatedat读改写式计数更新会污染更新时间.md", "at": "2026-09-05", "n": 1}
